@@ -2,106 +2,192 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Architect VM - Precision Glow Flow</title>
+    <title>Architect VM - Logic Engine Edition</title>
     <style>
         :root {
-            --bg: #020617; --panel: #0f172a; --accent: #c084fc;
-            --cyan: #22d3ee; --green: #4ade80; --rose: #fb7185; --border: rgba(255, 255, 255, 0.1);
+            --bg: #050b18;
+            --panel: #0f172a;
+            --accent: #c084fc;
+            --cyan: #22d3ee;
+            --green: #4ade80;
+            --rose: #fb7185;
+            --border: rgba(255, 255, 255, 0.08);
+            --card-bg: rgba(15, 23, 42, 0.6);
         }
+
         body {
-            margin: 0; background: var(--bg); color: #f8fafc; font-family: 'Fira Code', monospace;
-            display: grid; grid-template-columns: 400px 1fr 350px; grid-template-rows: 1fr 250px;
-            height: 100vh; overflow: hidden;
+            margin: 0;
+            background: var(--bg);
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, sans-serif;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* Guided Popups */
-        .tour-popup {
-            position: absolute; background: white; color: #000; padding: 12px; border-radius: 8px;
-            font-size: 11px; font-family: sans-serif; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            z-index: 1000; width: 220px; border-left: 6px solid var(--accent);
-            display: none; pointer-events: none; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .tour-popup::after { content: ''; position: absolute; border: 10px solid transparent; }
-        .pop-left::after { border-right-color: white; left: -20px; top: 20px; }
-        .pop-right::after { border-left-color: white; right: -20px; top: 20px; }
-
-        @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-
-        .data-pulse {
-            position: fixed; width: 16px; height: 16px; border-radius: 50%;
-            z-index: 9999; pointer-events: none; opacity: 0;
-            box-shadow: 0 0 20px rgba(255,255,255,0.8);
-            transition: opacity 0.3s;
-        }
-        .pulse-fetch { background: var(--cyan); box-shadow: 0 0 30px 10px var(--cyan); }
-        .pulse-exec { background: var(--green); box-shadow: 0 0 30px 10px var(--green); }
-
-        .glow-cyan { animation: pulseCyan 2s ease-out; }
-        .glow-green { animation: pulseGreen 2s ease-out; }
-
-        @keyframes pulseCyan {
-            0% { background: rgba(34, 211, 238, 0); box-shadow: 0 0 0px transparent; }
-            50% { background: rgba(34, 211, 238, 0.3); box-shadow: 0 0 20px var(--cyan); }
-            100% { background: transparent; box-shadow: 0 0 0px transparent; }
-        }
-        @keyframes pulseGreen {
-            0% { background: rgba(74, 222, 128, 0); box-shadow: 0 0 0px transparent; }
-            50% { background: rgba(74, 222, 128, 0.4); box-shadow: 0 0 25px var(--green); }
-            100% { background: transparent; box-shadow: 0 0 0px transparent; }
+        /* --- SIDEBAR --- */
+        .sidebar {
+            background: #0a1120;
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
         }
 
-        .sidebar { background: var(--panel); padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .canvas { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 1px, transparent 1px); background-size: 20px 20px; }
-        .module { border: 2px solid var(--border); border-radius: 12px; padding: 20px; background: rgba(15, 23, 42, 0.8); width: 90%; position: relative; transition: all 0.8s ease; }
+        .logo-section h2 { margin: 0; font-size: 24px; letter-spacing: 1px; color: var(--cyan); }
+        .logo-section p { font-size: 13px; color: #64748b; margin: 4px 0 10px 0; }
+
+        .section-label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; display: block; }
+
+        /* Speed Control */
+        .speed-control {
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        /* Editor Tabs */
+        .tab-container { display: flex; gap: 5px; margin-bottom: 5px; }
+        .tab {
+            padding: 8px 14px; font-size: 12px; background: #1e293b; border-radius: 4px;
+            cursor: pointer; color: #94a3b8; border: 1px solid transparent;
+        }
+        .tab.active { background: var(--accent); color: white; }
+
+        #editor-container { position: relative; }
+        textarea {
+            width: 100%; height: 180px; background: #000; color: var(--green);
+            border: 1px solid var(--border); border-radius: 6px; padding: 12px;
+            font-family: 'Fira Code', monospace; font-size: 14px; resize: none;
+            box-sizing: border-box; outline: none; line-height: 1.5;
+        }
+
+        .algo-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.3s;
+        }
+        .algo-card.active { border-color: var(--accent); background: rgba(192, 132, 252, 0.1); }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
+        .btn {
+            flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;
+            text-transform: uppercase; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-primary { background: var(--cyan); color: #000; }
+        .btn-secondary { background: #1e293b; color: white; }
         
-        /* IR Labels Styles */
-        .ir-labels { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-bottom: 4px; text-align: center; }
-        .ir-label { font-size: 8px; color: var(--accent); font-weight: bold; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+        .btn-small { padding: 8px; font-size: 11px; flex: 1; }
 
-        .bin-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-top: 2px; border-radius: 4px; padding: 5px; }
-        .bit { height: 24px; background: #1e293b; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; border: 1px solid rgba(255,255,255,0.05); transition: 0.5s; }
+        /* --- MAIN CANVAS --- */
+        .main-content {
+            padding: 30px; display: flex; flex-direction: column; gap: 20px;
+            background: radial-gradient(circle at 50% 50%, #111827 0%, #050b18 100%);
+            background-image: radial-gradient(var(--border) 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        .flow-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+        .work-module { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; flex-shrink: 0; }
+
+        .ram-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .ram-cell {
+            width: 50px; height: 50px; background: #1e293b; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+            color: #64748b; border: 1px solid transparent; transition: 0.3s;
+        }
+        .ram-cell.active { border-color: var(--cyan); color: var(--cyan); background: rgba(34, 211, 238, 0.1); font-weight: bold; }
+
+        .cpu-module { flex: 1; max-width: 600px; text-align: center; }
+        .ir-labels { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-bottom: 6px; }
+        .ir-label { font-size: 10px; color: #64748b; font-weight: 800; text-transform: uppercase; }
+        .bin-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; background: #000; padding: 12px; border-radius: 6px; }
+        .bit { height: 38px; background: #1e293b; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         .bit.on { background: var(--cyan); color: #000; font-weight: bold; box-shadow: 0 0 10px var(--cyan); }
         .bit.op { background: var(--accent); color: #fff; }
 
-        .phase-badge { position: absolute; top: -10px; right: 20px; padding: 4px 12px; border-radius: 20px; font-size: 9px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-        .fetch-mode { background: var(--accent); color: white; }
-        .exec-mode { background: var(--green); color: black; }
+        .reg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 340px; }
+        .reg-card { background: #0f172a; border: 1px solid var(--border); padding: 12px; border-radius: 8px; transition: 0.4s; }
+        .reg-card.active { border-color: var(--green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.2); }
+        .reg-id { font-size: 12px; color: var(--green); font-weight: 800; }
+        .reg-val { font-size: 26px; font-weight: 700; display: block; margin: 4px 0; }
+        .reg-desc { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+        .var-tag { color: var(--accent); font-weight: bold; font-size: 11px; }
 
-        .mem-table { font-size: 11px; width: 100%; border-collapse: collapse; }
-        .mem-table td { border: 1px solid var(--border); padding: 8px; }
-        .current-pc { background: rgba(74, 222, 128, 0.1); color: var(--cyan); font-weight: bold; border-left: 4px solid var(--cyan) !important; transition: 0.3s; }
-        .reg-item { border: 1px solid var(--border); padding: 10px; border-radius: 6px; text-align: center; transition: 0.3s; position: relative; }
-        .reg-label { font-size: 7px; color: var(--green); opacity: 0.8; display: block; margin-top: 4px; text-transform: uppercase; }
+        .narration-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; display: flex; justify-content: space-around; }
+        .step-item { display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 14px; }
+        .step-num { width: 26px; height: 26px; border-radius: 50%; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
+        .step-item.active { color: var(--accent); font-weight: bold; }
+        .step-item.active .step-num { background: var(--accent); color: white; }
 
-        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; transition: 0.2s; }
-        .btn-primary { background: var(--green); color: #000; }
-        .btn-step { background: var(--accent); color: #fff; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .explanation-panel { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 120px; }
+        .exp-title { font-size: 14px; font-weight: 800; color: var(--cyan); text-transform: uppercase; margin-bottom: 8px; }
+        .exp-text { font-size: 15px; color: #cbd5e1; line-height: 1.6; }
+        .highlight-text { color: var(--accent); font-weight: bold; }
 
-        select { background: #000; color: var(--accent); border: 1px solid var(--border); padding: 8px; border-radius: 4px; font-family: inherit; }
-        #logic-narrative { min-height: 40px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 13px; border: 1px solid var(--border); line-height: 1.4; }
-        #final-result { margin-top: 10px; padding: 10px; border-radius: 6px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--green); color: var(--green); text-align: center; display: none; }
-        #status-display { padding: 8px; background: rgba(192, 132, 252, 0.1); border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 11px; text-align: center; font-weight: bold; }
+        .hidden { display: none; }
+
+       #hover-info {
+    position: absolute; /* follow hovered element */
+    display: none;
+    background: rgba(15,23,42,0.9);
+    color: var(--cyan);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: monospace;
+    z-index: 9999;
+
+    /* shrink to content */
+    width: max-content;
+    max-width: 300px; /* optional max width */
+    white-space: nowrap; /* keep single line unless too long */
+
+    /* spacing inside content */
+    line-height: 1.5;
+}
+
     </style>
 </head>
 <body>
 
-<div id="pulse" class="data-pulse"></div>
-
-<aside class="sidebar" style="grid-row: 1/3;">
-    <h3 style="color: var(--cyan); margin: 0; letter-spacing: 2px;">VM ARCHITECT</h3>
+    <div id="hover-info" style="
+    position: fixed;
+    top: 50px;
+    right: 50px;
+    background: rgba(15,23,42,0.9);
+    color: var(--cyan);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: monospace;
+    display: none;
+    z-index: 9999;
+">
     
-    <label style="font-size: 10px; color: var(--accent);">CHOOSE ALGORITHM</label>
-    <select id="algo-select" onchange="loadAlgorithm()">
-        <option value="fact">Factorial (Dynamic Loop)</option>
-        <option value="fib">Fibonacci (Sequence 0-8)</option>
-    </select>
+    <div id="hover-info-content"></div>
+</div>
 
-    <div id="status-display">Task: Awaiting Flash...</div>
+    <aside class="sidebar">
+        <div class="logo-section">
+            <h2>CPU Simulator 3.0</h2>
+            <p>From High-Level Logic to Binary Execution</p>
+        </div>
 
-    <div style="flex-grow: 1; display: flex; flex-direction: column;">
-        <textarea id="editor" style="width: 100%; flex-grow: 1; background: #000; color: var(--green); padding: 12px; border: 1px solid var(--border); resize: none; border-radius: 8px;">
-LOAD R0, 1
+        <div class="tab-container">
+            <div class="tab active" id="tab-c" onclick="switchEditor('c')">High-Level (C++)</div>
+            <div class="tab" id="tab-asm" onclick="switchEditor('asm')">Assembly (ASM)</div>
+        </div>
+
+        <div id="editor-container">
+            <textarea id="c-editor" placeholder="// Write your C++ code here"></textarea>
+            <textarea id="asm-editor" class="hidden">LOAD R0, 1
 LOAD R1, 5
 LOAD R2, 3
 MUL R0, R1
@@ -109,247 +195,605 @@ SUB R1, 1
 JZ R1, 1
 JMP R2
 HALT</textarea>
-    </div>
-    
-    <button class="btn btn-primary" onclick="triggerFlash()">FLASH TO MEMORY</button>
-    <div style="display:flex; gap:10px;">
-        <button id="step-btn" class="btn btn-step" style="flex:1" onclick="triggerStep()">STEP CYCLE</button>
-        <button class="btn" style="flex:1; background: #334155; color: white;" onclick="location.reload()">RESET</button>
-    </div>
-    <div id="final-result"></div>
+        </div>
 
-    <div id="pop1" class="tour-popup pop-left" style="top: 100px; left: 420px; display: block;">
-        <b>STEP 1: INITIALIZE</b><br>Code is ready. Click <b>FLASH</b> to move instructions to RAM.
-    </div>
-    <div id="pop2" class="tour-popup pop-left" style="top: 450px; left: 420px;">
-        <b>STEP 2: RAM READY</b><br>Binary is stored. Click <b>STEP</b> to watch the <b>Fetch Pulse</b>.
-    </div>
-</aside>
+        <div class="speed-control">
+            <span class="section-label">Auto-Run Speed</span>
+            <input type="range" id="speed-slider" min="100" max="5000" step="100" value="3000" oninput="updateSpeedLabel(this.value)">
+            <div id="speed-label" style="font-size: 10px; color: var(--accent); text-align: right; margin-top: 5px;">3.0s delay</div>
+        </div>
 
-<main class="canvas">
-    <div class="module" id="cpu-node">
-        <div id="phase-badge" class="phase-badge fetch-mode">READY</div>
-        <div style="font-size: 10px; color: var(--accent); font-weight: bold;">INSTRUCTION REGISTER [IR]</div>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="triggerFlash()">⚡ Compile & Flash</button>
+            <button class="btn btn-secondary" onclick="resetSim()">Reset</button>
+        </div>
         
-        <div class="ir-labels">
-            <div style="grid-column: span 4" class="ir-label">OPCODE</div>
-            <div style="grid-column: span 3" class="ir-label">DR</div>
-            <div style="grid-column: span 3" class="ir-label">SR1</div>
-            <div style="grid-column: span 6" class="ir-label">IMM6 / SR2</div>
+        <div class="btn-group">
+            <button class="btn btn-secondary btn-small" onclick="triggerBack()">⬅ BACK</button>
+            <button id="step-btn" class="btn btn-primary btn-small" style="background: var(--accent); color: #fff;" onclick="triggerStep()">NEXT STEP ▶</button>
         </div>
-        <div class="bin-grid" id="bit-display"></div>
-        
-        <div id="pop3" class="tour-popup pop-right" style="top: 0; left: -250px;">
-            <b>STEP 3: FETCHED</b><br><span id="fetch-msg">Instruction arrived in the CPU IR.</span>
+        <div class="btn-group">
+            <button id="auto-btn" class="btn btn-secondary btn-small" onclick="toggleAuto()" style="flex: 2;">🔄 AUTO RUN</button>
         </div>
-        <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-        <div id="logic-narrative" style="color: var(--cyan);">System awaiting flash...</div>
-    </div>
-    <div style="font-size: 40px; margin: 10px; color: var(--border);">↓</div>
-    <div class="module" id="reg-node" style="width: 80%;">
-        <div style="font-size: 10px; color: var(--green); font-weight: bold;">REGISTER FILE</div>
-        <div id="reg-file" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;"></div>
-        <div id="pop4" class="tour-popup pop-right" style="bottom: 0; left: -250px;">
-            <b>STEP 4: EXECUTED</b><br><span id="exec-msg">Logic processed and transferred!</span>
-        </div>
-    </div>
-</main>
 
-<aside class="sidebar">
-    <h3 style="color: var(--rose); margin: 0; letter-spacing: 2px;">RAM STATE</h3>
-    <div style="overflow-y: auto; border: 1px solid var(--border); flex-grow: 1; border-radius: 8px;">
-        <table class="mem-table" id="mem-grid"></table>
-    </div>
-</aside>
+        <span class="section-label">Quick Presets</span>
+        <div id="program-list" style="display:flex; flex-direction:column; gap:8px;">
+            <div class="algo-card" onclick="loadPreset('fact')">
+                <div style="font-size: 13px; font-weight: 600;">Factorial N!</div>
+            </div>
+            <div class="algo-card" onclick="loadPreset('fib')">
+                <div style="font-size: 13px; font-weight: 600;">Fibonacci Series</div>
+            </div>
+            <div class="algo-card" onclick="loadPreset('add')">
+                <div style="font-size: 13px; font-weight: 600;">Basic Addition</div>
+            </div>
+        </div>
+
+        <div id="status-bar" style="font-size: 12px; color: var(--cyan); margin-top: 10px; padding: 12px; background: rgba(34, 211, 238, 0.05); border-radius: 4px;">
+            Awaiting logic flash...
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="flow-container">
+            <div class="work-module">
+                <span class="section-label">Main Memory (RAM) – Instruction Storage</span>
+
+<div style="font-size:12px; margin-bottom:8px; color: var(--cyan);">
+    Program Counter (PC): 
+    <span id="pc-display" style="font-weight:bold;">0</span>
+</div>
+
+<div class="ram-grid" id="mem-grid"></div>
+            </div>
+
+            <div class="work-module cpu-module">
+                <span class="section-label">
+Instruction Register (IR) – 16-bit Instruction Breakdown
+</span>
+                <div class="ir-labels">
+                    <div style="grid-column: span 4" class="ir-label">Opcode</div>
+                    <div style="grid-column: span 3" class="ir-label">Dest</div>
+                    <div style="grid-column: span 3" class="ir-label">Src1</div>
+                    <div style="grid-column: span 6" class="ir-label">Imm / Src2</div>
+                </div>
+                <div class="bin-grid" id="bit-display"></div>
+                
+                <div id="logic-display" style="margin-top: 25px;">
+                    <div id="op-name" style="font-size: 20px; font-weight: 800; color: var(--cyan);">STANDBY</div>
+                    <div id="op-math" style="font-size: 13px; color: #64748b; margin-top: 6px;">Instruction processing...</div>
+                </div>
+            </div>
+
+            <div class="work-module">
+                <span class="section-label">Register File</span>
+                <div class="reg-grid" id="reg-file"></div>
+            </div>
+        </div>
+
+        <div class="narration-bar">
+            <div class="step-item active" id="s1"><div class="step-num">1</div><span><b>FETCH</b></span></div>
+            <div class="step-item" id="s2"><div class="step-num">2</div><span><b>EXECUTE</b></span></div>
+            <div class="step-item" id="s3"><div class="step-num">3</div><span><b>STORE</b></span></div>
+        </div>
+
+        <div class="explanation-panel">
+            <div class="exp-title" id="exp-title">System Ready</div>
+            <div class="exp-text" id="exp-text">Select a preset or write code to begin.</div>
+        </div>
+    </main>
 
 <script>
-    let vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false, lastResultReg: 0, initialN: 0 };
-    const ANIM_SPEED = 800; 
+    let vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(24).fill(null), stage: 0, halted: false };
+    let activeMode = 'c';
+    let autoTimer = null;
+    let history = [];
+    let currentPreset = "";
+    let presetVal = 0;
 
-    const algos = {
-        fib: "LOAD R0, 0\nLOAD R1, 1\nLOAD R3, 4\nLOAD R4, 5\nADD R2, R0\nADD R2, R1\nLOAD R0, 0\nADD R0, R1\nLOAD R1, 0\nADD R1, R2\nSUB R4, 1\nJZ R4, 1\nJMP R3\nHALT",
-        fact: "LOAD R0, 1\nLOAD R1, 5\nLOAD R2, 3\nMUL R0, R1\nSUB R1, 1\nJZ R1, 1\nJMP R2\nHALT"
-    };
+    const regNames = ["Accumulator (R0)", "Loop Counter (R1)", "Return Address (R2)", "General R3", "General R4", "General R5", "General R6", "General R7"];
 
-    const regRoles = ["Result Counter", "Loop Counter", "Target Address", "Gen Purpose", "Gen Purpose", "Frame Pointer", "Stack Pointer", "Return Addr"];
-
-    function loadAlgorithm() {
-        const val = document.getElementById('algo-select').value;
-        document.getElementById('editor').value = algos[val];
-        document.getElementById('final-result').style.display = 'none';
-        document.getElementById('status-display').innerText = "Task: Awaiting Flash...";
-        vm.halted = false;
-        vm.pc = 0;
+    function updateSpeedLabel(val) {
+        document.getElementById('speed-label').innerText = (val/1000).toFixed(1) + "s delay";
+        if(autoTimer) { stopAuto(); toggleAuto(); }
     }
 
-    function animatePulse(fromId, toId, type) {
-        const pulse = document.getElementById('pulse');
-        const fromEl = (typeof fromId === 'string') ? document.getElementById(fromId) : fromId;
-        const toEl = (typeof toId === 'string') ? document.getElementById(toId) : toId;
-        const start = fromEl.getBoundingClientRect();
-        const end = toEl.getBoundingClientRect();
-        pulse.className = `data-pulse pulse-${type}`;
-        pulse.style.top = `${start.top + start.height/2}px`;
-        pulse.style.left = `${start.left + start.width/2}px`;
-        pulse.style.opacity = '1';
-        return pulse.animate([
-            { top: `${start.top + start.height/2}px`, left: `${start.left + start.width/2}px`, opacity: 1, scale: 1 },
-            { top: `${end.top + end.height/2}px`, left: `${end.left + end.width/2}px`, opacity: 1, scale: 1.5 },
-            { opacity: 0, scale: 1 }
-        ], { duration: ANIM_SPEED, easing: 'ease-in-out', fill: 'forwards' });
+    function switchEditor(mode) {
+        activeMode = mode;
+        document.getElementById('c-editor').classList.toggle('hidden', mode !== 'c');
+        document.getElementById('asm-editor').classList.toggle('hidden', mode !== 'asm');
+        document.getElementById('tab-c').classList.toggle('active', mode === 'c');
+        document.getElementById('tab-asm').classList.toggle('active', mode === 'asm');
     }
 
-    function hideAllPopups() {
-        document.querySelectorAll('.tour-popup').forEach(p => p.style.display = 'none');
+    function loadPreset(type) {
+        currentPreset = type;
+        if(type === 'fact') {
+            presetVal = prompt("What is the value till you want to run (Factorial N)?", "5");
+            if(presetVal === null) return;
+            switchEditor('asm');
+            document.getElementById('asm-editor').value = `LOAD R0, 1\nLOAD R1, ${presetVal}\nLOAD R2, 3\nMUL R0, R1\nSUB R1, 1\nJZ R1, 2\nJMP R2\nHALT`;
+        } 
+        else if(type === 'fib') {
+            presetVal = prompt("What is the value till you want to run (Fibonacci N)?", "4");
+            if(presetVal === null) return;
+            switchEditor('asm');
+
+            // Robust Fibonacci assembly:
+            // R0 = prev (starts 0)
+            // R1 = curr (starts 1)
+            // R3 = counter (n)
+            // R4 = loop start index (we set to 6)
+            // After looping (n-1) times, R1 will contain F(n)
+            // Program constructed so indexes match the logic below.
+            const n = parseInt(presetVal, 10) || 0;
+            const lines = [
+                "LOAD R0, 0",        // 0
+                "LOAD R1, 1",        // 1
+                `LOAD R3, ${n}`,    // 2  counter = n
+                "LOAD R4, 6",        // 3  loop target index (absolute)
+                // if n == 0 -> HALT immediately (R0 already 0)
+                "JZ R3, 12",         // 4  if R3==0 -> jump to HALT (index 16) (we compute correct offset below but 12 is safe because of program length)
+                "SUB R3, 1",         // 5  decrement counter: now counter = n-1
+                // loop start (index 6)
+                "LOAD R2, 0",        // 6  temp = 0
+                "ADD R2, R0",        // 7  temp = prev
+                "ADD R2, R1",        // 8  temp = prev + curr
+                "LOAD R0, 0",        // 9  prev = 0
+                "ADD R0, R1",        //10  prev = curr
+                "LOAD R1, 0",        //11  curr = 0
+                "ADD R1, R2",        //12  curr = temp
+                "SUB R3, 1",         //13  counter-- 
+                "JZ R3, 2",          //14  if counter==0 -> jump to HALT (skip JMP)
+                "JMP R4",            //15  jump back to loop start (index stored in R4)
+                "HALT"               //16
+            ];
+            // The JZ at index 4 has offset 12 to reach HALT at index 16: 4 + 12 = 16.
+            // The JZ at index 14 uses offset 2 to reach HALT at 16: 14 + 2 = 16.
+            document.getElementById('asm-editor').value = lines.join("\n");
+        }
+        else {
+            switchEditor('c');
+            document.getElementById('c-editor').value = "int a = 10;\nint b = 9;\nint c = a + b;";
+        }
     }
 
-    function triggerFlash() {
-        flashVM();
-        hideAllPopups();
-        document.getElementById('final-result').style.display = 'none';
-        document.getElementById('pop2').style.display = 'block';
-        document.getElementById('logic-narrative').innerText = "Memory loaded. Ready to Fetch.";
-        
-        const algoType = document.getElementById('algo-select').value;
-        document.getElementById('status-display').innerText = (algoType === 'fact') ? `Goal: Calculate ${vm.initialN}!` : "Goal: Fibonacci Seq";
-    }
+    function compileCPP(code) {
+    const lines = code.split("\n");
+    let asm = [];
+    let regMap = {};
+    let regIndex = 0;
+    let memPtr = 20; // start memory pointer for variables
 
-    function triggerStep() {
-        if(vm.halted) return;
-        const activeRow = document.getElementById(`mem-row-${vm.pc}`);
-        const btn = document.getElementById('step-btn');
-        btn.disabled = true;
+    lines.forEach(line => {
+        line = line.trim();
+        if(!line) return;
 
-        if(vm.stage === 0) {
-            document.getElementById('logic-narrative').innerText = "FETCHING: RAM 0x" + vm.pc;
-            activeRow.classList.add('glow-cyan');
-            animatePulse(activeRow, 'bit-display', 'fetch');
-            setTimeout(() => {
-                stepVM();
-                hideAllPopups();
-                document.getElementById('fetch-msg').innerText = `Instruction arrived at IR (from RAM 0x${vm.pc})`;
-                document.getElementById('pop3').style.display = 'block';
-                document.getElementById('bit-display').classList.add('glow-cyan');
-                document.getElementById('phase-badge').className = "phase-badge fetch-mode";
-                document.getElementById('phase-badge').innerText = "FETCHED";
-                btn.disabled = false;
-                setTimeout(() => activeRow.classList.remove('glow-cyan'), 1000);
-            }, ANIM_SPEED);
-        } else {
-            const ins = vm.mem[vm.pc];
-            const rd = (ins >> 9) & 7;
-            const role = regRoles[rd];
-            document.getElementById('logic-narrative').innerText = "EXECUTING...";
-            animatePulse('bit-display', `reg-item-${rd}`, 'exec');
-            
-            setTimeout(() => {
-                stepVM(rd);
-                hideAllPopups();
-                document.getElementById('exec-msg').innerText = `Logic processed and transferred to ${role} [R${rd}]`;
-                document.getElementById('pop4').style.display = 'block';
-                document.getElementById('phase-badge').className = "phase-badge exec-mode";
-                document.getElementById('phase-badge').innerText = "EXECUTED";
-                btn.disabled = false;
-                
-                if(vm.halted) {
-                    const resBox = document.getElementById('final-result');
-                    resBox.style.display = 'block';
-                    const algoType = document.getElementById('algo-select').value;
-                    if(algoType === 'fact') {
-                        resBox.innerHTML = `<b>HALT REACHED</b><br>Factorial of ${vm.initialN} is: <b>${vm.regs[0]}</b>`;
-                    } else {
-                        resBox.innerHTML = `<b>HALT REACHED</b><br>Sequence completed. Result in R0: ${vm.regs[0]}`;
+        // --- vector<int> arr(n)
+        let vecMatch = line.match(/vector<int>\s+(\w+)(\s*\(\s*(\d*)\s*\))?\s*;/);
+        if(vecMatch){
+            const varName = vecMatch[1];
+            const initSize = parseInt(vecMatch[3], 10) || 0;
+
+            // assign a register to hold base address for the vector
+            regMap[varName] = memPtr; // store base memory address
+            // initialize vector cells with 0
+            for(let i=0; i<initSize; i++){
+                asm.push(`LOAD R7, 0`);
+                asm.push(`STORE R7, ${memPtr + i}`);
+            }
+
+            memPtr += Math.max(initSize, 4); // allocate at least 4 cells
+            return;
+        }
+
+        // --- arr.push_back(value)
+        let pushMatch = line.match(/(\w+)\.push_back\((\d+)\)\s*;/);
+        if(pushMatch){
+            const varName = pushMatch[1];
+            const value = parseInt(pushMatch[2], 10);
+
+            if(regMap[varName] !== undefined){
+                asm.push(`LOAD R7, ${value}`);
+                asm.push(`STORE R7, ${memPtr}`);
+                memPtr++;  // next free memory slot
+            }
+            return;
+        }
+
+        // --- sum = sum + arr[i] + ...
+        let sumMatch = line.match(/(\w+)\s*=\s*(.+);/);
+        if(sumMatch){
+            const dest = sumMatch[1];
+            let expr = sumMatch[2];
+
+            // assign dest register
+            const destReg = regIndex++;
+            regMap[dest] = destReg;
+
+            asm.push(`LOAD R${destReg}, 0`); // start sum at 0
+
+            const parts = expr.split('+').map(s=>s.trim());
+            parts.forEach(p => {
+                // register reference
+                if(/^R\d+$/.test(p)){
+                    asm.push(`ADD R${destReg}, ${p}`);
+                }
+                // immediate value
+                else if(/^\d+$/.test(p)){
+                    asm.push(`ADD R${destReg}, ${parseInt(p)}`);
+                }
+                // array element: arr[2]
+                else if(/^(\w+)\[(\d+)\]$/.test(p)){
+                    const m = p.match(/^(\w+)\[(\d+)\]$/);
+                    const arrName = m[1];
+                    const index = parseInt(m[2],10);
+                    if(regMap[arrName] !== undefined){
+                        const memAddr = regMap[arrName] + index; // base + offset
+                        asm.push(`LOAD R7, ${memAddr}`);
+                        asm.push(`ADD R${destReg}, R7`);
                     }
                 }
-            }, ANIM_SPEED);
+            });
+            return;
+        }
+
+        // --- int a = 10;
+        let matchAssign = line.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/);
+        if(matchAssign){
+            const varName = matchAssign[1];
+            const value = parseInt(matchAssign[2],10);
+            regMap[varName] = regIndex;
+            asm.push(`LOAD R${regIndex}, ${value}`);
+            regIndex++;
+            return;
+        }
+
+        // --- int c = a + b;
+        let matchAdd = line.match(/int\s+(\w+)\s*=\s*(\w+)\s*\+\s*(\w+)\s*;/);
+        if(matchAdd){
+            const dest = matchAdd[1];
+            const op1 = matchAdd[2];
+            const op2 = matchAdd[3];
+
+            const destReg = regIndex++;
+            regMap[dest] = destReg;
+
+            const rOp1 = regMap[op1] !== undefined ? regMap[op1] : 0;
+            const rOp2 = regMap[op2] !== undefined ? regMap[op2] : 0;
+
+            asm.push(`LOAD R${destReg}, 0`);
+            asm.push(`ADD R${destReg}, R${rOp1}`);
+            asm.push(`ADD R${destReg}, R${rOp2}`);
+            return;
+        }
+    });
+
+    asm.push("HALT");
+    return asm.join("\n");
+}
+
+    function triggerFlash() {
+    stopAuto();
+
+    if (activeMode === 'c') {
+    currentPreset = '';
+}
+hoverPinned = false;
+hideVarInfo();
+
+    vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(24).fill(null), stage: 0, halted: false };
+    history = [];
+
+    let rawCode;
+    if(activeMode === 'c') {
+        rawCode = compileCPP(document.getElementById('c-editor').value);
+    } else {
+        rawCode = document.getElementById('asm-editor').value;
+    }
+
+    const lines = rawCode.split('\n');
+    let idx = 0;
+
+    // --- Encode instructions normally ---
+    lines.forEach(line => {
+        let p = line.replace(/,/g,'').trim().split(/\s+/);
+        if(!p[0] || p[0] === "//") return;
+
+        let op = 0;
+
+        if(p[0] === "ADD") op = 1; 
+        else if(p[0] === "JZ") op = 4; 
+        else if(p[0] === "JMP") op = 5;
+        else if(p[0] === "LOAD") op = 6; 
+        else if(p[0] === "MUL") op = 7; 
+        else if(p[0] === "SUB") op = 8;
+        else if(p[0] === "STORE") op = 9;
+        else if(p[0] === "HALT") {
+            vm.mem[idx++] = 0;
+            return;
+        }
+
+        let rd = parseInt(p[1]?.replace('R','')) || 0;
+        let rs = parseInt(p[2]?.replace('R','')) || 0;
+        let imm = isNaN(parseInt(p[p.length-1])) ? 0 : parseInt(p[p.length-1]);
+
+        vm.mem[idx++] = ((op & 0xF) << 12) |
+                        ((rd & 0x7) << 9) |
+                        ((rs & 0x7) << 6) |
+                        (imm & 0x3F);
+    });
+
+    // --- NEW: simulate memory initialization once ---
+    let tempRegs = new Array(8).fill(0);
+
+    for(let i = 0; i < vm.mem.length; i++) {
+        const ins = vm.mem[i];
+        if(ins === null) break;
+
+        let op = (ins >> 12) & 0xF;
+        let rd = (ins >> 9) & 7;
+        let rs = (ins >> 6) & 7;
+        let imm = ins & 0x3F;
+
+        if(op === 6) {               // LOAD
+            tempRegs[rd] = imm;
+        }
+        else if(op === 1) {          // ADD
+            tempRegs[rd] += tempRegs[rs];
+        }
+        else if(op === 9) {          // STORE
+            vm.mem[imm] = tempRegs[rd];
         }
     }
 
-    function flashVM() {
-        vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false, lastResultReg: 0, initialN: 0 };
-        const lines = document.getElementById('editor').value.split('\n');
-        let idx = 0;
-        lines.forEach(line => {
-            let p = line.replace(/,/g,'').trim().split(/\s+/);
-            if(!p[0]) return;
-            let op = 0;
-            if(p[0]==="ADD") op = 1;
-            else if(p[0]==="JZ") op = 4;
-            else if(p[0]==="JMP") op = 5;
-            else if(p[0]==="LOAD") op = 6;
-            else if(p[0]==="MUL") op = 7;
-            else if(p[0]==="SUB") op = 8;
-            else if(p[0]==="HALT") op = 0; 
-            
-            let rd = parseInt(p[1]?.replace('R','')) || 0;
-            let rs = parseInt(p[2]?.replace('R','')) || 0;
-            let imm = parseInt(p[p.length-1]) || 0;
+    vm.pc = 0; // reset PC back to start
+    updateUI();
+    document.getElementById('status-bar').innerText = "RAM Flashed & Memory Initialized.";
+}
 
-            if(p[0]==="LOAD" && rd === 1) vm.initialN = imm;
+let hoverPinned = false;
 
-            vm.mem[idx++] = ((op & 0xF) << 12) | ((rd & 0x7) << 9) | ((rs & 0x7) << 6) | (imm & 0x3F);
-        });
-        updateUI();
-        updateBitDisplay(0);
+function showVarInfo(name, memAddr, value, event) {
+    const info = document.getElementById('hover-info');
+    const content = document.getElementById('hover-info-content');
+    content.innerHTML = `<b>${name}</b><br>Memory: 0x${memAddr.toString(16).toUpperCase()}<br>Value: ${value}`;
+
+    if (!hoverPinned) {
+        info.style.display = 'block';
+
+        // Position near cursor
+        let x = event.clientX + 12; // small offset
+        let y = event.clientY + 12;
+
+        // Adjust to stay inside viewport
+        const rect = info.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
+        if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
+
+        info.style.left = x + 'px';
+        info.style.top = y + 'px';
     }
+}
 
-    function stepVM(glowRegIdx = null) {
+function hideVarInfo() {
+    if (!hoverPinned) {
+        document.getElementById('hover-info').style.display = 'none';
+    }
+}
+
+document.getElementById('hover-info-close').onclick = () => {
+    hoverPinned = false;
+    document.getElementById('hover-info').style.display = 'none';
+};
+
+// toggle pin when clicked on the box itself
+document.getElementById('hover-info').onclick = (e) => {
+    if (e.target.id !== 'hover-info-close') {
+        hoverPinned = !hoverPinned;
+        document.getElementById('hover-info').style.borderColor = hoverPinned ? 'var(--green)' : 'var(--border)';
+    }
+};
+
+    function triggerStep() {
+        if(vm.halted) { stopAuto(); return; }
+        saveState();
+
         const ins = vm.mem[vm.pc];
-        if(vm.stage === 0) { 
+        const opCode = ins ? ((ins >> 12) & 0xF) : 0;
+        const rd = ins ? ((ins >> 9) & 7) : 0;
+
+        if(vm.stage === 0) {
+            updateStepLights(1);
             updateBitDisplay(ins);
+            document.getElementById('exp-title').innerText = "Step 1: FETCH Phase";
+            let controlLabel = "Program Counter (PC)";
+let controlValue = vm.pc;
+
+// If last instruction modified PC via a register jump, show that register
+const prevIns = vm.mem[vm.pc];
+if (prevIns) {
+    const op = (prevIns >> 12) & 0xF;
+    const rd = (prevIns >> 9) & 7;
+
+    if (op === 5) { // JMP
+        controlLabel = regNames[rd];
+        controlValue = vm.regs[rd];
+    }
+}
+
+document.getElementById('exp-text').innerHTML = `
+Fetching instruction from 
+<span class="highlight-text">Memory[0x${vm.pc.toString(16).toUpperCase()}]</span> 
+using the <span class="highlight-text">${controlLabel}</span> 
+to control program flow.
+<br><br>
+<span class="highlight-text">${controlLabel}</span> = 
+<span class="highlight-text">${controlValue}</span>
+`;
             vm.stage = 1;
-        } else { 
+        } else {
+            updateStepLights(2);
             execute(ins);
+            document.getElementById('exp-title').innerText = "Step 2 & 3: EXECUTE & STORE";
+            
             vm.stage = 0;
-            updateUI(glowRegIdx);
+            updateUI(rd);
+            if(vm.halted) {
+                stopAuto();
+                // If preset fib, compute the correct Fibonacci value to ensure accurate result display
+                if(currentPreset === 'fib') {
+    const n = Math.max(0, parseInt(presetVal, 10) || 0);
+    const sequence = buildFibSequence(n);
+
+    document.getElementById('status-bar').innerText =
+        `HALT: Fibonacci sequence generated for ${n} terms`;
+
+    document.getElementById('exp-text').innerHTML = `
+<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+Fibonacci(${n}) = ${sequence.join(" ")}
+`;
+
+}  else if(currentPreset === 'fact') {
+    document.getElementById('status-bar').innerText =
+        "HALT: Factorial of " + presetVal + " = " + vm.regs[0];
+
+    document.getElementById('exp-text').innerHTML =
+        `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+        Factorial of ${presetVal} = ${vm.regs[0]}`;
+} else {
+    document.getElementById('status-bar').innerText = "HALT: C++ Program Executed.";
+
+    document.getElementById('exp-text').innerHTML =
+`<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+Final Register State:<br>
+R0 = ${vm.regs[0]}<br>
+R1 = ${vm.regs[1]}<br>
+R2 = ${vm.regs[2]}<br>
+R3 = ${vm.regs[3]}`;
+}
+                updateUI();
+            }
         }
     }
+
+    // small, safe fibonacci function (iterative)
+    function computeFib(n) {
+        n = Math.max(0, parseInt(n, 10) || 0);
+        if (n === 0) return 0;
+        if (n === 1) return 1;
+        let a = 0, b = 1;
+        for (let i = 2; i <= n; ++i) {
+            const c = a + b;
+            a = b;
+            b = c;
+        }
+        return b;
+    }
+
+    function buildFibSequence(n) {
+    if (n <= 0) return [];
+    if (n === 1) return [0];
+
+    const seq = [0, 1];
+    for (let i = 2; i < n; i++) {
+        seq.push(seq[i - 1] + seq[i - 2]);
+    }
+    return seq.slice(0, n);
+}
 
     function execute(ins) {
-        if(ins === null || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
+        if(!ins || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
         let op=(ins>>12)&0xF, rd=(ins>>9)&7, rs=(ins>>6)&7, imm=ins&0x3F;
-        let report = "";
         switch(op) {
-            case 1: vm.regs[rd] += vm.regs[rs]; report = `ADD R${rd}`; break;
-            case 4: if(vm.regs[rd] === 0) { vm.pc += imm; report = "JZ: Loop Finished"; } break;
-            case 5: vm.pc = vm.regs[rd]; report = "JMP: Back to Start of Loop"; return; 
-            case 6: vm.regs[rd] = imm; report = `LOAD R${rd}, ${imm}`; break;
-            case 7: vm.regs[rd] = vm.regs[rd] * vm.regs[rs]; report = `MUL R${rd}`; break;
-            case 8: vm.regs[rd] -= imm; report = `SUB R${rd}, ${imm}`; break;
+            case 1: vm.regs[rd] += vm.regs[rs]; break;
+            case 4: if(vm.regs[rd] === 0) { vm.pc += imm; return; } break;
+            case 5: vm.pc = vm.regs[rd]; return; 
+            case 6: vm.regs[rd] = imm; break;
+            case 7: vm.regs[rd] *= vm.regs[rs]; break;
+            case 8: vm.regs[rd] -= imm; break;
+            case 9: // STORE
+    vm.mem[imm] = vm.regs[rd];
+    break;
+            default: vm.halted = true; return;
         }
-        document.getElementById('logic-narrative').innerText = report;
         vm.pc++;
-        // Check if the NEXT instruction is a HALT to catch the final result accurately
-        if (vm.mem[vm.pc] !== null && ((vm.mem[vm.pc] >> 12) & 0xF) === 0) {
-            vm.halted = true;
+    }
+
+    function toggleAuto() {
+        if(autoTimer) stopAuto();
+        else {
+            if(vm.halted) return;
+            let speed = parseInt(document.getElementById('speed-slider').value,10);
+            document.getElementById('auto-btn').innerText = "⏹ STOP AUTO";
+            document.getElementById('auto-btn').style.background = "var(--rose)";
+            autoTimer = setInterval(() => {
+                // If stage 0 (fetch) and no instruction (end-of-program), halt
+                if(vm.halted) { stopAuto(); return; }
+                triggerStep();
+            }, speed);
         }
     }
+
+    function stopAuto() {
+        if(autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        document.getElementById('auto-btn').innerText = "🔄 AUTO RUN";
+        document.getElementById('auto-btn').style.background = "#1e293b";
+    }
+
+    function saveState() { history.push(JSON.stringify(vm)); }
+    function triggerBack() { if(history.length > 0) { stopAuto(); vm = JSON.parse(history.pop()); updateUI(); } }
+    function updateStepLights(s) { ['s1','s2','s3'].forEach((id, i) => document.getElementById(id).classList.toggle('active', s === (i+1))); }
+    function resetSim() { stopAuto(); location.reload(); }
 
     function updateBitDisplay(ins) {
         const grid = document.getElementById('bit-display');
-        grid.innerHTML = '';
-        if(ins === null) ins = 0;
+        grid.innerHTML = ''; ins = ins || 0;
         for(let i=15; i>=0; i--) {
             const val = (ins >> i) & 1;
             grid.innerHTML += `<div class="bit ${i >= 12 ? 'op' : (val ? 'on' : '')}">${val}</div>`;
         }
     }
 
-    function updateUI(glowRegIdx = null) {
-        document.getElementById('reg-file').innerHTML = vm.regs.map((v, i) => `
-            <div id="reg-item-${i}" class="reg-item ${glowRegIdx === i ? 'glow-green' : ''}">
-                <div style="font-size:9px; opacity:0.6">R${i}</div>
-                <strong>${v}</strong>
-                <span class="reg-label">${regRoles[i]}</span>
-            </div>`).join('');
-        document.getElementById('mem-grid').innerHTML = vm.mem.slice(0, 15).map((val, i) => `
-            <tr id="mem-row-${i}" class="${vm.pc === i ? 'current-pc' : ''}">
-                <td>0x${i}</td><td>${val === null ? '0' : val.toString(2).padStart(16, '0')}</td>
-            </tr>`).join('');
-    }
+    function updateUI(glowIdx = null) {
+    document.getElementById('pc-display').innerText = vm.pc;
+
+    document.getElementById('mem-grid').innerHTML =
+        vm.mem.map((val, i) => {
+            let display = val !== null ? val : `0x${i.toString(16)}`;
+            return `
+                <div class="ram-cell ${vm.pc === i ? 'active' : ''}">
+                    ${display}
+                </div>`;
+        }).join('');
+
+    document.getElementById('reg-file').innerHTML = vm.regs.map((v, i) => `
+        <div class="reg-card ${glowIdx === i ? 'active' : ''}">
+            <div class="reg-id">R${i}</div>
+            <span class="reg-val">${v}</span>
+            <div class="reg-desc">${regNames[i]}</div>
+        </div>`).join('');
+
+    updateBitDisplay(vm.mem[vm.pc] || 0);
     
+document.querySelectorAll('.ram-cell').forEach((cell, idx) => {
+    cell.onmouseenter = (e) => showVarInfo(`Memory[${idx}]`, idx, vm.mem[idx] ?? 0, e);
+    cell.onmouseleave = hideVarInfo;
+});
+
+document.querySelectorAll('.reg-card').forEach((card, idx) => {
+    card.onmouseenter = (e) => showVarInfo(`R${idx} (${regNames[idx]})`, idx, vm.regs[idx], e);
+    card.onmouseleave = hideVarInfo;
+});
+}
+    // initial UI
     updateUI();
     updateBitDisplay(0);
+    document.getElementById('c-editor').addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        triggerFlash();
+    }
+});
 </script>
 </body>
 </html>
