@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Architect VM - Precision Glow Flow</title>
+    <style>
+        :root {
+            --bg: #020617; --panel: #0f172a; --accent: #c084fc;
+            --cyan: #22d3ee; --green: #4ade80; --rose: #fb7185; --border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            margin: 0; background: var(--bg); color: #f8fafc; font-family: 'Fira Code', monospace;
+            display: grid; grid-template-columns: 400px 1fr 350px; grid-template-rows: 1fr 250px;
+            height: 100vh; overflow: hidden;
+        }
+
+        /* Guided Popups */
+        .tour-popup {
+            position: absolute; background: white; color: #000; padding: 12px; border-radius: 8px;
+            font-size: 11px; font-family: sans-serif; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            z-index: 1000; width: 220px; border-left: 6px solid var(--accent);
+            display: none; pointer-events: none; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .tour-popup::after { content: ''; position: absolute; border: 10px solid transparent; }
+        .pop-left::after { border-right-color: white; left: -20px; top: 20px; }
+        .pop-right::after { border-left-color: white; right: -20px; top: 20px; }
+
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        .data-pulse {
+            position: fixed; width: 16px; height: 16px; border-radius: 50%;
+            z-index: 9999; pointer-events: none; opacity: 0;
+            box-shadow: 0 0 20px rgba(255,255,255,0.8);
+            transition: opacity 0.3s;
+        }
+        .pulse-fetch { background: var(--cyan); box-shadow: 0 0 30px 10px var(--cyan); }
+        .pulse-exec { background: var(--green); box-shadow: 0 0 30px 10px var(--green); }
+
+        .glow-cyan { animation: pulseCyan 2s ease-out; }
+        .glow-green { animation: pulseGreen 2s ease-out; }
+
+        @keyframes pulseCyan {
+            0% { background: rgba(34, 211, 238, 0); box-shadow: 0 0 0px transparent; }
+            50% { background: rgba(34, 211, 238, 0.3); box-shadow: 0 0 20px var(--cyan); }
+            100% { background: transparent; box-shadow: 0 0 0px transparent; }
+        }
+        @keyframes pulseGreen {
+            0% { background: rgba(74, 222, 128, 0); box-shadow: 0 0 0px transparent; }
+            50% { background: rgba(74, 222, 128, 0.4); box-shadow: 0 0 25px var(--green); }
+            100% { background: transparent; box-shadow: 0 0 0px transparent; }
+        }
+
+        .sidebar { background: var(--panel); padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .canvas { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 1px, transparent 1px); background-size: 20px 20px; }
+        .module { border: 2px solid var(--border); border-radius: 12px; padding: 20px; background: rgba(15, 23, 42, 0.8); width: 90%; position: relative; transition: all 0.8s ease; }
+        
+        /* IR Labels Styles */
+        .ir-labels { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-bottom: 4px; text-align: center; }
+        .ir-label { font-size: 8px; color: var(--accent); font-weight: bold; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+
+        .bin-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-top: 2px; border-radius: 4px; padding: 5px; }
+        .bit { height: 24px; background: #1e293b; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; border: 1px solid rgba(255,255,255,0.05); transition: 0.5s; }
+        .bit.on { background: var(--cyan); color: #000; font-weight: bold; box-shadow: 0 0 10px var(--cyan); }
+        .bit.op { background: var(--accent); color: #fff; }
+
+        .phase-badge { position: absolute; top: -10px; right: 20px; padding: 4px 12px; border-radius: 20px; font-size: 9px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .fetch-mode { background: var(--accent); color: white; }
+        .exec-mode { background: var(--green); color: black; }
+
+        .mem-table { font-size: 11px; width: 100%; border-collapse: collapse; }
+        .mem-table td { border: 1px solid var(--border); padding: 8px; }
+        .current-pc { background: rgba(74, 222, 128, 0.1); color: var(--cyan); font-weight: bold; border-left: 4px solid var(--cyan) !important; transition: 0.3s; }
+        .reg-item { border: 1px solid var(--border); padding: 10px; border-radius: 6px; text-align: center; transition: 0.3s; position: relative; }
+        .reg-label { font-size: 7px; color: var(--green); opacity: 0.8; display: block; margin-top: 4px; text-transform: uppercase; }
+
+        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; transition: 0.2s; }
+        .btn-primary { background: var(--green); color: #000; }
+        .btn-step { background: var(--accent); color: #fff; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        select { background: #000; color: var(--accent); border: 1px solid var(--border); padding: 8px; border-radius: 4px; font-family: inherit; }
+        #logic-narrative { min-height: 40px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 13px; border: 1px solid var(--border); line-height: 1.4; }
+        #final-result { margin-top: 10px; padding: 10px; border-radius: 6px; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--green); color: var(--green); text-align: center; display: none; }
+        #status-display { padding: 8px; background: rgba(192, 132, 252, 0.1); border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 11px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="pulse" class="data-pulse"></div>
+
+<aside class="sidebar" style="grid-row: 1/3;">
+    <h3 style="color: var(--cyan); margin: 0; letter-spacing: 2px;">VM ARCHITECT</h3>
+    
+    <label style="font-size: 10px; color: var(--accent);">CHOOSE ALGORITHM</label>
+    <select id="algo-select" onchange="loadAlgorithm()">
+        <option value="fact">Factorial (Dynamic Loop)</option>
+        <option value="fib">Fibonacci (Sequence 0-8)</option>
+    </select>
+
+    <div id="status-display">Task: Awaiting Flash...</div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column;">
+        <textarea id="editor" style="width: 100%; flex-grow: 1; background: #000; color: var(--green); padding: 12px; border: 1px solid var(--border); resize: none; border-radius: 8px;">
+LOAD R0, 1
+LOAD R1, 5
+LOAD R2, 3
+MUL R0, R1
+SUB R1, 1
+JZ R1, 1
+JMP R2
+HALT</textarea>
+    </div>
+    
+    <button class="btn btn-primary" onclick="triggerFlash()">FLASH TO MEMORY</button>
+    <div style="display:flex; gap:10px;">
+        <button id="step-btn" class="btn btn-step" style="flex:1" onclick="triggerStep()">STEP CYCLE</button>
+        <button class="btn" style="flex:1; background: #334155; color: white;" onclick="location.reload()">RESET</button>
+    </div>
+    <div id="final-result"></div>
+
+    <div id="pop1" class="tour-popup pop-left" style="top: 100px; left: 420px; display: block;">
+        <b>STEP 1: INITIALIZE</b><br>Code is ready. Click <b>FLASH</b> to move instructions to RAM.
+    </div>
+    <div id="pop2" class="tour-popup pop-left" style="top: 450px; left: 420px;">
+        <b>STEP 2: RAM READY</b><br>Binary is stored. Click <b>STEP</b> to watch the <b>Fetch Pulse</b>.
+    </div>
+</aside>
+
+<main class="canvas">
+    <div class="module" id="cpu-node">
+        <div id="phase-badge" class="phase-badge fetch-mode">READY</div>
+        <div style="font-size: 10px; color: var(--accent); font-weight: bold;">INSTRUCTION REGISTER [IR]</div>
+        
+        <div class="ir-labels">
+            <div style="grid-column: span 4" class="ir-label">OPCODE</div>
+            <div style="grid-column: span 3" class="ir-label">DR</div>
+            <div style="grid-column: span 3" class="ir-label">SR1</div>
+            <div style="grid-column: span 6" class="ir-label">IMM6 / SR2</div>
+        </div>
+        <div class="bin-grid" id="bit-display"></div>
+        
+        <div id="pop3" class="tour-popup pop-right" style="top: 0; left: -250px;">
+            <b>STEP 3: FETCHED</b><br><span id="fetch-msg">Instruction arrived in the CPU IR.</span>
+        </div>
+        <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+        <div id="logic-narrative" style="color: var(--cyan);">System awaiting flash...</div>
+    </div>
+    <div style="font-size: 40px; margin: 10px; color: var(--border);">↓</div>
+    <div class="module" id="reg-node" style="width: 80%;">
+        <div style="font-size: 10px; color: var(--green); font-weight: bold;">REGISTER FILE</div>
+        <div id="reg-file" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;"></div>
+        <div id="pop4" class="tour-popup pop-right" style="bottom: 0; left: -250px;">
+            <b>STEP 4: EXECUTED</b><br><span id="exec-msg">Logic processed and transferred!</span>
+        </div>
+    </div>
+</main>
+
+<aside class="sidebar">
+    <h3 style="color: var(--rose); margin: 0; letter-spacing: 2px;">RAM STATE</h3>
+    <div style="overflow-y: auto; border: 1px solid var(--border); flex-grow: 1; border-radius: 8px;">
+        <table class="mem-table" id="mem-grid"></table>
+    </div>
+</aside>
+
+<script>
+    let vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false, lastResultReg: 0, initialN: 0 };
+    const ANIM_SPEED = 800; 
+
+    const algos = {
+        fib: "LOAD R0, 0\nLOAD R1, 1\nLOAD R3, 4\nLOAD R4, 5\nADD R2, R0\nADD R2, R1\nLOAD R0, 0\nADD R0, R1\nLOAD R1, 0\nADD R1, R2\nSUB R4, 1\nJZ R4, 1\nJMP R3\nHALT",
+        fact: "LOAD R0, 1\nLOAD R1, 5\nLOAD R2, 3\nMUL R0, R1\nSUB R1, 1\nJZ R1, 1\nJMP R2\nHALT"
+    };
+
+    const regRoles = ["Result Counter", "Loop Counter", "Target Address", "Gen Purpose", "Gen Purpose", "Frame Pointer", "Stack Pointer", "Return Addr"];
+
+    function loadAlgorithm() {
+        const val = document.getElementById('algo-select').value;
+        document.getElementById('editor').value = algos[val];
+        document.getElementById('final-result').style.display = 'none';
+        document.getElementById('status-display').innerText = "Task: Awaiting Flash...";
+        vm.halted = false;
+        vm.pc = 0;
+    }
+
+    function animatePulse(fromId, toId, type) {
+        const pulse = document.getElementById('pulse');
+        const fromEl = (typeof fromId === 'string') ? document.getElementById(fromId) : fromId;
+        const toEl = (typeof toId === 'string') ? document.getElementById(toId) : toId;
+        const start = fromEl.getBoundingClientRect();
+        const end = toEl.getBoundingClientRect();
+        pulse.className = `data-pulse pulse-${type}`;
+        pulse.style.top = `${start.top + start.height/2}px`;
+        pulse.style.left = `${start.left + start.width/2}px`;
+        pulse.style.opacity = '1';
+        return pulse.animate([
+            { top: `${start.top + start.height/2}px`, left: `${start.left + start.width/2}px`, opacity: 1, scale: 1 },
+            { top: `${end.top + end.height/2}px`, left: `${end.left + end.width/2}px`, opacity: 1, scale: 1.5 },
+            { opacity: 0, scale: 1 }
+        ], { duration: ANIM_SPEED, easing: 'ease-in-out', fill: 'forwards' });
+    }
+
+    function hideAllPopups() {
+        document.querySelectorAll('.tour-popup').forEach(p => p.style.display = 'none');
+    }
+
+    function triggerFlash() {
+        flashVM();
+        hideAllPopups();
+        document.getElementById('final-result').style.display = 'none';
+        document.getElementById('pop2').style.display = 'block';
+        document.getElementById('logic-narrative').innerText = "Memory loaded. Ready to Fetch.";
+        
+        const algoType = document.getElementById('algo-select').value;
+        document.getElementById('status-display').innerText = (algoType === 'fact') ? `Goal: Calculate ${vm.initialN}!` : "Goal: Fibonacci Seq";
+    }
+
+    function triggerStep() {
+        if(vm.halted) return;
+        const activeRow = document.getElementById(`mem-row-${vm.pc}`);
+        const btn = document.getElementById('step-btn');
+        btn.disabled = true;
+
+        if(vm.stage === 0) {
+            document.getElementById('logic-narrative').innerText = "FETCHING: RAM 0x" + vm.pc;
+            activeRow.classList.add('glow-cyan');
+            animatePulse(activeRow, 'bit-display', 'fetch');
+            setTimeout(() => {
+                stepVM();
+                hideAllPopups();
+                document.getElementById('fetch-msg').innerText = `Instruction arrived at IR (from RAM 0x${vm.pc})`;
+                document.getElementById('pop3').style.display = 'block';
+                document.getElementById('bit-display').classList.add('glow-cyan');
+                document.getElementById('phase-badge').className = "phase-badge fetch-mode";
+                document.getElementById('phase-badge').innerText = "FETCHED";
+                btn.disabled = false;
+                setTimeout(() => activeRow.classList.remove('glow-cyan'), 1000);
+            }, ANIM_SPEED);
+        } else {
+            const ins = vm.mem[vm.pc];
+            const rd = (ins >> 9) & 7;
+            const role = regRoles[rd];
+            document.getElementById('logic-narrative').innerText = "EXECUTING...";
+            animatePulse('bit-display', `reg-item-${rd}`, 'exec');
+            
+            setTimeout(() => {
+                stepVM(rd);
+                hideAllPopups();
+                document.getElementById('exec-msg').innerText = `Logic processed and transferred to ${role} [R${rd}]`;
+                document.getElementById('pop4').style.display = 'block';
+                document.getElementById('phase-badge').className = "phase-badge exec-mode";
+                document.getElementById('phase-badge').innerText = "EXECUTED";
+                btn.disabled = false;
+                
+                if(vm.halted) {
+                    const resBox = document.getElementById('final-result');
+                    resBox.style.display = 'block';
+                    const algoType = document.getElementById('algo-select').value;
+                    if(algoType === 'fact') {
+                        resBox.innerHTML = `<b>HALT REACHED</b><br>Factorial of ${vm.initialN} is: <b>${vm.regs[0]}</b>`;
+                    } else {
+                        resBox.innerHTML = `<b>HALT REACHED</b><br>Sequence completed. Result in R0: ${vm.regs[0]}`;
+                    }
+                }
+            }, ANIM_SPEED);
+        }
+    }
+
+    function flashVM() {
+        vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false, lastResultReg: 0, initialN: 0 };
+        const lines = document.getElementById('editor').value.split('\n');
+        let idx = 0;
+        lines.forEach(line => {
+            let p = line.replace(/,/g,'').trim().split(/\s+/);
+            if(!p[0]) return;
+            let op = 0;
+            if(p[0]==="ADD") op = 1;
+            else if(p[0]==="JZ") op = 4;
+            else if(p[0]==="JMP") op = 5;
+            else if(p[0]==="LOAD") op = 6;
+            else if(p[0]==="MUL") op = 7;
+            else if(p[0]==="SUB") op = 8;
+            else if(p[0]==="HALT") op = 0; 
+            
+            let rd = parseInt(p[1]?.replace('R','')) || 0;
+            let rs = parseInt(p[2]?.replace('R','')) || 0;
+            let imm = parseInt(p[p.length-1]) || 0;
+
+            if(p[0]==="LOAD" && rd === 1) vm.initialN = imm;
+
+            vm.mem[idx++] = ((op & 0xF) << 12) | ((rd & 0x7) << 9) | ((rs & 0x7) << 6) | (imm & 0x3F);
+        });
+        updateUI();
+        updateBitDisplay(0);
+    }
+
+    function stepVM(glowRegIdx = null) {
+        const ins = vm.mem[vm.pc];
+        if(vm.stage === 0) { 
+            updateBitDisplay(ins);
+            vm.stage = 1;
+        } else { 
+            execute(ins);
+            vm.stage = 0;
+            updateUI(glowRegIdx);
+        }
+    }
+
+    function execute(ins) {
+        if(ins === null || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
+        let op=(ins>>12)&0xF, rd=(ins>>9)&7, rs=(ins>>6)&7, imm=ins&0x3F;
+        let report = "";
+        switch(op) {
+            case 1: vm.regs[rd] += vm.regs[rs]; report = `ADD R${rd}`; break;
+            case 4: if(vm.regs[rd] === 0) { vm.pc += imm; report = "JZ: Loop Finished"; } break;
+            case 5: vm.pc = vm.regs[rd]; report = "JMP: Back to Start of Loop"; return; 
+            case 6: vm.regs[rd] = imm; report = `LOAD R${rd}, ${imm}`; break;
+            case 7: vm.regs[rd] = vm.regs[rd] * vm.regs[rs]; report = `MUL R${rd}`; break;
+            case 8: vm.regs[rd] -= imm; report = `SUB R${rd}, ${imm}`; break;
+        }
+        document.getElementById('logic-narrative').innerText = report;
+        vm.pc++;
+        // Check if the NEXT instruction is a HALT to catch the final result accurately
+        if (vm.mem[vm.pc] !== null && ((vm.mem[vm.pc] >> 12) & 0xF) === 0) {
+            vm.halted = true;
+        }
+    }
+
+    function updateBitDisplay(ins) {
+        const grid = document.getElementById('bit-display');
+        grid.innerHTML = '';
+        if(ins === null) ins = 0;
+        for(let i=15; i>=0; i--) {
+            const val = (ins >> i) & 1;
+            grid.innerHTML += `<div class="bit ${i >= 12 ? 'op' : (val ? 'on' : '')}">${val}</div>`;
+        }
+    }
+
+    function updateUI(glowRegIdx = null) {
+        document.getElementById('reg-file').innerHTML = vm.regs.map((v, i) => `
+            <div id="reg-item-${i}" class="reg-item ${glowRegIdx === i ? 'glow-green' : ''}">
+                <div style="font-size:9px; opacity:0.6">R${i}</div>
+                <strong>${v}</strong>
+                <span class="reg-label">${regRoles[i]}</span>
+            </div>`).join('');
+        document.getElementById('mem-grid').innerHTML = vm.mem.slice(0, 15).map((val, i) => `
+            <tr id="mem-row-${i}" class="${vm.pc === i ? 'current-pc' : ''}">
+                <td>0x${i}</td><td>${val === null ? '0' : val.toString(2).padStart(16, '0')}</td>
+            </tr>`).join('');
+    }
+    
+    updateUI();
+    updateBitDisplay(0);
+</script>
+</body>
+</html>
