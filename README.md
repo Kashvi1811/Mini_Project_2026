@@ -1,65 +1,74 @@
-# 🧠 Custom Stack-Based Virtual Machine (VM) with Visualization
+# Custom Register VM + Interactive Visualizer
 
-## 📖 Overview
-This project implements a **custom stack-based virtual machine in C++** that simulates CPU components — **Registers, Program Counter (PC), Stack Pointer (SP), Memory, and Instruction Set** — and executes programs using the **Fetch–Decode–Execute cycle**.  
+A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
 
-To make execution transparent and educational, the VM includes a **step-by-step visualization layer** that highlights instructions, shows arrows for data flow, updates registers/memory/stack in real time, and logs execution events.
+This repository contains:
 
----
-
-## 🎯 Objectives
-- Implement the **Fetch–Decode–Execute cycle** programmatically.  
-- Encode instructions into binary opcodes (e.g., `0x01` for `PUSH`, `0x02` for `ADD`).  
-- Manage **virtual memory** and **stack-based computation**.  
-- Build a **simple assembler** to translate human-readable code into bytecode.  
-- Provide **interactive visualization** with:  
-  - Highlighted current instruction  
-  - Arrows showing data movement  
-  - Real-time updates to PC, SP, ACC, memory, and stack  
-  - Execution logs and undo/redo capability  
+- A **C++ VM engine** (`vm.cpp`) for instruction execution and trace logging
+- A **browser visualizer** (`viewer.html`) for step-by-step simulation
+- Built-in demo programs for **Factorial** and **Fibonacci**
 
 ---
 
-## 🛠️ Architecture
-- **VM Engine:** CLI-based runtime that loads and executes bytecode.  
-- **Instruction Set:** Documented opcodes for stack and arithmetic operations.  
-- **Assembler:** Converts `.asm` files into `.vm` bytecode.  
-- **Visualization Layer:** Technology-agnostic (SFML, Qt, OpenGL, ncurses, or Web). Displays memory cells, registers, stack, and instruction flow.  
+## Why this project
+
+This project is designed to make low-level execution easy to understand by connecting:
+
+- high-level logic,
+- assembly-style instructions,
+- encoded machine instructions,
+- and live register/memory updates.
+
+It is ideal for mini-project demos, OS/COA learning, and systems programming practice.
 
 ---
 
-## 📂 Sample Programs
-- `factorial.vm` — computes factorial using stack recursion  
-- `fibonacci.vm` — iterative and recursive Fibonacci  
-- `arithmetic.vm` — tests ADD, SUB, MUL, DIV, STORE  
+## Key Features
+
+- 16-bit custom instruction format (opcode + register fields + immediate)
+- VM with 8 registers (`R0` to `R7`) and program counter (`PC`)
+- JSONL trace output for execution debugging (`trace.jsonl`)
+- Visual RAM grid, register file, IR bit view, and execution narration
+- Step execution, auto-run mode, back/undo, and reset
+- Simple C++ subset to ASM translator inside the visualizer
 
 ---
 
-## 💻 Technology Stack
-| Component        | Technology Options |
-|------------------|---------------------|
-| Core VM Engine   | C++                 |
-| Instruction Format | Custom binary opcodes |
-| Visualization    | SFML / Qt / OpenGL / ncurses / Web |
-| Assembler        | C++ (CLI)           |
-| Data Structures  | Stack, Array, Registers |
+## Project Structure
 
----
-
-## 🚀 Usage
-```bash
-# From project root
-cd custom_vm_project
-
-# Compile VM engine
-g++ vm.cpp -std=c++17 -O2 -o vm
-
-# Run built-in programs
-./vm fact 5
-./vm fib 8
+```text
+.
+├─ README.md
+├─ custom_vm_project/
+│  ├─ vm.cpp
+│  ├─ viewer.html
+│  └─ trace.jsonl
+└─ test-sfml.cpp
 ```
 
-On Windows PowerShell:
+---
+
+## Instruction Set (Current)
+
+| Opcode | Mnemonic | Operation |
+|-------:|----------|-----------|
+| 0 | `HALT` | Stop program |
+| 1 | `ADD rd, rs` | `R[rd] = R[rd] + R[rs]` |
+| 4 | `JZ rd, imm` | If `R[rd] == 0`, jump forward by immediate offset |
+| 5 | `JMP rd` | `PC = R[rd]` |
+| 6 | `LOAD rd, imm` | `R[rd] = imm` |
+| 7 | `MUL rd, rs` | `R[rd] = R[rd] * R[rs]` |
+| 8 | `SUB rd, imm` | `R[rd] = R[rd] - imm` |
+| 9 | `STORE rd, imm` | `MEM[imm] = R[rd]` (used in viewer simulation) |
+
+> Immediate values use 6 bits, so valid range is `0..63`.
+
+---
+
+## Quick Start
+
+### 1) Run C++ VM (PowerShell / Windows)
+
 ```powershell
 cd .\custom_vm_project
 g++ vm.cpp -std=c++17 -O2 -o vm.exe
@@ -67,27 +76,73 @@ g++ vm.cpp -std=c++17 -O2 -o vm.exe
 .\vm.exe fib 8
 ```
 
-### Web Visualizer
-- Open `custom_vm_project/viewer.html` in a browser.
-- Use **Compile & Flash** to load instructions into VM RAM.
-- Use **Next Step** or **Auto Run** to execute.
-- Supported C++ subset in the high-level editor:
-  - `int a = 5;`
-  - `int c = a + b + 3;`
-  - `a = b + 2;`
+### 2) Open Visualizer
+
+- Open `custom_vm_project/viewer.html` in your browser.
+- Choose a preset (**Factorial**, **Fibonacci**, or **Basic Addition**) or type code.
+- Click **Compile & Flash**.
+- Use **Next Step** (manual) or **Auto Run**.
 
 ---
 
-## 📘 Future Enhancements
-- Branching instructions (`JMP`, `CALL`, `RET`)  
-- Debugger with breakpoints and watch variables  
-- Web-based visualization with drag-and-drop bytecode editor  
-- ISA extension for floating-point and bitwise operations  
+## Supported C++ Subset (in viewer)
+
+The high-level editor currently supports simple assignment-based expressions, for example:
+
+```cpp
+int a = 5;
+int b = 9;
+int c = a + b + 3;
+c = a + 2;
+```
+
+This subset is intentionally small to keep the instruction mapping clear and educational.
 
 ---
 
-## 🧪 Problem Type
-**Deeptech & System-Based Project** — combining systems programming, compiler design, and interactive visualization for educational CPU design.
+## Demo Programs
+
+- **Factorial (`fact n`)**
+  - Uses looped multiplication and decrement-until-zero logic
+  - Final result is stored in `R0`
+
+- **Fibonacci (`fib n`)**
+  - Iterative register updates (`prev`, `curr`, `temp`)
+  - Demonstrates jump-based loop control
 
 ---
+
+## Trace Output
+
+Running `vm.cpp` generates `trace.jsonl` with per-step machine state:
+
+- step index
+- program counter
+- raw instruction value
+- register snapshot
+
+This is useful for debugging, validation, and project presentation.
+
+---
+
+## Current Limitations
+
+- Immediate values limited to `0..63`
+- Visualizer RAM view is compact (for UI clarity)
+- C++ translator supports basic arithmetic-style assignments only
+
+---
+
+## Roadmap
+
+- Add more opcodes (compare, call/return, memory load)
+- Improve instruction-level explanation panel (`op-name`, `op-math`)
+- Expand C++ subset support (conditions/loops)
+- Add automated tests for encoding and preset correctness
+
+---
+
+## Author Note
+
+Built as a systems-focused academic mini project to bridge theory and practical CPU simulation with an interactive UX.
 
