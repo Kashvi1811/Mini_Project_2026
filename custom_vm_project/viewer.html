@@ -21,9 +21,9 @@
             color: #f8fafc;
             font-family: 'Inter', system-ui, sans-serif;
             display: grid;
-            grid-template-columns: 380px 1fr;
-            height: 100vh;
-            overflow: hidden;
+            grid-template-columns: minmax(300px, 380px) 1fr;
+            min-height: 100vh;
+            overflow: auto;
         }
 
         /* --- SIDEBAR --- */
@@ -35,6 +35,8 @@
             flex-direction: column;
             gap: 15px;
             overflow-y: auto;
+            max-height: 100vh;
+            box-sizing: border-box;
         }
 
         .logo-section h2 { margin: 0; font-size: 24px; letter-spacing: 1px; color: var(--cyan); }
@@ -67,6 +69,19 @@
             box-sizing: border-box; outline: none; line-height: 1.5;
         }
 
+        .compile-error {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(251, 113, 133, 0.35);
+            background: rgba(251, 113, 133, 0.08);
+            color: #fecdd3;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            display: none;
+        }
+
         .algo-card {
             background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
             padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.3s;
@@ -83,15 +98,35 @@
         
         .btn-small { padding: 8px; font-size: 11px; flex: 1; }
 
+        .guide-box {
+            background: rgba(192, 132, 252, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 4px;
+        }
+        .guide-step {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 4px 0;
+        }
+        .guide-step b {
+            color: var(--cyan);
+        }
+
         /* --- MAIN CANVAS --- */
         .main-content {
             padding: 30px; display: flex; flex-direction: column; gap: 20px;
             background: radial-gradient(circle at 50% 50%, #111827 0%, #050b18 100%);
             background-image: radial-gradient(var(--border) 1px, transparent 1px);
             background-size: 25px 25px;
+            min-width: 0;
+            overflow: auto;
+            box-sizing: border-box;
         }
 
-        .flow-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+        .flow-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; flex-wrap: wrap; }
         .work-module { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; flex-shrink: 0; }
 
         .ram-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -124,10 +159,16 @@
         .step-item.active { color: var(--accent); font-weight: bold; }
         .step-item.active .step-num { background: var(--accent); color: white; }
 
-        .explanation-panel { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 120px; }
+        .explanation-panel { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 180px; max-height: 320px; overflow-y: auto; }
+        .explain-layout { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; align-items: start; }
+        .explain-main { min-width: 0; }
         .exp-title { font-size: 14px; font-weight: 800; color: var(--cyan); text-transform: uppercase; margin-bottom: 8px; }
-        .exp-text { font-size: 15px; color: #cbd5e1; line-height: 1.6; }
+        .exp-text { font-size: 15px; color: #cbd5e1; line-height: 1.6; padding-right: 6px; }
         .highlight-text { color: var(--accent); font-weight: bold; }
+        .counter-panel { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+        .counter-title { font-size: 12px; color: var(--accent); font-weight: 800; text-transform: uppercase; margin-bottom: 6px; }
+        .counter-text { font-size: 12px; color: #cbd5e1; line-height: 1.45; max-height: 220px; overflow-y: auto; }
+        .counter-line { margin-bottom: 6px; }
 
         .hidden { display: none; }
 
@@ -151,6 +192,76 @@
     /* spacing inside content */
     line-height: 1.5;
 }
+
+        @media (max-width: 1280px) {
+            .flow-container {
+                gap: 12px;
+            }
+
+            .cpu-module {
+                order: 1;
+                flex: 1 1 100%;
+                max-width: none;
+            }
+
+            .flow-container .work-module:first-child,
+            .flow-container .work-module:last-child {
+                flex: 1 1 calc(50% - 12px);
+                min-width: 320px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .main-content {
+                overflow: visible;
+            }
+
+            .flow-container {
+                flex-direction: column;
+            }
+
+            .flow-container .work-module,
+            .cpu-module,
+            .reg-grid {
+                width: 100%;
+                max-width: none;
+            }
+
+            .reg-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .explain-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main-content,
+            .sidebar {
+                padding: 16px;
+            }
+
+            .reg-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .narration-bar {
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: flex-start;
+            }
+        }
 
     </style>
 </head>
@@ -187,8 +298,8 @@
         </div>
 
         <div id="editor-container">
-            <textarea id="c-editor" placeholder="// Write your C++ code here"></textarea>
-            <textarea id="asm-editor" class="hidden">LOAD R0, 1
+            <textarea id="c-editor" placeholder="// Write your C++ code here" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"></textarea>
+            <textarea id="asm-editor" class="hidden" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off">LOAD R0, 1
 LOAD R1, 5
 LOAD R2, 3
 MUL R0, R1
@@ -196,6 +307,7 @@ SUB R1, 1
 JZ R1, 1
 JMP R2
 HALT</textarea>
+            <div id="compile-error" class="compile-error"></div>
         </div>
 
         <div class="speed-control">
@@ -215,6 +327,15 @@ HALT</textarea>
         </div>
         <div class="btn-group">
             <button id="auto-btn" class="btn btn-secondary btn-small" onclick="toggleAuto()" style="flex: 2;">🔄 AUTO RUN</button>
+        </div>
+
+        <div class="guide-box">
+            <span class="section-label" style="margin-bottom: 6px;">How To Run Your Program</span>
+            <div class="guide-step"><b>1) Write or edit code</b> in C++/ASM editor.</div>
+            <div class="guide-step"><b>2) Press Compile &amp; Flash</b> once after every code change to load new instructions.</div>
+            <div class="guide-step"><b>3) Press Next Step</b> repeatedly to execute step-by-step (Fetch → Execute).</div>
+            <div class="guide-step"><b>4) Use Auto Run</b> for automatic stepping, and <b>Back</b> to undo one step.</div>
+            <div class="guide-step"><b>Important:</b> If you edit code again, press <b>Compile &amp; Flash</b> before stepping.</div>
         </div>
 
         <span class="section-label">Quick Presets</span>
@@ -243,6 +364,10 @@ HALT</textarea>
 <div style="font-size:12px; margin-bottom:8px; color: var(--cyan);">
     Program Counter (PC): 
     <span id="pc-display" style="font-weight:bold;">0</span>
+</div>
+
+<div style="font-size:11px; margin-bottom:8px; color:#94a3b8;">
+    Memory Window: <span id="mem-window" style="font-weight:bold; color: var(--accent);">0 - 23</span>
 </div>
 
 <div class="ram-grid" id="mem-grid"></div>
@@ -279,18 +404,32 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         </div>
 
         <div class="explanation-panel">
-            <div class="exp-title" id="exp-title">System Ready</div>
-            <div class="exp-text" id="exp-text">Select a preset or write code to begin.</div>
+            <div class="explain-layout">
+                <div class="explain-main">
+                    <div class="exp-title" id="exp-title">System Ready</div>
+                    <div class="exp-text" id="exp-text">Select a preset or write code to begin.</div>
+                </div>
+                <div class="counter-panel">
+                    <div class="counter-title">Counter Trace</div>
+                    <div class="counter-text" id="counter-text">Execution updates will appear here after each step.</div>
+                </div>
+            </div>
         </div>
     </main>
 
 <script>
-    let vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(24).fill(null), stage: 0, halted: false };
+    let vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false };
+    const MEM_VIEW_SIZE = 24;
     let activeMode = 'c';
     let autoTimer = null;
     let history = [];
     let currentPreset = "";
     let presetVal = 0;
+    let lastCompiledLayout = null;
+    let counterTrace = [];
+    let counterStep = 0;
+    let lastCompiledSource = "";
+    let lastEncodedProgram = null;
 
     const regNames = ["Accumulator (R0)", "Loop Counter (R1)", "Return Address (R2)", "General R3", "General R4", "General R5", "General R6", "General R7"];
 
@@ -305,6 +444,197 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         document.getElementById('asm-editor').classList.toggle('hidden', mode !== 'asm');
         document.getElementById('tab-c').classList.toggle('active', mode === 'c');
         document.getElementById('tab-asm').classList.toggle('active', mode === 'asm');
+        clearCompileError();
+    }
+
+    function showCompileError(message) {
+        const box = document.getElementById('compile-error');
+        if (!box) return;
+        box.innerText = `Compile error: ${message}`;
+        box.style.display = 'block';
+    }
+
+    function clearCompileError() {
+        const box = document.getElementById('compile-error');
+        if (!box) return;
+        box.innerText = '';
+        box.style.display = 'none';
+    }
+
+    function getOpcodeName(op) {
+        const names = {
+            0: "HALT",
+            1: "ADD",
+            4: "JZ",
+            5: "JMP",
+            6: "LOAD",
+            7: "MUL",
+            8: "SUB",
+            9: "STORE",
+            10: "LOADM"
+        };
+        return names[op] || `OP${op}`;
+    }
+
+    function renderCounterTrace() {
+        const el = document.getElementById('counter-text');
+        if (!el) return;
+        if (counterTrace.length === 0) {
+            el.innerText = 'Execution updates will appear here after each step.';
+            return;
+        }
+        el.innerHTML = counterTrace
+            .map(line => `<div class="counter-line">• ${line}</div>`)
+            .join('');
+    }
+
+    function resetCounterTrace() {
+        counterTrace = [];
+        counterStep = 0;
+        renderCounterTrace();
+    }
+
+    function logCounterTrace(before, instruction) {
+        const op = instruction ? ((instruction >> 12) & 0xF) : 0;
+        const rd = instruction ? ((instruction >> 9) & 0x7) : 0;
+        const rs = instruction ? ((instruction >> 6) & 0x7) : 0;
+        const imm = instruction ? (instruction & 0x3F) : 0;
+
+        counterStep += 1;
+        let message = "";
+
+        switch (op) {
+            case 0:
+                message = `Step ${counterStep}: Program halted at PC ${before.pc}.`;
+                break;
+            case 1:
+                message = `Step ${counterStep}: Added R${rs} (${before.regs[rs]}) to R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 4:
+                if (before.regs[rd] === 0) {
+                    message = `Step ${counterStep}: R${rd} is 0, so jump taken by +${imm}. PC moved to ${vm.pc}.`;
+                } else {
+                    message = `Step ${counterStep}: R${rd} is ${before.regs[rd]}, so no jump. PC moved to ${vm.pc}.`;
+                }
+                break;
+            case 5:
+                message = `Step ${counterStep}: Jumped to address in R${rd}. PC is now ${vm.pc}.`;
+                break;
+            case 6:
+                message = `Step ${counterStep}: Loaded ${imm} into R${rd}.`;
+                break;
+            case 7:
+                message = `Step ${counterStep}: Multiplied R${rd} by R${rs}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 8:
+                message = `Step ${counterStep}: Subtracted ${imm} from R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 9:
+                message = `Step ${counterStep}: Stored R${rd} (${before.regs[rd]}) into Memory[${imm}].`;
+                break;
+            case 10:
+                message = `Step ${counterStep}: Loaded Memory[${imm}] into R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            default:
+                message = `Step ${counterStep}: Executed ${getOpcodeName(op)}.`;
+        }
+
+        counterTrace.push(message);
+        if (counterTrace.length > 12) counterTrace.shift();
+        renderCounterTrace();
+    }
+
+    function encodeProgram(rawCode, memSize) {
+        const lines = rawCode.split('\n');
+        let idx = 0;
+        const errors = [];
+        const program = [];
+
+        const parseReg = (token) => {
+            if (!/^R[0-7]$/.test(token)) return null;
+            return parseInt(token.slice(1), 10);
+        };
+
+        const parseImm6 = (token) => {
+            const value = parseInt(token, 10);
+            if (isNaN(value) || value < 0 || value > 63) return null;
+            return value;
+        };
+
+        lines.forEach((line, lineIndex) => {
+            const text = line.trim();
+            if(!text || text.startsWith("//")) return;
+            if (idx >= memSize) {
+                errors.push(`Line ${lineIndex + 1}: Program exceeds RAM capacity (${memSize} cells).`);
+                return;
+            }
+
+            const p = text.replace(/,/g,'').split(/\s+/);
+            const instruction = p[0];
+            let op = 0;
+            let rd = 0;
+            let rs = 0;
+            let imm = 0;
+
+            if (instruction === "HALT") {
+                program[idx++] = 0;
+                return;
+            }
+
+            if (instruction === "ADD" || instruction === "MUL") {
+                rd = parseReg(p[1]);
+                rs = parseReg(p[2]);
+                if (rd === null || rs === null) {
+                    errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, Rm\".`);
+                    return;
+                }
+                op = instruction === "ADD" ? 1 : 7;
+            } else if (instruction === "JMP") {
+                rd = parseReg(p[1]);
+                if (rd === null) {
+                    errors.push(`Line ${lineIndex + 1}: JMP expects format \"JMP Rn\".`);
+                    return;
+                }
+                op = 5;
+            } else if (instruction === "LOAD" || instruction === "SUB" || instruction === "JZ" || instruction === "STORE" || instruction === "LOADM") {
+                rd = parseReg(p[1]);
+                imm = parseImm6(p[2]);
+                if (rd === null || imm === null) {
+                    errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, imm(0-63)\".`);
+                    return;
+                }
+                if (instruction === "LOAD") op = 6;
+                else if (instruction === "SUB") op = 8;
+                else if (instruction === "JZ") op = 4;
+                else if (instruction === "STORE") op = 9;
+                else op = 10;
+            } else {
+                errors.push(`Line ${lineIndex + 1}: Unknown instruction \"${instruction}\".`);
+                return;
+            }
+
+            program[idx++] = ((op & 0xF) << 12) |
+                             ((rd & 0x7) << 9) |
+                             ((rs & 0x7) << 6) |
+                             (imm & 0x3F);
+        });
+
+        return { program, errors };
+    }
+
+    function programCore(program) {
+        if (!program || program.length === 0) return [];
+        return program[program.length - 1] === 0 ? program.slice(0, -1) : program.slice();
+    }
+
+    function isPrefixProgram(oldProgram, newProgram) {
+        const oldCore = programCore(oldProgram);
+        const newCore = programCore(newProgram);
+        if (oldCore.length > newCore.length) return false;
+        for (let i = 0; i < oldCore.length; i++) {
+            if (oldCore[i] !== newCore[i]) return false;
+        }
+        return true;
     }
 
     function loadPreset(type) {
@@ -355,184 +685,492 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         }
         else {
             switchEditor('c');
-            document.getElementById('c-editor').value = "int a = 10;\nint b = 9;\nint c = a + b;";
+            document.getElementById('c-editor').value = "int arr[3] = {2, 4, 6};\nvector<int> v = {1, 3};\nv.push_back(5);\nstack<int> st;\nst.push(7);\nqueue<int> q;\nq.push(9);\nint total = arr[1] + v[2] + st.top() + q.front();";
         }
     }
 
     function compileCPP(code) {
     const lines = code.split("\n");
     const asm = [];
-    const regMap = {};
+    const scalarRegs = {};
+    const arrays = {};
+    const vectors = {};
+    const stacks = {};
+    const queues = {};
     let nextReg = 0;
+    let memPtr = 63;
+    let compilerTempCells = null;
 
-    const getReg = (name) => {
-        if (regMap[name] !== undefined) return regMap[name];
-        if (nextReg > 6) throw new Error("Too many variables. Use up to 7 variables.");
-        regMap[name] = nextReg;
-        nextReg += 1;
-        return regMap[name];
+    const isNumber = (token) => /^\d+$/.test(token);
+    const parseNumber = (token, what = "value") => {
+        if (!isNumber(token)) throw new Error(`Invalid ${what}: ${token}`);
+        const value = parseInt(token, 10);
+        if (value < 0 || value > 65535) throw new Error(`${what} must be between 0 and 65535.`);
+        return value;
     };
 
-    const emitAddTerm = (destReg, term) => {
-        if (/^\d+$/.test(term)) {
-            const value = parseInt(term, 10);
-            if (value < 0 || value > 63) throw new Error("Immediate values must be between 0 and 63.");
-            asm.push(`LOAD R7, ${value}`);
-            asm.push(`ADD R${destReg}, R7`);
+    const emitLoadImmediate = (targetReg, value, contextLabel = "immediate") => {
+        if (value < 0 || value > 65535) {
+            throw new Error(`${contextLabel} must be between 0 and 65535.`);
+        }
+
+        if (value <= 63) {
+            asm.push(`LOAD R${targetReg}, ${value}`);
             return;
         }
+
+        const emitLoadR7Large = (largeValue) => {
+            const base = 63;
+            const base2 = base * base;
+            const high = Math.floor(largeValue / base2);
+            const rem = largeValue % base2;
+            const mid = Math.floor(rem / base);
+            const low = rem % base;
+
+            const temps = ensureCompilerTempCells();
+            asm.push(`STORE R5, ${temps.r5}`);
+            asm.push(`STORE R6, ${temps.r6}`);
+
+            asm.push(`LOAD R7, ${high}`);
+            asm.push(`LOAD R6, ${base}`);
+            asm.push(`MUL R7, R6`);
+            asm.push(`LOAD R5, ${mid}`);
+            asm.push(`ADD R7, R5`);
+            asm.push(`MUL R7, R6`);
+            asm.push(`LOAD R5, ${low}`);
+            asm.push(`ADD R7, R5`);
+
+            asm.push(`LOADM R6, ${temps.r6}`);
+            asm.push(`LOADM R5, ${temps.r5}`);
+        };
+
+        if (targetReg === 7) {
+            emitLoadR7Large(value);
+            return;
+        }
+
+        emitLoadR7Large(value);
+        asm.push(`LOAD R${targetReg}, 0`);
+        asm.push(`ADD R${targetReg}, R7`);
+    };
+
+    const getReg = (name) => {
+        if (scalarRegs[name] !== undefined) return scalarRegs[name];
+        if (nextReg > 6) throw new Error("Too many scalar variables. Use up to 7 scalars.");
+        scalarRegs[name] = nextReg;
+        nextReg += 1;
+        return scalarRegs[name];
+    };
+
+    const allocateCells = (count, label) => {
+        if (count <= 0) throw new Error(`Invalid allocation size for ${label}.`);
+        const base = memPtr - count + 1;
+        if (base < 0) throw new Error(`Not enough memory for ${label}.`);
+        memPtr = base - 1;
+        return base;
+    };
+
+    const ensureCompilerTempCells = () => {
+        if (compilerTempCells === null) {
+            const r6Cell = allocateCells(1, "compiler temp R6");
+            const r5Cell = allocateCells(1, "compiler temp R5");
+            compilerTempCells = { r5: r5Cell, r6: r6Cell };
+        }
+        return compilerTempCells;
+    };
+
+    const parseInitList = (text) => {
+        if (!text || !text.trim()) return [];
+        return text.split(",").map(item => parseNumber(item.trim(), "initializer"));
+    };
+
+    const resolveStructuredTermToAddress = (term) => {
+        const stackTop = term.match(/^(\w+)\.top\(\)$/);
+        if (stackTop) {
+            const name = stackTop[1];
+            const stack = stacks[name];
+            if (!stack) throw new Error(`Unknown stack: ${name}`);
+            if (stack.size === 0) throw new Error(`Stack is empty: ${name}`);
+            return stack.base + stack.size - 1;
+        }
+
+        const queueFront = term.match(/^(\w+)\.front\(\)$/);
+        if (queueFront) {
+            const name = queueFront[1];
+            const queue = queues[name];
+            if (!queue) throw new Error(`Unknown queue: ${name}`);
+            if (queue.size === 0) throw new Error(`Queue is empty: ${name}`);
+            return queue.base + queue.head;
+        }
+
+        const queueBack = term.match(/^(\w+)\.back\(\)$/);
+        if (queueBack) {
+            const name = queueBack[1];
+            const queue = queues[name];
+            if (!queue) throw new Error(`Unknown queue: ${name}`);
+            if (queue.size === 0) throw new Error(`Queue is empty: ${name}`);
+            const lastIndex = (queue.head + queue.size - 1) % queue.capacity;
+            return queue.base + lastIndex;
+        }
+
+        return null;
+    };
+
+    const resolveMemAddress = (term, forWrite = false) => {
+        const match = term.match(/^(\w+)\[(\d+)\]$/);
+        if (!match) return null;
+        const name = match[1];
+        const index = parseInt(match[2], 10);
+
+        if (arrays[name]) {
+            if (index >= arrays[name].size) throw new Error(`Index out of bounds: ${term}`);
+            return arrays[name].base + index;
+        }
+
+        if (vectors[name]) {
+            const meta = vectors[name];
+            if (index >= meta.capacity) throw new Error(`Vector capacity exceeded: ${term}`);
+            if (!forWrite && index >= meta.length) throw new Error(`Vector index out of current length: ${term}`);
+            if (forWrite && index >= meta.length) meta.length = index + 1;
+            return meta.base + index;
+        }
+
+        throw new Error(`Unknown array/vector: ${name}`);
+    };
+
+    const loadTermIntoR7 = (term) => {
+        if (isNumber(term)) {
+            const value = parseNumber(term, "immediate");
+            emitLoadImmediate(7, value, "immediate");
+            return;
+        }
+
+        const dsAddr = resolveStructuredTermToAddress(term);
+        if (dsAddr !== null) {
+            asm.push(`LOADM R7, ${dsAddr}`);
+            return;
+        }
+
+        const addr = resolveMemAddress(term, false);
+        if (addr !== null) {
+            asm.push(`LOADM R7, ${addr}`);
+            return;
+        }
+
         if (/^\w+$/.test(term)) {
-            const srcReg = getReg(term);
-            asm.push(`ADD R${destReg}, R${srcReg}`);
+            const reg = getReg(term);
+            asm.push(`LOAD R7, 0`);
+            asm.push(`ADD R7, R${reg}`);
             return;
         }
+
         throw new Error(`Unsupported expression term: ${term}`);
+    };
+
+    const emitExpressionToReg = (destReg, expression) => {
+        const expr = expression.trim();
+        if (isNumber(expr)) {
+            emitLoadImmediate(destReg, parseNumber(expr, "immediate"), "immediate");
+            return;
+        }
+
+        const parts = expr.split("+").map(part => part.trim()).filter(Boolean);
+        if (parts.length === 0) throw new Error(`Invalid expression: ${expression}`);
+
+        asm.push(`LOAD R${destReg}, 0`);
+        parts.forEach(part => {
+            const dsAddr = resolveStructuredTermToAddress(part);
+            if (dsAddr !== null) {
+                asm.push(`LOADM R7, ${dsAddr}`);
+                asm.push(`ADD R${destReg}, R7`);
+                return;
+            }
+
+            const addr = resolveMemAddress(part, false);
+            if (addr !== null) {
+                asm.push(`LOADM R7, ${addr}`);
+                asm.push(`ADD R${destReg}, R7`);
+                return;
+            }
+            if (/^\w+$/.test(part) && !isNumber(part)) {
+                const srcReg = getReg(part);
+                asm.push(`ADD R${destReg}, R${srcReg}`);
+                return;
+            }
+            if (isNumber(part)) {
+                let remaining = parseNumber(part, "immediate");
+                while (remaining > 0) {
+                    const chunk = Math.min(63, remaining);
+                    asm.push(`LOAD R7, ${chunk}`);
+                    asm.push(`ADD R${destReg}, R7`);
+                    remaining -= chunk;
+                }
+                return;
+            }
+            throw new Error(`Unsupported expression term: ${part}`);
+        });
     };
 
     for (const rawLine of lines) {
         const line = rawLine.trim();
         if (!line || line.startsWith("//")) continue;
 
+        if (!line.endsWith(";")) {
+            throw new Error(`Syntax error: end each statement with ';' -> ${line}`);
+        }
+
+        const arrayDecl = line.match(/^int\s+(\w+)\s*\[\s*(\d+)\s*\]\s*(=\s*\{([^}]*)\})?\s*;$/);
+        if (arrayDecl) {
+            const name = arrayDecl[1];
+            const size = parseInt(arrayDecl[2], 10);
+            const initValues = parseInitList(arrayDecl[4]);
+            if (size <= 0) throw new Error(`Array size must be > 0: ${name}`);
+            const base = allocateCells(size, `array ${name}`);
+            arrays[name] = { base, size };
+            for (let index = 0; index < initValues.length && index < size; index++) {
+                const value = initValues[index];
+                asm.push(`LOAD R7, ${value}`);
+                asm.push(`STORE R7, ${base + index}`);
+            }
+            continue;
+        }
+
+        const vectorInitDecl = line.match(/^vector<int>\s+(\w+)\s*=\s*\{([^}]*)\}\s*;$/);
+        if (vectorInitDecl) {
+            const name = vectorInitDecl[1];
+            const initValues = parseInitList(vectorInitDecl[2]);
+            const capacity = Math.max(8, initValues.length + 8);
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: initValues.length, capacity };
+            for (let index = 0; index < initValues.length; index++) {
+                const value = initValues[index];
+                asm.push(`LOAD R7, ${value}`);
+                asm.push(`STORE R7, ${base + index}`);
+            }
+            continue;
+        }
+
+        const vectorSizedDecl = line.match(/^vector<int>\s+(\w+)\s*\(\s*(\d+)\s*\)\s*;$/);
+        if (vectorSizedDecl) {
+            const name = vectorSizedDecl[1];
+            const initialSize = parseInt(vectorSizedDecl[2], 10);
+            const capacity = Math.max(initialSize + 8, 8);
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: initialSize, capacity };
+            continue;
+        }
+
+        const vectorDecl = line.match(/^vector<int>\s+(\w+)\s*;$/);
+        if (vectorDecl) {
+            const name = vectorDecl[1];
+            const capacity = 8;
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: 0, capacity };
+            continue;
+        }
+
+        const stackDecl = line.match(/^stack<int>\s+(\w+)\s*(\(\s*(\d+)\s*\))?\s*;$/);
+        if (stackDecl) {
+            const name = stackDecl[1];
+            const capacity = stackDecl[3] ? parseInt(stackDecl[3], 10) : 8;
+            if (capacity <= 0) throw new Error(`Stack capacity must be > 0: ${name}`);
+            const base = allocateCells(capacity, `stack ${name}`);
+            stacks[name] = { base, size: 0, capacity };
+            continue;
+        }
+
+        const queueDecl = line.match(/^queue<int>\s+(\w+)\s*(\(\s*(\d+)\s*\))?\s*;$/);
+        if (queueDecl) {
+            const name = queueDecl[1];
+            const capacity = queueDecl[3] ? parseInt(queueDecl[3], 10) : 8;
+            if (capacity <= 0) throw new Error(`Queue capacity must be > 0: ${name}`);
+            const base = allocateCells(capacity, `queue ${name}`);
+            queues[name] = { base, size: 0, head: 0, capacity };
+            continue;
+        }
+
+        const pushBack = line.match(/^(\w+)\.push_back\((.+)\)\s*;$/);
+        if (pushBack) {
+            const name = pushBack[1];
+            const expr = pushBack[2].trim();
+            if (!vectors[name]) throw new Error(`Unknown vector: ${name}`);
+            const vector = vectors[name];
+            if (vector.length >= vector.capacity) throw new Error(`Vector capacity exceeded for ${name}`);
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${vector.base + vector.length}`);
+            vector.length += 1;
+            continue;
+        }
+
+        const popBack = line.match(/^(\w+)\.pop_back\(\)\s*;$/);
+        if (popBack) {
+            const name = popBack[1];
+            if (!vectors[name]) throw new Error(`Unknown vector: ${name}`);
+            const vector = vectors[name];
+            if (vector.length === 0) throw new Error(`Vector underflow: ${name}`);
+            vector.length -= 1;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${vector.base + vector.length}`);
+            continue;
+        }
+
+        const stackPush = line.match(/^(\w+)\.push\((.+)\)\s*;$/);
+        if (stackPush && stacks[stackPush[1]]) {
+            const name = stackPush[1];
+            const expr = stackPush[2].trim();
+            const stack = stacks[name];
+            if (stack.size >= stack.capacity) throw new Error(`Stack overflow: ${name}`);
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${stack.base + stack.size}`);
+            stack.size += 1;
+            continue;
+        }
+
+        const stackPop = line.match(/^(\w+)\.pop\(\)\s*;$/);
+        if (stackPop && stacks[stackPop[1]]) {
+            const name = stackPop[1];
+            const stack = stacks[name];
+            if (stack.size === 0) throw new Error(`Stack underflow: ${name}`);
+            const poppedIndex = stack.size - 1;
+            const poppedAddr = stack.base + poppedIndex;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${poppedAddr}`);
+            stack.size -= 1;
+            continue;
+        }
+
+        const queuePush = line.match(/^(\w+)\.push\((.+)\)\s*;$/);
+        if (queuePush && queues[queuePush[1]]) {
+            const name = queuePush[1];
+            const expr = queuePush[2].trim();
+            const queue = queues[name];
+            if (queue.size >= queue.capacity) throw new Error(`Queue overflow: ${name}`);
+            const tail = (queue.head + queue.size) % queue.capacity;
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${queue.base + tail}`);
+            queue.size += 1;
+            continue;
+        }
+
+        const queuePop = line.match(/^(\w+)\.pop\(\)\s*;$/);
+        if (queuePop && queues[queuePop[1]]) {
+            const name = queuePop[1];
+            const queue = queues[name];
+            if (queue.size === 0) throw new Error(`Queue underflow: ${name}`);
+            const poppedAddr = queue.base + queue.head;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${poppedAddr}`);
+            queue.head = (queue.head + 1) % queue.capacity;
+            queue.size -= 1;
+            continue;
+        }
+
+        const indexAssign = line.match(/^(\w+\[\d+\])\s*=\s*(.+)\s*;$/);
+        if (indexAssign) {
+            const target = indexAssign[1];
+            const expr = indexAssign[2].trim();
+            const addr = resolveMemAddress(target, true);
+            emitExpressionToReg(7, expr);
+            asm.push(`STORE R7, ${addr}`);
+            continue;
+        }
+
         const intAssign = line.match(/^int\s+(\w+)\s*=\s*(.+)\s*;$/);
         const assign = line.match(/^(\w+)\s*=\s*(.+)\s*;$/);
-
         if (intAssign || assign) {
             const target = (intAssign || assign)[1];
             const expression = (intAssign || assign)[2].trim();
             const destReg = getReg(target);
-
-            if (/^\d+$/.test(expression)) {
-                const value = parseInt(expression, 10);
-                if (value < 0 || value > 63) throw new Error("Immediate values must be between 0 and 63.");
-                asm.push(`LOAD R${destReg}, ${value}`);
-                continue;
-            }
-
-            if (/^\w+$/.test(expression)) {
-                const srcReg = getReg(expression);
-                asm.push(`LOAD R${destReg}, 0`);
-                asm.push(`ADD R${destReg}, R${srcReg}`);
-                continue;
-            }
-
-            const parts = expression.split("+").map(part => part.trim()).filter(Boolean);
-            if (parts.length === 0) throw new Error(`Invalid assignment: ${line}`);
-            asm.push(`LOAD R${destReg}, 0`);
-            parts.forEach(part => emitAddTerm(destReg, part));
+            emitExpressionToReg(destReg, expression);
             continue;
         }
 
         throw new Error(`Unsupported C++ line: ${line}`);
     }
 
+    if ((asm.length + 1) > (memPtr + 1)) {
+        throw new Error(`Program too large: code overlaps data memory. Reduce complexity or data structure sizes.`);
+    }
+
     asm.push("HALT");
+    lastCompiledLayout = {
+        arrays: JSON.parse(JSON.stringify(arrays)),
+        vectors: JSON.parse(JSON.stringify(vectors)),
+        stacks: JSON.parse(JSON.stringify(stacks)),
+        queues: JSON.parse(JSON.stringify(queues))
+    };
     return asm.join("\n");
 }
 
     function triggerFlash() {
     stopAuto();
+    clearCompileError();
 
     if (activeMode === 'c') {
     currentPreset = '';
+} else {
+    lastCompiledLayout = null;
 }
 hoverPinned = false;
 hideVarInfo();
 
-    vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(24).fill(null), stage: 0, halted: false };
-    history = [];
-
     let rawCode;
+    let sourceCode;
     try {
         if(activeMode === 'c') {
-            rawCode = compileCPP(document.getElementById('c-editor').value);
+            sourceCode = document.getElementById('c-editor').value;
+            rawCode = compileCPP(sourceCode);
         } else {
-            rawCode = document.getElementById('asm-editor').value;
+            sourceCode = document.getElementById('asm-editor').value;
+            rawCode = sourceCode;
         }
     } catch (err) {
-        document.getElementById('status-bar').innerText = `Compile error: ${err.message}`;
+        showCompileError(err.message);
+        document.getElementById('status-bar').innerText = "Compilation failed.";
+        resetCounterTrace();
         return;
     }
 
-    const lines = rawCode.split('\n');
-    let idx = 0;
-    const errors = [];
-
-    // --- Encode instructions normally ---
-    const parseReg = (token) => {
-        if (!/^R[0-7]$/.test(token)) return null;
-        return parseInt(token.slice(1), 10);
-    };
-    const parseImm6 = (token) => {
-        const value = parseInt(token, 10);
-        if (isNaN(value) || value < 0 || value > 63) return null;
-        return value;
-    };
-
-    lines.forEach((line, lineIndex) => {
-        const text = line.trim();
-        if(!text || text.startsWith("//")) return;
-        if (idx >= vm.mem.length) {
-            errors.push(`Line ${lineIndex + 1}: Program exceeds RAM capacity (${vm.mem.length} cells).`);
-            return;
-        }
-
-        const p = text.replace(/,/g,'').split(/\s+/);
-        const instruction = p[0];
-        let op = 0;
-        let rd = 0;
-        let rs = 0;
-        let imm = 0;
-
-        if (instruction === "HALT") {
-            vm.mem[idx++] = 0;
-            return;
-        }
-
-        if (instruction === "ADD" || instruction === "MUL") {
-            rd = parseReg(p[1]);
-            rs = parseReg(p[2]);
-            if (rd === null || rs === null) {
-                errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, Rm\".`);
-                return;
-            }
-            op = instruction === "ADD" ? 1 : 7;
-        } else if (instruction === "JMP") {
-            rd = parseReg(p[1]);
-            if (rd === null) {
-                errors.push(`Line ${lineIndex + 1}: JMP expects format \"JMP Rn\".`);
-                return;
-            }
-            op = 5;
-        } else if (instruction === "LOAD" || instruction === "SUB" || instruction === "JZ" || instruction === "STORE") {
-            rd = parseReg(p[1]);
-            imm = parseImm6(p[2]);
-            if (rd === null || imm === null) {
-                errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, imm(0-63)\".`);
-                return;
-            }
-            if (instruction === "LOAD") op = 6;
-            else if (instruction === "SUB") op = 8;
-            else if (instruction === "JZ") op = 4;
-            else op = 9;
-        } else {
-            errors.push(`Line ${lineIndex + 1}: Unknown instruction \"${instruction}\".`);
-            return;
-        }
-
-        vm.mem[idx++] = ((op & 0xF) << 12) |
-                        ((rd & 0x7) << 9) |
-                        ((rs & 0x7) << 6) |
-                        (imm & 0x3F);
-    });
-
-    if (errors.length > 0) {
-        document.getElementById('status-bar').innerText = errors.slice(0, 2).join(' | ');
+    const encoded = encodeProgram(rawCode, vm.mem.length);
+    if (encoded.errors.length > 0) {
+        showCompileError(encoded.errors.slice(0, 2).join(' | '));
+        document.getElementById('status-bar').innerText = "Compilation failed.";
+        resetCounterTrace();
         return;
     }
 
-    vm.pc = 0; // reset PC back to start
+    const canIncremental =
+        activeMode === 'c' &&
+        lastEncodedProgram &&
+        lastCompiledSource &&
+        sourceCode.startsWith(lastCompiledSource) &&
+        isPrefixProgram(lastEncodedProgram, encoded.program);
+
+    if (canIncremental) {
+        const oldCoreLen = programCore(lastEncodedProgram).length;
+        for (let i = oldCoreLen; i < vm.mem.length; i++) vm.mem[i] = null;
+        for (let i = oldCoreLen; i < encoded.program.length; i++) vm.mem[i] = encoded.program[i];
+
+        vm.pc = oldCoreLen;
+        vm.stage = 0;
+        vm.halted = false;
+        history = [];
+        counterTrace.push(`Continued from previous state at instruction ${oldCoreLen}.`);
+        if (counterTrace.length > 12) counterTrace.shift();
+        renderCounterTrace();
+        document.getElementById('status-bar').innerText = "Incremental flash complete. Continue stepping from new lines.";
+    } else {
+        resetCounterTrace();
+        vm = { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false };
+        history = [];
+        for (let i = 0; i < encoded.program.length; i++) vm.mem[i] = encoded.program[i];
+        vm.pc = 0;
+        document.getElementById('status-bar').innerText = "RAM Flashed successfully.";
+    }
+
+    lastCompiledSource = sourceCode;
+    lastEncodedProgram = encoded.program.slice();
     updateUI();
-    document.getElementById('status-bar').innerText = "RAM Flashed successfully.";
 }
 
 let hoverPinned = false;
@@ -607,13 +1245,21 @@ to control program flow.
             vm.stage = 1;
         } else {
             updateStepLights(2);
+            const beforeState = { pc: vm.pc, regs: [...vm.regs] };
             execute(ins);
+            logCounterTrace(beforeState, ins);
             document.getElementById('exp-title').innerText = "Step 2 & 3: EXECUTE & STORE";
             
             vm.stage = 0;
             updateUI(rd);
             if(vm.halted) {
                 stopAuto();
+                const registerSummary = vm.regs
+                    .map((value, index) => `<div>R${index} = ${value}</div>`)
+                    .join("");
+                const finalRegsHtml = `<b style='color:var(--cyan)'>Register Snapshot</b><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 2px; font-family: 'Fira Code', monospace; font-size: 13px;">${registerSummary}</div>`;
+                const dataSnapshotHtml = buildDataStructureSnapshotHtml();
+
                 // If preset fib, compute the correct Fibonacci value to ensure accurate result display
                 if(currentPreset === 'fib') {
     const n = Math.max(0, parseInt(presetVal, 10) || 0);
@@ -624,8 +1270,8 @@ to control program flow.
 
     document.getElementById('exp-text').innerHTML = `
 <b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
-Fibonacci(${n}) = ${sequence.join(" ")}
-`;
+<div style="margin-top:6px;">${finalRegsHtml}</div>
+${dataSnapshotHtml}`;
 
 }  else if(currentPreset === 'fact') {
     document.getElementById('status-bar').innerText =
@@ -633,17 +1279,15 @@ Fibonacci(${n}) = ${sequence.join(" ")}
 
     document.getElementById('exp-text').innerHTML =
         `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
-        Factorial of ${presetVal} = ${vm.regs[0]}`;
+        <div style="margin-top:6px;">${finalRegsHtml}</div>
+        ${dataSnapshotHtml}`;
 } else {
     document.getElementById('status-bar').innerText = "HALT: C++ Program Executed.";
 
     document.getElementById('exp-text').innerHTML =
 `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
-Final Register State:<br>
-R0 = ${vm.regs[0]}<br>
-R1 = ${vm.regs[1]}<br>
-R2 = ${vm.regs[2]}<br>
-R3 = ${vm.regs[3]}`;
+<div style="margin-top:4px;">${finalRegsHtml}</div>
+${dataSnapshotHtml}`;
 }
                 updateUI();
             }
@@ -675,6 +1319,49 @@ R3 = ${vm.regs[3]}`;
     return seq.slice(0, n);
 }
 
+    function buildDataStructureSnapshotHtml() {
+    if (!lastCompiledLayout) return "";
+
+    const lines = [];
+
+    Object.entries(lastCompiledLayout.arrays || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.size; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (array): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.vectors || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.length; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (vector): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.stacks || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.size; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (stack top→right): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.queues || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let offset = 0; offset < meta.size; offset++) {
+            const physicalIndex = (meta.head + offset) % meta.capacity;
+            values.push(vm.mem[meta.base + physicalIndex] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (queue front→left): [${values.join(", ")}]</div>`);
+    });
+
+    if (lines.length === 0) return "";
+
+    return `<div style="margin-top:8px;"><b style='color:var(--accent)'>Data Structure Snapshot</b><div style="margin-top:4px; font-family: 'Fira Code', monospace; font-size: 12px; line-height: 1.45;">${lines.join("")}</div></div>`;
+}
+
     function execute(ins) {
         if(!ins || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
         let op=(ins>>12)&0xF, rd=(ins>>9)&7, rs=(ins>>6)&7, imm=ins&0x3F;
@@ -688,6 +1375,9 @@ R3 = ${vm.regs[3]}`;
             case 9: // STORE
     vm.mem[imm] = vm.regs[rd] & 0xFFFF;
     break;
+                case 10: // LOADM
+            vm.regs[rd] = (vm.mem[imm] ?? 0) & 0xFFFF;
+            break;
             default: vm.halted = true; return;
         }
         vm.pc++;
@@ -732,11 +1422,17 @@ R3 = ${vm.regs[3]}`;
     function updateUI(glowIdx = null) {
     document.getElementById('pc-display').innerText = vm.pc;
 
+    const pageStart = Math.floor(vm.pc / MEM_VIEW_SIZE) * MEM_VIEW_SIZE;
+    const pageEnd = Math.min(pageStart + MEM_VIEW_SIZE - 1, vm.mem.length - 1);
+    const memWindowEl = document.getElementById('mem-window');
+    if (memWindowEl) memWindowEl.innerText = `${pageStart} - ${pageEnd}`;
+
     document.getElementById('mem-grid').innerHTML =
-        vm.mem.map((val, i) => {
-            let display = val !== null ? val : `0x${i.toString(16)}`;
+        vm.mem.slice(pageStart, pageEnd + 1).map((val, i) => {
+            const realIndex = pageStart + i;
+            let display = val !== null ? val : `0x${realIndex.toString(16)}`;
             return `
-                <div class="ram-cell ${vm.pc === i ? 'active' : ''}">
+                <div class="ram-cell ${vm.pc === realIndex ? 'active' : ''}">
                     ${display}
                 </div>`;
         }).join('');
@@ -751,7 +1447,8 @@ R3 = ${vm.regs[3]}`;
     updateBitDisplay(vm.mem[vm.pc] || 0);
     
 document.querySelectorAll('.ram-cell').forEach((cell, idx) => {
-    cell.onmouseenter = (e) => showVarInfo(`Memory[${idx}]`, idx, vm.mem[idx] ?? 0, e);
+    const realIndex = pageStart + idx;
+    cell.onmouseenter = (e) => showVarInfo(`Memory[${realIndex}]`, realIndex, vm.mem[realIndex] ?? 0, e);
     cell.onmouseleave = hideVarInfo;
 });
 
