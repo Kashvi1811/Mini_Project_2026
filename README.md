@@ -1,4 +1,11 @@
-# Custom Register VM + Interactive Visualizer
+# 🧠 Custom Register VM + Interactive Visualizer
+
+<p align="left">
+  <img alt="Language" src="https://img.shields.io/badge/Language-C%2B%2B-00599C?logo=cplusplus&logoColor=white">
+  <img alt="Frontend" src="https://img.shields.io/badge/Visualizer-HTML%2FCSS%2FJS-E34F26?logo=html5&logoColor=white">
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-16--bit%20Custom%20VM-6C63FF">
+  <img alt="Type" src="https://img.shields.io/badge/Project-Systems%20%2B%20Education-0EA5E9">
+</p>
 
 A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
 
@@ -10,7 +17,7 @@ This repository contains:
 
 ---
 
-## Why this project
+## 🎯 Why this project
 
 This project is designed to make low-level execution easy to understand by connecting:
 
@@ -23,18 +30,18 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-- 16-bit custom instruction format (opcode + register fields + immediate)
-- VM with 8 registers (`R0` to `R7`) and program counter (`PC`)
-- JSONL trace output for execution debugging (`trace.jsonl`)
-- Visual RAM grid, register file, IR bit view, and execution narration
-- Step execution, auto-run mode, back/undo, and reset
-- Simple C++ subset to ASM translator inside the visualizer
+- 🔢 16-bit custom instruction format (opcode + register fields + immediate)
+- 🧮 VM with 8 registers (`R0` to `R7`) and program counter (`PC`)
+- 📝 JSONL trace output for execution debugging (`trace.jsonl`)
+- 🖥️ Visual RAM grid, register file, IR bit view, and execution narration
+- ⏯️ Step execution, auto-run mode, back/undo, and reset
+- 🔁 Simple C++ subset to ASM translator inside the visualizer
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```text
 .
@@ -48,7 +55,7 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 
 ---
 
-## Instruction Set (Current)
+## 🧩 Instruction Set (Current)
 
 | Opcode | Mnemonic | Operation |
 |-------:|----------|-----------|
@@ -61,13 +68,13 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 | 8 | `SUB rd, imm` | `R[rd] = R[rd] - imm` |
 | 9 | `STORE rd, imm` | `MEM[imm] = R[rd]` (used in viewer simulation) |
 
-> Immediate values use 6 bits, so valid range is `0..63`.
+> ℹ️ Immediate values use 6 bits, so valid range is `0..63`.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1) Run C++ VM (PowerShell / Windows)
+### 1) ⚙️ Run C++ VM (PowerShell / Windows)
 
 ```powershell
 cd .\custom_vm_project
@@ -76,7 +83,7 @@ g++ vm.cpp -std=c++17 -O2 -o vm.exe
 .\vm.exe fib 8
 ```
 
-### 2) Open Visualizer
+### 2) 🌐 Open Visualizer
 
 - Open `custom_vm_project/viewer.html` in your browser.
 - Choose a preset (**Factorial**, **Fibonacci**, or **Basic Addition**) or type code.
@@ -85,7 +92,7 @@ g++ vm.cpp -std=c++17 -O2 -o vm.exe
 
 ---
 
-## Supported C++ Subset (in viewer)
+## 🧪 Supported C++ Subset (in viewer)
 
 The high-level editor currently supports simple assignment-based expressions, for example:
 
@@ -100,7 +107,7 @@ This subset is intentionally small to keep the instruction mapping clear and edu
 
 ---
 
-## Demo Programs
+## 🧠 Demo Programs
 
 - **Factorial (`fact n`)**
   - Uses looped multiplication and decrement-until-zero logic
@@ -112,7 +119,7 @@ This subset is intentionally small to keep the instruction mapping clear and edu
 
 ---
 
-## Trace Output
+## 📊 Trace Output
 
 Running `vm.cpp` generates `trace.jsonl` with per-step machine state:
 
@@ -125,7 +132,7 @@ This is useful for debugging, validation, and project presentation.
 
 ---
 
-## Current Limitations
+## ⚠️ Current Limitations
 
 - Immediate values limited to `0..63`
 - Visualizer RAM view is compact (for UI clarity)
@@ -133,7 +140,7 @@ This is useful for debugging, validation, and project presentation.
 
 ---
 
-## Roadmap
+## 🛣️ Roadmap
 
 - Add more opcodes (compare, call/return, memory load)
 - Improve instruction-level explanation panel (`op-name`, `op-math`)
@@ -142,7 +149,17 @@ This is useful for debugging, validation, and project presentation.
 
 ---
 
-## Author Note
+## 👤 Author Note
 
 Built as a systems-focused academic mini project to bridge theory and practical CPU simulation with an interactive UX.
+
+---
+
+## 🤝 Contributing
+
+Suggestions and improvements are welcome. If you want, open an issue or submit a pull request with:
+
+- new instructions/opcodes,
+- visualizer UX improvements,
+- or better C++-to-ASM translation rules.
 
