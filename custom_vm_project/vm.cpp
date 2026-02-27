@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cstdint>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -18,6 +19,15 @@ void updateFlags(uint16_t r){
 }
 
 ofstream trace("trace.jsonl");
+
+void resetState(){
+    fill(memory.begin(), memory.end(), 0);
+    for(int i=0;i<8;i++) R[i]=0;
+    PC=0;
+    FLAG_Z=1;
+    FLAG_N=0;
+    FLAG_P=0;
+}
 
 void logStep(int step,uint16_t pc,uint16_t ins){
     trace<<"{\"step\":"<<step<<",\"pc\":"<<pc<<",\"ins\":"<<ins<<",\"regs\":[";
@@ -59,7 +69,8 @@ void run(){
 }
 
 void loadFact(int n){
-    PC=0;
+    resetState();
+    n = max(0, min(n, 63));
     memory[0]=(6<<12)|(0<<9)|1;      // LOAD R0, 1 (Accumulator)
     memory[1]=(6<<12)|(1<<9)|n;      // LOAD R1, n (Counter)
     memory[2]=(6<<12)|(2<<9)|3;      // LOAD R2, 3 (Loop Address)
@@ -71,7 +82,8 @@ void loadFact(int n){
 }
 
 void loadFib(int steps){
-    PC=0;
+    resetState();
+    steps = max(0, min(steps, 63));
     memory[0]=(6<<12)|(0<<9)|0;      // R0 = 0 (Start)
     memory[1]=(6<<12)|(1<<9)|1;      // R1 = 1 (Start)
     memory[2]=(6<<12)|(4<<9)|steps;  // R4 = steps (Loop counter)
@@ -96,8 +108,19 @@ int main(int argc,char** argv){
         return 0;
     }
     string p=argv[1];
-    int val = stoi(argv[2]);
+    int val = 0;
+    try {
+        val = stoi(argv[2]);
+    } catch(...) {
+        cout<<"Invalid number: "<<argv[2]<<"\n";
+        return 1;
+    }
     if(p=="fact") loadFact(val);
     else if(p=="fib") loadFib(val);
+    else {
+        cout<<"Unknown program: "<<p<<"\n";
+        cout<<"Usage: vm fact|fib <number>\n";
+        return 1;
+    }
     run();
 }

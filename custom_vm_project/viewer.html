@@ -172,6 +172,7 @@
 ">
     
     <div id="hover-info-content"></div>
+    <div id="hover-info-close" style="margin-top:8px; text-align:right; cursor:pointer; color: var(--rose); font-weight:700;">✕</div>
 </div>
 
     <aside class="sidebar">
@@ -360,114 +361,69 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
 
     function compileCPP(code) {
     const lines = code.split("\n");
-    let asm = [];
-    let regMap = {};
-    let regIndex = 0;
-    let memPtr = 20; // start memory pointer for variables
+    const asm = [];
+    const regMap = {};
+    let nextReg = 0;
 
-    lines.forEach(line => {
-        line = line.trim();
-        if(!line) return;
+    const getReg = (name) => {
+        if (regMap[name] !== undefined) return regMap[name];
+        if (nextReg > 6) throw new Error("Too many variables. Use up to 7 variables.");
+        regMap[name] = nextReg;
+        nextReg += 1;
+        return regMap[name];
+    };
 
-        // --- vector<int> arr(n)
-        let vecMatch = line.match(/vector<int>\s+(\w+)(\s*\(\s*(\d*)\s*\))?\s*;/);
-        if(vecMatch){
-            const varName = vecMatch[1];
-            const initSize = parseInt(vecMatch[3], 10) || 0;
+    const emitAddTerm = (destReg, term) => {
+        if (/^\d+$/.test(term)) {
+            const value = parseInt(term, 10);
+            if (value < 0 || value > 63) throw new Error("Immediate values must be between 0 and 63.");
+            asm.push(`LOAD R7, ${value}`);
+            asm.push(`ADD R${destReg}, R7`);
+            return;
+        }
+        if (/^\w+$/.test(term)) {
+            const srcReg = getReg(term);
+            asm.push(`ADD R${destReg}, R${srcReg}`);
+            return;
+        }
+        throw new Error(`Unsupported expression term: ${term}`);
+    };
 
-            // assign a register to hold base address for the vector
-            regMap[varName] = memPtr; // store base memory address
-            // initialize vector cells with 0
-            for(let i=0; i<initSize; i++){
-                asm.push(`LOAD R7, 0`);
-                asm.push(`STORE R7, ${memPtr + i}`);
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith("//")) continue;
+
+        const intAssign = line.match(/^int\s+(\w+)\s*=\s*(.+)\s*;$/);
+        const assign = line.match(/^(\w+)\s*=\s*(.+)\s*;$/);
+
+        if (intAssign || assign) {
+            const target = (intAssign || assign)[1];
+            const expression = (intAssign || assign)[2].trim();
+            const destReg = getReg(target);
+
+            if (/^\d+$/.test(expression)) {
+                const value = parseInt(expression, 10);
+                if (value < 0 || value > 63) throw new Error("Immediate values must be between 0 and 63.");
+                asm.push(`LOAD R${destReg}, ${value}`);
+                continue;
             }
 
-            memPtr += Math.max(initSize, 4); // allocate at least 4 cells
-            return;
-        }
-
-        // --- arr.push_back(value)
-        let pushMatch = line.match(/(\w+)\.push_back\((\d+)\)\s*;/);
-        if(pushMatch){
-            const varName = pushMatch[1];
-            const value = parseInt(pushMatch[2], 10);
-
-            if(regMap[varName] !== undefined){
-                asm.push(`LOAD R7, ${value}`);
-                asm.push(`STORE R7, ${memPtr}`);
-                memPtr++;  // next free memory slot
+            if (/^\w+$/.test(expression)) {
+                const srcReg = getReg(expression);
+                asm.push(`LOAD R${destReg}, 0`);
+                asm.push(`ADD R${destReg}, R${srcReg}`);
+                continue;
             }
-            return;
-        }
 
-        // --- sum = sum + arr[i] + ...
-        let sumMatch = line.match(/(\w+)\s*=\s*(.+);/);
-        if(sumMatch){
-            const dest = sumMatch[1];
-            let expr = sumMatch[2];
-
-            // assign dest register
-            const destReg = regIndex++;
-            regMap[dest] = destReg;
-
-            asm.push(`LOAD R${destReg}, 0`); // start sum at 0
-
-            const parts = expr.split('+').map(s=>s.trim());
-            parts.forEach(p => {
-                // register reference
-                if(/^R\d+$/.test(p)){
-                    asm.push(`ADD R${destReg}, ${p}`);
-                }
-                // immediate value
-                else if(/^\d+$/.test(p)){
-                    asm.push(`ADD R${destReg}, ${parseInt(p)}`);
-                }
-                // array element: arr[2]
-                else if(/^(\w+)\[(\d+)\]$/.test(p)){
-                    const m = p.match(/^(\w+)\[(\d+)\]$/);
-                    const arrName = m[1];
-                    const index = parseInt(m[2],10);
-                    if(regMap[arrName] !== undefined){
-                        const memAddr = regMap[arrName] + index; // base + offset
-                        asm.push(`LOAD R7, ${memAddr}`);
-                        asm.push(`ADD R${destReg}, R7`);
-                    }
-                }
-            });
-            return;
-        }
-
-        // --- int a = 10;
-        let matchAssign = line.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/);
-        if(matchAssign){
-            const varName = matchAssign[1];
-            const value = parseInt(matchAssign[2],10);
-            regMap[varName] = regIndex;
-            asm.push(`LOAD R${regIndex}, ${value}`);
-            regIndex++;
-            return;
-        }
-
-        // --- int c = a + b;
-        let matchAdd = line.match(/int\s+(\w+)\s*=\s*(\w+)\s*\+\s*(\w+)\s*;/);
-        if(matchAdd){
-            const dest = matchAdd[1];
-            const op1 = matchAdd[2];
-            const op2 = matchAdd[3];
-
-            const destReg = regIndex++;
-            regMap[dest] = destReg;
-
-            const rOp1 = regMap[op1] !== undefined ? regMap[op1] : 0;
-            const rOp2 = regMap[op2] !== undefined ? regMap[op2] : 0;
-
+            const parts = expression.split("+").map(part => part.trim()).filter(Boolean);
+            if (parts.length === 0) throw new Error(`Invalid assignment: ${line}`);
             asm.push(`LOAD R${destReg}, 0`);
-            asm.push(`ADD R${destReg}, R${rOp1}`);
-            asm.push(`ADD R${destReg}, R${rOp2}`);
-            return;
+            parts.forEach(part => emitAddTerm(destReg, part));
+            continue;
         }
-    });
+
+        throw new Error(`Unsupported C++ line: ${line}`);
+    }
 
     asm.push("HALT");
     return asm.join("\n");
@@ -486,37 +442,82 @@ hideVarInfo();
     history = [];
 
     let rawCode;
-    if(activeMode === 'c') {
-        rawCode = compileCPP(document.getElementById('c-editor').value);
-    } else {
-        rawCode = document.getElementById('asm-editor').value;
+    try {
+        if(activeMode === 'c') {
+            rawCode = compileCPP(document.getElementById('c-editor').value);
+        } else {
+            rawCode = document.getElementById('asm-editor').value;
+        }
+    } catch (err) {
+        document.getElementById('status-bar').innerText = `Compile error: ${err.message}`;
+        return;
     }
 
     const lines = rawCode.split('\n');
     let idx = 0;
+    const errors = [];
 
     // --- Encode instructions normally ---
-    lines.forEach(line => {
-        let p = line.replace(/,/g,'').trim().split(/\s+/);
-        if(!p[0] || p[0] === "//") return;
+    const parseReg = (token) => {
+        if (!/^R[0-7]$/.test(token)) return null;
+        return parseInt(token.slice(1), 10);
+    };
+    const parseImm6 = (token) => {
+        const value = parseInt(token, 10);
+        if (isNaN(value) || value < 0 || value > 63) return null;
+        return value;
+    };
 
+    lines.forEach((line, lineIndex) => {
+        const text = line.trim();
+        if(!text || text.startsWith("//")) return;
+        if (idx >= vm.mem.length) {
+            errors.push(`Line ${lineIndex + 1}: Program exceeds RAM capacity (${vm.mem.length} cells).`);
+            return;
+        }
+
+        const p = text.replace(/,/g,'').split(/\s+/);
+        const instruction = p[0];
         let op = 0;
+        let rd = 0;
+        let rs = 0;
+        let imm = 0;
 
-        if(p[0] === "ADD") op = 1; 
-        else if(p[0] === "JZ") op = 4; 
-        else if(p[0] === "JMP") op = 5;
-        else if(p[0] === "LOAD") op = 6; 
-        else if(p[0] === "MUL") op = 7; 
-        else if(p[0] === "SUB") op = 8;
-        else if(p[0] === "STORE") op = 9;
-        else if(p[0] === "HALT") {
+        if (instruction === "HALT") {
             vm.mem[idx++] = 0;
             return;
         }
 
-        let rd = parseInt(p[1]?.replace('R','')) || 0;
-        let rs = parseInt(p[2]?.replace('R','')) || 0;
-        let imm = isNaN(parseInt(p[p.length-1])) ? 0 : parseInt(p[p.length-1]);
+        if (instruction === "ADD" || instruction === "MUL") {
+            rd = parseReg(p[1]);
+            rs = parseReg(p[2]);
+            if (rd === null || rs === null) {
+                errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, Rm\".`);
+                return;
+            }
+            op = instruction === "ADD" ? 1 : 7;
+        } else if (instruction === "JMP") {
+            rd = parseReg(p[1]);
+            if (rd === null) {
+                errors.push(`Line ${lineIndex + 1}: JMP expects format \"JMP Rn\".`);
+                return;
+            }
+            op = 5;
+        } else if (instruction === "LOAD" || instruction === "SUB" || instruction === "JZ" || instruction === "STORE") {
+            rd = parseReg(p[1]);
+            imm = parseImm6(p[2]);
+            if (rd === null || imm === null) {
+                errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, imm(0-63)\".`);
+                return;
+            }
+            if (instruction === "LOAD") op = 6;
+            else if (instruction === "SUB") op = 8;
+            else if (instruction === "JZ") op = 4;
+            else op = 9;
+        } else {
+            errors.push(`Line ${lineIndex + 1}: Unknown instruction \"${instruction}\".`);
+            return;
+        }
 
         vm.mem[idx++] = ((op & 0xF) << 12) |
                         ((rd & 0x7) << 9) |
@@ -524,32 +525,14 @@ hideVarInfo();
                         (imm & 0x3F);
     });
 
-    // --- NEW: simulate memory initialization once ---
-    let tempRegs = new Array(8).fill(0);
-
-    for(let i = 0; i < vm.mem.length; i++) {
-        const ins = vm.mem[i];
-        if(ins === null) break;
-
-        let op = (ins >> 12) & 0xF;
-        let rd = (ins >> 9) & 7;
-        let rs = (ins >> 6) & 7;
-        let imm = ins & 0x3F;
-
-        if(op === 6) {               // LOAD
-            tempRegs[rd] = imm;
-        }
-        else if(op === 1) {          // ADD
-            tempRegs[rd] += tempRegs[rs];
-        }
-        else if(op === 9) {          // STORE
-            vm.mem[imm] = tempRegs[rd];
-        }
+    if (errors.length > 0) {
+        document.getElementById('status-bar').innerText = errors.slice(0, 2).join(' | ');
+        return;
     }
 
     vm.pc = 0; // reset PC back to start
     updateUI();
-    document.getElementById('status-bar').innerText = "RAM Flashed & Memory Initialized.";
+    document.getElementById('status-bar').innerText = "RAM Flashed successfully.";
 }
 
 let hoverPinned = false;
@@ -582,10 +565,13 @@ function hideVarInfo() {
     }
 }
 
-document.getElementById('hover-info-close').onclick = () => {
-    hoverPinned = false;
-    document.getElementById('hover-info').style.display = 'none';
-};
+const hoverCloseBtn = document.getElementById('hover-info-close');
+if (hoverCloseBtn) {
+    hoverCloseBtn.onclick = () => {
+        hoverPinned = false;
+        document.getElementById('hover-info').style.display = 'none';
+    };
+}
 
 // toggle pin when clicked on the box itself
 document.getElementById('hover-info').onclick = (e) => {
@@ -600,7 +586,6 @@ document.getElementById('hover-info').onclick = (e) => {
         saveState();
 
         const ins = vm.mem[vm.pc];
-        const opCode = ins ? ((ins >> 12) & 0xF) : 0;
         const rd = ins ? ((ins >> 9) & 7) : 0;
 
         if(vm.stage === 0) {
@@ -608,19 +593,7 @@ document.getElementById('hover-info').onclick = (e) => {
             updateBitDisplay(ins);
             document.getElementById('exp-title').innerText = "Step 1: FETCH Phase";
             let controlLabel = "Program Counter (PC)";
-let controlValue = vm.pc;
-
-// If last instruction modified PC via a register jump, show that register
-const prevIns = vm.mem[vm.pc];
-if (prevIns) {
-    const op = (prevIns >> 12) & 0xF;
-    const rd = (prevIns >> 9) & 7;
-
-    if (op === 5) { // JMP
-        controlLabel = regNames[rd];
-        controlValue = vm.regs[rd];
-    }
-}
+            let controlValue = vm.pc;
 
 document.getElementById('exp-text').innerHTML = `
 Fetching instruction from 
@@ -706,18 +679,19 @@ R3 = ${vm.regs[3]}`;
         if(!ins || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
         let op=(ins>>12)&0xF, rd=(ins>>9)&7, rs=(ins>>6)&7, imm=ins&0x3F;
         switch(op) {
-            case 1: vm.regs[rd] += vm.regs[rs]; break;
-            case 4: if(vm.regs[rd] === 0) { vm.pc += imm; return; } break;
+            case 1: vm.regs[rd] = (vm.regs[rd] + vm.regs[rs]) & 0xFFFF; break;
+            case 4: if(vm.regs[rd] === 0) { vm.pc += (imm + 1); return; } break;
             case 5: vm.pc = vm.regs[rd]; return; 
             case 6: vm.regs[rd] = imm; break;
-            case 7: vm.regs[rd] *= vm.regs[rs]; break;
-            case 8: vm.regs[rd] -= imm; break;
+            case 7: vm.regs[rd] = (vm.regs[rd] * vm.regs[rs]) & 0xFFFF; break;
+            case 8: vm.regs[rd] = (vm.regs[rd] - imm) & 0xFFFF; break;
             case 9: // STORE
-    vm.mem[imm] = vm.regs[rd];
+    vm.mem[imm] = vm.regs[rd] & 0xFFFF;
     break;
             default: vm.halted = true; return;
         }
         vm.pc++;
+        if (vm.pc < 0 || vm.pc >= vm.mem.length) vm.halted = true;
     }
 
     function toggleAuto() {
