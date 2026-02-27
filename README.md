@@ -48,12 +48,33 @@ To make execution transparent and educational, the VM includes a **step-by-step 
 
 ## 🚀 Usage
 ```bash
-# Compile VM engine
-g++ vm.cpp -o vm
+# From project root
+cd custom_vm_project
 
-# Run a sample program
-./vm factorial.vm
+# Compile VM engine
+g++ vm.cpp -std=c++17 -O2 -o vm
+
+# Run built-in programs
+./vm fact 5
+./vm fib 8
 ```
+
+On Windows PowerShell:
+```powershell
+cd .\custom_vm_project
+g++ vm.cpp -std=c++17 -O2 -o vm.exe
+.\vm.exe fact 5
+.\vm.exe fib 8
+```
+
+### Web Visualizer
+- Open `custom_vm_project/viewer.html` in a browser.
+- Use **Compile & Flash** to load instructions into VM RAM.
+- Use **Next Step** or **Auto Run** to execute.
+- Supported C++ subset in the high-level editor:
+  - `int a = 5;`
+  - `int c = a + b + 3;`
+  - `a = b + 2;`
 
 ---
 
