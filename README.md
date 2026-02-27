@@ -155,11 +155,4 @@ Built as a systems-focused academic mini project to bridge theory and practical 
 
 ---
 
-## 🤝 Contributing
-
-Suggestions and improvements are welcome. If you want, open an issue or submit a pull request with:
-
-- new instructions/opcodes,
-- visualizer UX improvements,
-- or better C++-to-ASM translation rules.
 
