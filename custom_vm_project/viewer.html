@@ -61,6 +61,24 @@
         }
         .tab.active { background: var(--accent); color: white; }
 
+        .lang-select-wrap {
+            margin-bottom: 8px;
+        }
+        .lang-select {
+            width: 100%;
+            background: #0b1220;
+            color: #cbd5e1;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
+        }
+        .lang-select:focus {
+            border-color: var(--accent);
+        }
+
         #editor-container { position: relative; }
         textarea {
             width: 100%; height: 180px; background: #000; color: var(--green);
@@ -293,8 +311,18 @@
         </div>
 
         <div class="tab-container">
-            <div class="tab active" id="tab-c" onclick="switchEditor('c')">High-Level (C++)</div>
+            <div class="tab active" id="tab-c" onclick="switchEditor('c')">High-Level</div>
             <div class="tab" id="tab-asm" onclick="switchEditor('asm')">Assembly (ASM)</div>
+        </div>
+
+        <div id="lang-select-wrap" class="lang-select-wrap">
+            <span class="section-label">High-Level Language</span>
+            <select id="lang-select" class="lang-select" onchange="setHighLevelLanguage(this.value)">
+                <option value="cpp" selected>C++</option>
+                <option value="c">C</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+            </select>
         </div>
 
         <div id="editor-container">
@@ -331,7 +359,7 @@ HALT</textarea>
 
         <div class="guide-box">
             <span class="section-label" style="margin-bottom: 6px;">How To Run Your Program</span>
-            <div class="guide-step"><b>1) Write or edit code</b> in C++/ASM editor.</div>
+            <div class="guide-step"><b>1) Write or edit code</b> in High-Level/ASM editor and choose your language from the dropdown.</div>
             <div class="guide-step"><b>2) Press Compile &amp; Flash</b> once after every code change to load new instructions.</div>
             <div class="guide-step"><b>3) Press Next Step</b> repeatedly to execute step-by-step (Fetch → Execute).</div>
             <div class="guide-step"><b>4) Use Auto Run</b> for automatic stepping, and <b>Back</b> to undo one step.</div>
@@ -430,6 +458,15 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
     let counterStep = 0;
     let lastCompiledSource = "";
     let lastEncodedProgram = null;
+    let lastCompiledLanguage = "";
+    let highLevelLanguage = 'cpp';
+
+    const highLevelLanguageNames = {
+        cpp: 'C++',
+        c: 'C',
+        java: 'Java',
+        python: 'Python'
+    };
 
     const regNames = ["Accumulator (R0)", "Loop Counter (R1)", "Return Address (R2)", "General R3", "General R4", "General R5", "General R6", "General R7"];
 
@@ -444,7 +481,188 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         document.getElementById('asm-editor').classList.toggle('hidden', mode !== 'asm');
         document.getElementById('tab-c').classList.toggle('active', mode === 'c');
         document.getElementById('tab-asm').classList.toggle('active', mode === 'asm');
+        document.getElementById('lang-select-wrap').classList.toggle('hidden', mode !== 'c');
         clearCompileError();
+    }
+
+    function updateHighLevelPlaceholder() {
+        const editor = document.getElementById('c-editor');
+        if (!editor) return;
+        const label = highLevelLanguageNames[highLevelLanguage] || 'C++';
+        editor.placeholder = `// Write your ${label} code here`;
+    }
+
+    function setHighLevelLanguage(language) {
+        highLevelLanguage = language;
+        clearCompileError();
+        updateHighLevelPlaceholder();
+    }
+
+    function preprocessJavaSource(code) {
+        const lines = code.split('\n');
+        const converted = [];
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+            if (line.startsWith('//')) {
+                converted.push(line);
+                continue;
+            }
+
+            if (/^public\s+class\s+\w+\s*\{?$/.test(line)) continue;
+            if (/^class\s+\w+\s*\{?$/.test(line)) continue;
+            if (/^public\s+static\s+void\s+main\s*\(.*\)\s*\{?$/.test(line)) continue;
+            if (line === '{' || line === '}') continue;
+
+            const arrayInit = line.match(/^int\[\]\s+(\w+)\s*=\s*\{([^}]*)\}\s*;$/);
+            if (arrayInit) {
+                const name = arrayInit[1];
+                const values = arrayInit[2].split(',').map(part => part.trim()).filter(Boolean);
+                converted.push(`int ${name}[${values.length}] = {${values.join(', ')}};`);
+                continue;
+            }
+
+            const arraySized = line.match(/^int\[\]\s+(\w+)\s*=\s*new\s+int\[(\d+)\]\s*;$/);
+            if (arraySized) {
+                converted.push(`int ${arraySized[1]}[${arraySized[2]}];`);
+                continue;
+            }
+
+            converted.push(line);
+        }
+
+        return converted.join('\n');
+    }
+
+    function preprocessPythonSource(code) {
+        const lines = code.split('\n');
+        const converted = [];
+        const declaredScalars = new Set();
+        const declaredCollections = new Set();
+        const collectionLengths = {};
+
+        const isIdentifier = (token) => /^[A-Za-z_]\w*$/.test(token);
+        const isIndexExpr = (token) => /^[A-Za-z_]\w*\[\d+\]$/.test(token);
+        const replaceLenCalls = (expr, lineIndex) => {
+            return expr.replace(/len\s*\(\s*([A-Za-z_]\w*)\s*\)/g, (_, name) => {
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: len(${name}) requires a declared list.`);
+                }
+                return String(collectionLengths[name] ?? 0);
+            });
+        };
+
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const rawLine = lines[lineIndex];
+            const line = rawLine.trim();
+
+            if (!line) continue;
+
+            if (line.startsWith('#')) {
+                converted.push(`//${line.slice(1)}`);
+                continue;
+            }
+
+            if (/^(if|elif|else|for|while|def|class|try|except|with)\b/.test(line) || line.endsWith(':')) {
+                throw new Error(`Python line ${lineIndex + 1}: control flow and blocks are not supported yet.`);
+            }
+
+            const appendMatch = line.match(/^([A-Za-z_]\w*)\.append\((.+)\)$/);
+            if (appendMatch) {
+                const name = appendMatch[1];
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: append() target '${name}' must be a declared list.`);
+                }
+                const expr = replaceLenCalls(appendMatch[2].trim(), lineIndex);
+                converted.push(`${name}.push_back(${expr});`);
+                collectionLengths[name] = (collectionLengths[name] ?? 0) + 1;
+                continue;
+            }
+
+            const popMatch = line.match(/^([A-Za-z_]\w*)\.pop\(\)$/);
+            if (popMatch) {
+                const name = popMatch[1];
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop() target '${name}' must be a declared list.`);
+                }
+                if ((collectionLengths[name] ?? 0) <= 0) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop() from empty list '${name}'.`);
+                }
+                converted.push(`${name}.pop_back();`);
+                collectionLengths[name] -= 1;
+                continue;
+            }
+
+            const listDeclMatch = line.match(/^([A-Za-z_]\w*)\s*=\s*\[(.*)\]$/);
+            if (listDeclMatch) {
+                const name = listDeclMatch[1];
+                const rawItems = listDeclMatch[2].trim();
+                const items = rawItems
+                    ? rawItems.split(',').map(part => part.trim()).filter(Boolean)
+                    : [];
+
+                if (items.some(item => item.includes('[') || item.includes(']'))) {
+                    throw new Error(`Python line ${lineIndex + 1}: nested lists are not supported.`);
+                }
+
+                if (items.length === 0) {
+                    converted.push(`vector<int> ${name};`);
+                } else {
+                    converted.push(`vector<int> ${name} = {${items.join(', ')}};`);
+                }
+                declaredCollections.add(name);
+                collectionLengths[name] = items.length;
+                continue;
+            }
+
+            const assignMatch = line.match(/^(.+?)\s*=\s*(.+)$/);
+            if (assignMatch) {
+                const target = assignMatch[1].trim();
+                const expr = replaceLenCalls(assignMatch[2].trim(), lineIndex);
+
+                if (isIndexExpr(target)) {
+                    const arrayName = target.split('[')[0];
+                    if (!declaredCollections.has(arrayName)) {
+                        throw new Error(`Python line ${lineIndex + 1}: list '${arrayName}' must be declared before index assignment.`);
+                    }
+                    converted.push(`${target} = ${expr};`);
+                    continue;
+                }
+
+                if (!isIdentifier(target)) {
+                    throw new Error(`Python line ${lineIndex + 1}: unsupported assignment target '${target}'.`);
+                }
+
+                if (declaredScalars.has(target)) {
+                    converted.push(`${target} = ${expr};`);
+                } else {
+                    converted.push(`int ${target} = ${expr};`);
+                    declaredScalars.add(target);
+                }
+                continue;
+            }
+
+            throw new Error(`Python line ${lineIndex + 1}: unsupported statement '${line}'.`);
+        }
+
+        return converted.join('\n');
+    }
+
+    function compileHighLevel(code) {
+        if (highLevelLanguage === 'cpp' || highLevelLanguage === 'c') {
+            return compileCPP(code);
+        }
+
+        if (highLevelLanguage === 'java') {
+            return compileCPP(preprocessJavaSource(code));
+        }
+
+        if (highLevelLanguage === 'python') {
+            return compileCPP(preprocessPythonSource(code));
+        }
+
+        return compileCPP(code);
     }
 
     function showCompileError(message) {
@@ -685,6 +903,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         }
         else {
             switchEditor('c');
+            setHighLevelLanguage('cpp');
             document.getElementById('c-editor').value = "int arr[3] = {2, 4, 6};\nvector<int> v = {1, 3};\nv.push_back(5);\nstack<int> st;\nst.push(7);\nqueue<int> q;\nq.push(9);\nint total = arr[1] + v[2] + st.top() + q.front();";
         }
     }
@@ -693,6 +912,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
     const lines = code.split("\n");
     const asm = [];
     const scalarRegs = {};
+    const scalarOrder = [];
     const arrays = {};
     const vectors = {};
     const stacks = {};
@@ -758,6 +978,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         if (scalarRegs[name] !== undefined) return scalarRegs[name];
         if (nextReg > 6) throw new Error("Too many scalar variables. Use up to 7 scalars.");
         scalarRegs[name] = nextReg;
+        scalarOrder.push(name);
         nextReg += 1;
         return scalarRegs[name];
     };
@@ -1094,6 +1315,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
 
     asm.push("HALT");
     lastCompiledLayout = {
+        scalars: scalarOrder.map(name => ({ name, reg: scalarRegs[name] })),
         arrays: JSON.parse(JSON.stringify(arrays)),
         vectors: JSON.parse(JSON.stringify(vectors)),
         stacks: JSON.parse(JSON.stringify(stacks)),
@@ -1119,7 +1341,7 @@ hideVarInfo();
     try {
         if(activeMode === 'c') {
             sourceCode = document.getElementById('c-editor').value;
-            rawCode = compileCPP(sourceCode);
+            rawCode = compileHighLevel(sourceCode);
         } else {
             sourceCode = document.getElementById('asm-editor').value;
             rawCode = sourceCode;
@@ -1143,6 +1365,7 @@ hideVarInfo();
         activeMode === 'c' &&
         lastEncodedProgram &&
         lastCompiledSource &&
+        lastCompiledLanguage === highLevelLanguage &&
         sourceCode.startsWith(lastCompiledSource) &&
         isPrefixProgram(lastEncodedProgram, encoded.program);
 
@@ -1170,6 +1393,7 @@ hideVarInfo();
 
     lastCompiledSource = sourceCode;
     lastEncodedProgram = encoded.program.slice();
+    lastCompiledLanguage = activeMode === 'c' ? highLevelLanguage : 'asm';
     updateUI();
 }
 
@@ -1282,7 +1506,8 @@ ${dataSnapshotHtml}`;
         <div style="margin-top:6px;">${finalRegsHtml}</div>
         ${dataSnapshotHtml}`;
 } else {
-    document.getElementById('status-bar').innerText = "HALT: C++ Program Executed.";
+    const langLabel = highLevelLanguageNames[highLevelLanguage] || 'High-Level';
+    document.getElementById('status-bar').innerText = `HALT: ${langLabel} Program Executed.`;
 
     document.getElementById('exp-text').innerHTML =
 `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
@@ -1323,6 +1548,12 @@ ${dataSnapshotHtml}`;
     if (!lastCompiledLayout) return "";
 
     const lines = [];
+
+    (lastCompiledLayout.scalars || []).forEach((entry) => {
+        const regIndex = entry.reg;
+        const value = vm.regs[regIndex] ?? 0;
+        lines.push(`<div><b>${entry.name}</b> (var): ${value}</div>`);
+    });
 
     Object.entries(lastCompiledLayout.arrays || {}).forEach(([name, meta]) => {
         const values = [];
@@ -1458,6 +1689,7 @@ document.querySelectorAll('.reg-card').forEach((card, idx) => {
 });
 }
     // initial UI
+    updateHighLevelPlaceholder();
     updateUI();
     updateBitDisplay(0);
     document.getElementById('c-editor').addEventListener('keydown', function(e) {
