@@ -188,6 +188,31 @@
         .counter-text { font-size: 12px; color: #cbd5e1; line-height: 1.45; max-height: 220px; overflow-y: auto; }
         .counter-line { margin-bottom: 6px; }
 
+        .mini-guide {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+        }
+        .mini-guide-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 6px;
+        }
+        .mini-guide-line {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 3px 0;
+        }
+        .mini-guide-line b {
+            color: var(--accent);
+        }
+
         .hidden { display: none; }
 
        #hover-info {
@@ -406,12 +431,19 @@ HALT</textarea>
 Instruction Register (IR) – 16-bit Instruction Breakdown
 </span>
                 <div class="ir-labels">
-                    <div style="grid-column: span 4" class="ir-label">Opcode</div>
-                    <div style="grid-column: span 3" class="ir-label">Dest</div>
-                    <div style="grid-column: span 3" class="ir-label">Src1</div>
-                    <div style="grid-column: span 6" class="ir-label">Imm / Src2</div>
+                    <div style="grid-column: span 4" class="ir-label">Opcode (4b)</div>
+                    <div style="grid-column: span 3" class="ir-label">Dest (3b)</div>
+                    <div style="grid-column: span 3" class="ir-label">Src1 (3b)</div>
+                    <div style="grid-column: span 6" class="ir-label">Imm / Src2 (6b)</div>
                 </div>
                 <div class="bin-grid" id="bit-display"></div>
+                <div class="mini-guide" style="margin-top: 10px; margin-bottom: 0; text-align: left;">
+                    <div class="mini-guide-title">IR Field Guide</div>
+                    <div class="mini-guide-line"><b>Opcode (4 bits):</b> which operation to run (ADD, LOAD, JMP...).</div>
+                    <div class="mini-guide-line"><b>Dest (3 bits):</b> register where result is stored.</div>
+                    <div class="mini-guide-line"><b>Src1 (3 bits):</b> second register input used by operation.</div>
+                    <div class="mini-guide-line"><b>Imm / Src2 (6 bits):</b> constant value or extra input field.</div>
+                </div>
                 
                 <div id="logic-display" style="margin-top: 25px;">
                     <div id="op-name" style="font-size: 20px; font-weight: 800; color: var(--cyan);">STANDBY</div>
@@ -421,6 +453,13 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
 
             <div class="work-module">
                 <span class="section-label">Register File</span>
+                <div class="mini-guide" style="margin-top: 0; margin-bottom: 10px;">
+                    <div class="mini-guide-title">Register Guide</div>
+                    <div class="mini-guide-line"><b>R0:</b> accumulator (main result register).</div>
+                    <div class="mini-guide-line"><b>R1:</b> loop counter / frequently updated value.</div>
+                    <div class="mini-guide-line"><b>R2:</b> return/jump helper address.</div>
+                    <div class="mini-guide-line"><b>R3-R7:</b> general-purpose working registers.</div>
+                </div>
                 <div class="reg-grid" id="reg-file"></div>
             </div>
         </div>
@@ -516,6 +555,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
 
         updateUI();
         updateBitDisplay(0);
+        updateInstructionExplainer(null);
     }
 
     function updateSpeedLabel(val) {
@@ -1221,6 +1261,95 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
             10: "LOADM"
         };
         return names[op] || `OP${op}`;
+    }
+
+    function buildInstructionSummary(ins) {
+        if (!ins) {
+            return {
+                opName: "STANDBY",
+                opMath: "Instruction processing..."
+            };
+        }
+
+        const op = (ins >> 12) & 0xF;
+        const rd = (ins >> 9) & 7;
+        const rs = (ins >> 6) & 7;
+        const imm = ins & 0x3F;
+
+        switch (op) {
+            case 0:
+                return {
+                    opName: "HALT",
+                    opMath: "Program stops here."
+                };
+            case 1:
+                return {
+                    opName: "ADD",
+                    opMath: `R${rd} = R${rd} + R${rs}`
+                };
+            case 4:
+                return {
+                    opName: "JZ",
+                    opMath: `If R${rd} == 0, jump by +${imm + 1}`
+                };
+            case 5:
+                return {
+                    opName: "JMP",
+                    opMath: `PC = R${rd}`
+                };
+            case 6:
+                return {
+                    opName: "LOAD",
+                    opMath: `R${rd} = ${imm}`
+                };
+            case 7:
+                return {
+                    opName: "MUL",
+                    opMath: `R${rd} = R${rd} × R${rs}`
+                };
+            case 8:
+                return {
+                    opName: "SUB",
+                    opMath: `R${rd} = R${rd} - ${imm}`
+                };
+            case 9:
+                return {
+                    opName: "STORE",
+                    opMath: `Memory[${imm}] = R${rd}`
+                };
+            case 10:
+                return {
+                    opName: "LOADM",
+                    opMath: `R${rd} = Memory[${imm}]`
+                };
+            default:
+                return {
+                    opName: `OP${op}`,
+                    opMath: "Unknown/unsupported opcode."
+                };
+        }
+    }
+
+    function updateInstructionExplainer(ins, beforeState = null, phase = 'idle') {
+        const summary = buildInstructionSummary(ins);
+        const opNameEl = document.getElementById('op-name');
+        const opMathEl = document.getElementById('op-math');
+        if (!opNameEl || !opMathEl) return;
+
+        if (phase === 'fetch') {
+            opNameEl.innerText = `STEP: FETCH`;
+            opMathEl.innerText = summary.opMath;
+            return;
+        }
+
+        if (phase === 'execute') {
+            opNameEl.innerText = `STEP: EXECUTE`;
+            opMathEl.innerText = summary.opMath;
+            return;
+        }
+
+        opNameEl.innerText = summary.opName;
+        opMathEl.innerText = summary.opMath;
     }
 
     function renderCounterTrace() {
@@ -2102,6 +2231,7 @@ document.getElementById('hover-info').onclick = (e) => {
         if(vm.stage === 0) {
             updateStepLights(1);
             updateBitDisplay(ins);
+            updateInstructionExplainer(ins, null, 'fetch');
             document.getElementById('exp-title').innerText = "Step 1: FETCH Phase";
             let controlLabel = "Program Counter (PC)";
             let controlValue = vm.pc;
@@ -2120,6 +2250,7 @@ to control program flow.
             updateStepLights(2);
             const beforeState = { pc: vm.pc, regs: [...vm.regs] };
             execute(ins);
+            updateInstructionExplainer(ins, beforeState, 'execute');
             logCounterTrace(beforeState, ins);
             document.getElementById('exp-title').innerText = "Step 2 & 3: EXECUTE & STORE";
             
@@ -2341,6 +2472,7 @@ document.querySelectorAll('.reg-card').forEach((card, idx) => {
     updateHighLevelPlaceholder();
     updateUI();
     updateBitDisplay(0);
+    updateInstructionExplainer(null);
     document.getElementById('c-editor').addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'Enter') {
         triggerFlash();
