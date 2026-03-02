@@ -1,0 +1,4 @@
+LOAD R0, 2
+LOAD R1, 3
+ADD R0, R1
+HALT

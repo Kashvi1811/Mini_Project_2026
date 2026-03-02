@@ -12,6 +12,7 @@ A compact educational project that demonstrates how a CPU-like virtual machine e
 This repository contains:
 
 - A **C++ VM engine** (`vm.cpp`) for instruction execution and trace logging
+- A **CLI runner** (`vm_cli.cpp`) for presets, custom ASM, trace tools, and viewer launch
 - A **browser visualizer** (`viewer.html`) for step-by-step simulation
 - Built-in demo programs for **Factorial** and **Fibonacci**
 
@@ -48,6 +49,7 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 ├─ README.md
 ├─ custom_vm_project/
 │  ├─ vm.cpp
+│  ├─ vm_cli.cpp
 │  ├─ viewer.html
 │  └─ trace.jsonl
 └─ test-sfml.cpp
@@ -81,6 +83,27 @@ cd .\custom_vm_project
 g++ vm.cpp -std=c++17 -O2 -o vm.exe
 .\vm.exe fact 5
 .\vm.exe fib 8
+```
+
+### 1b) 🧭 Run the new CLI (all core project workflows)
+
+```powershell
+cd .\custom_vm_project
+g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
+
+# Presets
+.\vm_cli.exe fact 5
+.\vm_cli.exe fib 8
+
+# Custom ASM program
+.\vm_cli.exe asm .\my_program.asm --trace .\trace.jsonl
+
+# Trace quick summary
+.\vm_cli.exe trace-summary .\trace.jsonl
+
+# Visualizer path / open in browser
+.\vm_cli.exe viewer
+.\vm_cli.exe viewer --open
 ```
 
 ### 2) 🌐 Open Visualizer
@@ -149,7 +172,7 @@ This is useful for debugging, validation, and project presentation.
 
 ---
 
-## 👤 Author Note
+## 📌 Project Note
 
 Built as a systems-focused academic mini project to bridge theory and practical CPU simulation with an interactive UX.
 
