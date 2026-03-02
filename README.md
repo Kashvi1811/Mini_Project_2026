@@ -4,41 +4,45 @@
   <img alt="Language" src="https://img.shields.io/badge/Language-C%2B%2B-00599C?logo=cplusplus&logoColor=white">
   <img alt="Frontend" src="https://img.shields.io/badge/Visualizer-HTML%2FCSS%2FJS-E34F26?logo=html5&logoColor=white">
   <img alt="Architecture" src="https://img.shields.io/badge/Architecture-16--bit%20Custom%20VM-6C63FF">
-  <img alt="Type" src="https://img.shields.io/badge/Project-Systems%20%2B%20Education-0EA5E9">
+  <img alt="Focus" src="https://img.shields.io/badge/Focus-Systems%20Education-0EA5E9">
 </p>
 
-A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
-
-This repository contains:
-
-- A **C++ VM engine** (`vm.cpp`) for instruction execution and trace logging
-- A **CLI runner** (`vm_cli.cpp`) for presets, custom ASM, trace tools, and viewer launch
-- A **browser visualizer** (`viewer.html`) for step-by-step simulation
-- Built-in demo programs for **Factorial** and **Fibonacci**
+A compact educational system that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** pipeline.
 
 ---
 
-## 🎯 Why this project
+## ✨ Overview
 
-This project is designed to make low-level execution easy to understand by connecting:
+This repository combines a backend VM engine with an interactive browser visualizer to make low-level execution clear and inspectable.
 
+### Included Components
+- **C++ VM engine** (`vm.cpp`) for instruction execution + trace logging  
+- **CLI runner** (`vm_cli.cpp`) for presets, custom ASM, trace tools, and viewer launch  
+- **Browser visualizer** (`viewer.html`) for step-by-step execution  
+- Built-in demo programs: **Factorial** and **Fibonacci**
+
+---
+
+## 🎯 Project Goals
+
+This project is built to bridge:
 - high-level logic,
-- assembly-style instructions,
-- encoded machine instructions,
-- and live register/memory updates.
+- assembly-like instructions,
+- machine encoding,
+- and runtime register/memory behavior.
 
-It is ideal for mini-project demos, OS/COA learning, and systems programming practice.
+It is well-suited for mini-project demonstrations, COA/OS learning, and systems programming practice.
 
 ---
 
-## ✨ Key Features
+## 🚀 Key Features
 
-- 🔢 16-bit custom instruction format (opcode + register fields + immediate)
-- 🧮 VM with 8 registers (`R0` to `R7`) and program counter (`PC`)
-- 📝 JSONL trace output for execution debugging (`trace.jsonl`)
-- 🖥️ Visual RAM grid, register file, IR bit view, and execution narration
-- ⏯️ Step execution, auto-run mode, back/undo, and reset
-- 🔁 Simple C++ subset to ASM translator inside the visualizer
+- 16-bit custom instruction format (**opcode + register fields + immediate**)
+- 8-register VM (`R0`–`R7`) with program counter (`PC`)
+- JSONL trace generation (`trace.jsonl`) for debugging and analysis
+- Visual register file, RAM grid, instruction bit view, and execution narration
+- Manual step mode, auto-run, undo/back, and reset controls
+- Lightweight C++-subset to ASM translator inside the visualizer
 
 ---
 
@@ -51,33 +55,33 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 │  ├─ vm.cpp
 │  ├─ vm_cli.cpp
 │  ├─ viewer.html
+│  ├─ demo_cli.asm
 │  └─ trace.jsonl
 └─ test-sfml.cpp
 ```
 
 ---
 
-## 🧩 Instruction Set (Current)
+## 🧩 Instruction Set
 
-| Opcode | Mnemonic | Operation |
-|-------:|----------|-----------|
-| 0 | `HALT` | Stop program |
-| 1 | `ADD rd, rs` | `R[rd] = R[rd] + R[rs]` |
-| 4 | `JZ rd, imm` | If `R[rd] == 0`, jump forward by immediate offset |
-| 5 | `JMP rd` | `PC = R[rd]` |
-| 6 | `LOAD rd, imm` | `R[rd] = imm` |
-| 7 | `MUL rd, rs` | `R[rd] = R[rd] * R[rs]` |
-| 8 | `SUB rd, imm` | `R[rd] = R[rd] - imm` |
-| 9 | `STORE rd, imm` | `MEM[imm] = R[rd]` (used in viewer simulation) |
+| Opcode | Mnemonic        | Description |
+|------:|------------------|-------------|
+| 0     | `HALT`           | Stop execution |
+| 1     | `ADD rd, rs`     | `R[rd] = R[rd] + R[rs]` |
+| 4     | `JZ rd, imm`     | If `R[rd] == 0`, jump by immediate offset |
+| 5     | `JMP rd`         | `PC = R[rd]` |
+| 6     | `LOAD rd, imm`   | `R[rd] = imm` |
+| 7     | `MUL rd, rs`     | `R[rd] = R[rd] * R[rs]` |
+| 8     | `SUB rd, imm`    | `R[rd] = R[rd] - imm` |
+| 9     | `STORE rd, imm`  | `MEM[imm] = R[rd]` |
 
-> ℹ️ Immediate values use 6 bits, so valid range is `0..63`.
+> Immediate values use 6 bits (`0..63`).
 
 ---
 
-## 🚀 Quick Start
+## ⚙️ Quick Start (Windows / PowerShell)
 
-### 1) ⚙️ Run C++ VM (PowerShell / Windows)
-
+### 1) Build and Run VM
 ```powershell
 cd .\custom_vm_project
 g++ vm.cpp -std=c++17 -O2 -o vm.exe
@@ -85,8 +89,7 @@ g++ vm.cpp -std=c++17 -O2 -o vm.exe
 .\vm.exe fib 8
 ```
 
-### 1b) 🧭 Run the new CLI (all core project workflows)
-
+### 2) Build and Use CLI
 ```powershell
 cd .\custom_vm_project
 g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
@@ -95,10 +98,10 @@ g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
 .\vm_cli.exe fact 5
 .\vm_cli.exe fib 8
 
-# Custom ASM program
+# Run custom ASM
 .\vm_cli.exe asm .\my_program.asm --trace .\trace.jsonl
 
-# Trace quick summary
+# Trace summary
 .\vm_cli.exe trace-summary .\trace.jsonl
 
 # Visualizer path / open in browser
@@ -106,18 +109,17 @@ g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
 .\vm_cli.exe viewer --open
 ```
 
-### 2) 🌐 Open Visualizer
-
-- Open `custom_vm_project/viewer.html` in your browser.
-- Choose a preset (**Factorial**, **Fibonacci**, or **Basic Addition**) or type code.
-- Click **Compile & Flash**.
-- Use **Next Step** (manual) or **Auto Run**.
+### 3) Open Visualizer
+- Open `custom_vm_project/viewer.html` in a browser
+- Select **Factorial**, **Fibonacci**, or **Basic Addition** (or type code)
+- Click **Compile & Flash**
+- Run with **Next Step** or **Auto Run**
 
 ---
 
-## 🧪 Supported C++ Subset (in viewer)
+## 🧪 Supported C++ Subset (Visualizer)
 
-The high-level editor currently supports simple assignment-based expressions, for example:
+The high-level editor currently supports simple assignment-style expressions such as:
 
 ```cpp
 int a = 5;
@@ -126,56 +128,51 @@ int c = a + b + 3;
 c = a + 2;
 ```
 
-This subset is intentionally small to keep the instruction mapping clear and educational.
+This subset is intentionally small to keep instruction mapping transparent and educational.
 
 ---
 
 ## 🧠 Demo Programs
 
 - **Factorial (`fact n`)**
-  - Uses looped multiplication and decrement-until-zero logic
-  - Final result is stored in `R0`
+  - Loop-based multiplication with decrement-to-zero control
+  - Final result stored in `R0`
 
 - **Fibonacci (`fib n`)**
   - Iterative register updates (`prev`, `curr`, `temp`)
-  - Demonstrates jump-based loop control
+  - Demonstrates jump-based loop mechanics
 
 ---
 
 ## 📊 Trace Output
 
-Running `vm.cpp` generates `trace.jsonl` with per-step machine state:
-
+Execution traces are written in JSONL format and include:
 - step index
 - program counter
 - raw instruction value
 - register snapshot
 
-This is useful for debugging, validation, and project presentation.
+Useful for debugging, validation, and project presentation.
 
 ---
 
 ## ⚠️ Current Limitations
 
-- Immediate values limited to `0..63`
-- Visualizer RAM view is compact (for UI clarity)
-- C++ translator supports basic arithmetic-style assignments only
+- Immediate range limited to `0..63`
+- Compact RAM UI for readability
+- C++ translator currently supports basic arithmetic assignments only
 
 ---
 
 ## 🛣️ Roadmap
 
 - Add more opcodes (compare, call/return, memory load)
-- Improve instruction-level explanation panel (`op-name`, `op-math`)
-- Expand C++ subset support (conditions/loops)
+- Improve instruction explanation panel (`op-name`, `op-math`)
+- Expand C++ subset (conditions and loops)
 - Add automated tests for encoding and preset correctness
 
 ---
 
 ## 📌 Project Note
 
-Built as a systems-focused academic mini project to bridge theory and practical CPU simulation with an interactive UX.
-
----
-
-
+Built as a systems-focused academic mini project to connect theory with practical CPU simulation through an interactive UX.
