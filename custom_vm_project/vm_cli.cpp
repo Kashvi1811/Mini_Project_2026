@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -34,6 +36,21 @@ namespace {
         int maxSteps = 100000;
         bool printStepLog = false;
     };
+
+    int runPresetProgram(const string& preset, int value, const RunOptions& options);
+    int runAsmProgram(const string& asmPath, const RunOptions& options);
+    int runBinProgram(const string& binPath, const RunOptions& options);
+    int assembleToBinary(const string& asmPath, const string& binPath);
+    int dumpBinary(const string& binPath);
+    int traceSummary(const string& tracePath);
+    int handleViewerCommand(bool open);
+    int handleKaliUiCommand(bool open);
+    int handleKaliAppCommand(bool open);
+
+    const string ANSI_RESET = "\x1b[0m";
+    const string ANSI_GREEN = "\x1b[32m";
+    const string ANSI_CYAN = "\x1b[36m";
+    const string ANSI_BOLD = "\x1b[1m";
 
     string trim(const string& text) {
         size_t left = 0;
@@ -114,21 +131,26 @@ namespace {
     void loadFib(VmState& vm, int steps) {
         resetState(vm);
         steps = max(0, min(steps, 63));
+        // Produces n terms: [F0, F1, ..., F(n-1)]
+        // Final displayed term is kept in R0.
         vm.memory[0] = (6 << 12) | (0 << 9) | 0;
         vm.memory[1] = (6 << 12) | (1 << 9) | 1;
-        vm.memory[2] = (6 << 12) | (4 << 9) | steps;
-        vm.memory[3] = (6 << 12) | (5 << 9) | 4;
-        vm.memory[4] = (6 << 12) | (2 << 9) | 0;
-        vm.memory[5] = (1 << 12) | (2 << 9) | (0 << 6);
-        vm.memory[6] = (1 << 12) | (2 << 9) | (1 << 6);
-        vm.memory[7] = (6 << 12) | (0 << 9) | 0;
-        vm.memory[8] = (1 << 12) | (0 << 9) | (1 << 6);
-        vm.memory[9] = (6 << 12) | (1 << 9) | 0;
-        vm.memory[10] = (1 << 12) | (1 << 9) | (2 << 6);
-        vm.memory[11] = (8 << 12) | (4 << 9) | 1;
-        vm.memory[12] = (4 << 12) | (4 << 9) | 1;
-        vm.memory[13] = (5 << 12) | (5 << 9);
-        vm.memory[14] = 0;
+        vm.memory[2] = (6 << 12) | (3 << 9) | steps;
+        vm.memory[3] = (6 << 12) | (4 << 9) | 7;
+        vm.memory[4] = (4 << 12) | (3 << 9) | 12;
+        vm.memory[5] = (8 << 12) | (3 << 9) | 1;
+        vm.memory[6] = (4 << 12) | (3 << 9) | 10;
+        vm.memory[7] = (6 << 12) | (2 << 9) | 0;
+        vm.memory[8] = (1 << 12) | (2 << 9) | (0 << 6);
+        vm.memory[9] = (1 << 12) | (2 << 9) | (1 << 6);
+        vm.memory[10] = (6 << 12) | (0 << 9) | 0;
+        vm.memory[11] = (1 << 12) | (0 << 9) | (1 << 6);
+        vm.memory[12] = (6 << 12) | (1 << 9) | 0;
+        vm.memory[13] = (1 << 12) | (1 << 9) | (2 << 6);
+        vm.memory[14] = (8 << 12) | (3 << 9) | 1;
+        vm.memory[15] = (4 << 12) | (3 << 9) | 1;
+        vm.memory[16] = (5 << 12) | (4 << 9);
+        vm.memory[17] = 0;
     }
 
     bool encodeAsmLine(const string& line, int lineNumber, uint16_t& encoded, string& err) {
@@ -209,6 +231,109 @@ namespace {
             }
 
             vm.memory[memIndex++] = encoded;
+        }
+
+        return true;
+    }
+
+    bool assembleAsmToWords(const string& path, vector<uint16_t>& programWords, string& err) {
+        programWords.clear();
+        ifstream in(path);
+        if (!in) {
+            err = "Unable to open ASM file: " + path;
+            return false;
+        }
+
+        string line;
+        int lineNumber = 0;
+        while (getline(in, line)) {
+            lineNumber++;
+            size_t commentPos = line.find("//");
+            if (commentPos != string::npos) line = line.substr(0, commentPos);
+            commentPos = line.find('#');
+            if (commentPos != string::npos) line = line.substr(0, commentPos);
+            line = trim(line);
+            if (line.empty()) continue;
+
+            if (programWords.size() >= static_cast<size_t>(MEMORY_SIZE)) {
+                err = "Program exceeds VM memory capacity.";
+                return false;
+            }
+
+            uint16_t encoded = 0;
+            if (!encodeAsmLine(line, lineNumber, encoded, err)) {
+                return false;
+            }
+
+            programWords.push_back(encoded);
+        }
+
+        return true;
+    }
+
+    bool writeBinaryProgram(const string& binPath, const vector<uint16_t>& programWords, string& err) {
+        ofstream out(binPath, ios::binary | ios::trunc);
+        if (!out) {
+            err = "Unable to create binary file: " + binPath;
+            return false;
+        }
+
+        const char magic[4] = {'C', 'V', 'M', '1'};
+        out.write(magic, 4);
+        uint32_t wordCount = static_cast<uint32_t>(programWords.size());
+        out.write(reinterpret_cast<const char*>(&wordCount), sizeof(wordCount));
+
+        for (uint16_t w : programWords) {
+            out.write(reinterpret_cast<const char*>(&w), sizeof(w));
+        }
+
+        if (!out.good()) {
+            err = "Failed while writing binary file: " + binPath;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool loadBinaryProgram(VmState& vm, const string& binPath, vector<uint16_t>& programWords, string& err) {
+        resetState(vm);
+        programWords.clear();
+
+        ifstream in(binPath, ios::binary);
+        if (!in) {
+            err = "Unable to open binary file: " + binPath;
+            return false;
+        }
+
+        char magic[4] = {0, 0, 0, 0};
+        in.read(magic, 4);
+        if (in.gcount() != 4 || strncmp(magic, "CVM1", 4) != 0) {
+            err = "Invalid binary format. Expected CVM1 header.";
+            return false;
+        }
+
+        uint32_t wordCount = 0;
+        in.read(reinterpret_cast<char*>(&wordCount), sizeof(wordCount));
+        if (!in.good()) {
+            err = "Invalid binary format. Missing word count.";
+            return false;
+        }
+
+        if (wordCount > static_cast<uint32_t>(MEMORY_SIZE)) {
+            err = "Binary word count exceeds VM memory capacity.";
+            return false;
+        }
+
+        programWords.resize(wordCount, 0);
+        for (uint32_t i = 0; i < wordCount; i++) {
+            uint16_t w = 0;
+            in.read(reinterpret_cast<char*>(&w), sizeof(w));
+            if (!in.good()) {
+                err = "Binary file ended early while reading instructions.";
+                return false;
+            }
+            programWords[i] = w;
+            vm.memory[i] = w;
         }
 
         return true;
@@ -324,14 +449,55 @@ namespace {
     void printUsage() {
         cout << "VM CLI Usage:\n"
              << "  vm_cli help\n"
-             << "  vm_cli fact <n> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
-             << "  vm_cli fib <n>  [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli menu\n"
+             << "  vm_cli shell\n"
+             << "  vm_cli fact [n] [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli fib [n]  [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
              << "  vm_cli asm <path.asm> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli asm-build <path.asm> [out.bin]\n"
+             << "  vm_cli run-bin <path.bin> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli dump-bin <path.bin>\n"
              << "  vm_cli trace-summary [trace.jsonl]\n"
              << "  vm_cli viewer [--open]\n\n"
+             << "  vm_cli kali-ui [--open]\n\n"
+             << "  vm_cli kali-app [--open]\n\n"
              << "Notes:\n"
              << "  - Immediate range is 0..63 in ASM instructions.\n"
+             << "  - Binary format: 4-byte magic CVM1 + uint32 word count + uint16 instructions.\n"
              << "  - Preset commands clamp n to 0..63.\n";
+    }
+
+    bool parseRunOptionsTokens(const vector<string>& args, size_t startIndex, RunOptions& options, string& err) {
+        for (size_t i = startIndex; i < args.size(); i++) {
+            const string& arg = args[i];
+            if (arg == "--trace") {
+                if (i + 1 >= args.size()) {
+                    err = "Missing value for --trace";
+                    return false;
+                }
+                options.tracePath = args[++i];
+                options.writeTrace = true;
+            } else if (arg == "--no-trace") {
+                options.writeTrace = false;
+            } else if (arg == "--max-steps") {
+                if (i + 1 >= args.size()) {
+                    err = "Missing value for --max-steps";
+                    return false;
+                }
+                int parsed = 0;
+                if (!parseInt(args[++i], parsed) || parsed <= 0) {
+                    err = "Invalid --max-steps value";
+                    return false;
+                }
+                options.maxSteps = parsed;
+            } else if (arg == "--steps") {
+                options.printStepLog = true;
+            } else {
+                err = "Unknown option: " + arg;
+                return false;
+            }
+        }
+        return true;
     }
 
     bool parseRunOptions(int startArg, int argc, char** argv, RunOptions& options, string& err) {
@@ -413,11 +579,256 @@ namespace {
                 cout << "]\n";
             }
 
-            cout << "VM final Fibonacci register (R1) = " << vm.R[1] << "\n";
+            cout << "VM final Fibonacci term (R0) = " << vm.R[0] << "\n";
         }
         printFinalState(vm);
         if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
         return 0;
+    }
+
+    bool promptIntValue(const string& label, int& out) {
+        cout << label;
+        string input;
+        if (!getline(cin, input)) return false;
+        return parseInt(trim(input), out);
+    }
+
+    int runInteractiveMenu() {
+        while (true) {
+            cout << "\n=== VM CLI Menu ===\n"
+                 << "1) Factorial\n"
+                 << "2) Fibonacci\n"
+                 << "3) Run ASM file\n"
+                 << "4) Trace summary\n"
+                 << "5) Viewer path\n"
+                 << "6) Open viewer\n"
+                 << "0) Exit\n"
+                 << "Select option: ";
+
+            string rawChoice;
+            if (!getline(cin, rawChoice)) return 0;
+            const string choice = trim(rawChoice);
+
+            if (choice == "0") return 0;
+
+            if (choice == "1" || choice == "2") {
+                int n = 0;
+                if (!promptIntValue("Enter value (0-63): ", n)) {
+                    cout << "Invalid number.\n";
+                    continue;
+                }
+                RunOptions options;
+                const string preset = (choice == "1") ? "fact" : "fib";
+                runPresetProgram(preset, n, options);
+                continue;
+            }
+
+            if (choice == "3") {
+                cout << "Enter ASM file path: ";
+                string asmPath;
+                if (!getline(cin, asmPath)) return 0;
+                asmPath = trim(asmPath);
+                if (asmPath.empty()) {
+                    cout << "ASM path cannot be empty.\n";
+                    continue;
+                }
+                RunOptions options;
+                runAsmProgram(asmPath, options);
+                continue;
+            }
+
+            if (choice == "4") {
+                cout << "Trace file path (Enter for trace.jsonl): ";
+                string tracePath;
+                if (!getline(cin, tracePath)) return 0;
+                tracePath = trim(tracePath);
+                if (tracePath.empty()) tracePath = "trace.jsonl";
+                traceSummary(tracePath);
+                continue;
+            }
+
+            if (choice == "5") {
+                handleViewerCommand(false);
+                continue;
+            }
+
+            if (choice == "6") {
+                handleViewerCommand(true);
+                continue;
+            }
+
+            cout << "Unknown option. Try again.\n";
+        }
+    }
+
+    vector<string> splitWords(const string& line) {
+        istringstream in(line);
+        vector<string> out;
+        string token;
+        while (in >> token) out.push_back(token);
+        return out;
+    }
+
+    int runKaliShell() {
+        cout << ANSI_BOLD << ANSI_GREEN
+             << "\nCustom VM Secure Shell (Kali-style)\n"
+             << ANSI_CYAN
+             << "Type 'help' to list commands. Type 'exit' to quit.\n"
+             << ANSI_RESET;
+
+        while (true) {
+            cout << ANSI_GREEN << "root@kali" << ANSI_RESET
+                 << ":" << ANSI_CYAN << "~/custom_vm_project" << ANSI_RESET
+                 << "# ";
+
+            string line;
+            if (!getline(cin, line)) return 0;
+            line = trim(line);
+            if (line.empty()) continue;
+
+            vector<string> parts = splitWords(line);
+            const string cmd = parts[0];
+
+            if (cmd == "exit" || cmd == "quit") {
+                cout << ANSI_CYAN << "Shell closed.\n" << ANSI_RESET;
+                return 0;
+            }
+
+            if (cmd == "clear") {
+                cout << string(40, '\n');
+                continue;
+            }
+
+            if (cmd == "help") {
+                cout << "Commands:\n"
+                     << "  help\n"
+                     << "  fact [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  fib [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  asm <file.asm> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  asm-build <file.asm> [out.bin]\n"
+                     << "  run-bin <file.bin> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  dump-bin <file.bin>\n"
+                     << "  trace-summary [trace.jsonl]\n"
+                     << "  viewer [--open]\n"
+                     << "  kali-ui [--open]\n"
+                     << "  kali-app [--open]\n"
+                     << "  menu\n"
+                     << "  clear\n"
+                     << "  exit\n";
+                continue;
+            }
+
+            if (cmd == "menu") {
+                runInteractiveMenu();
+                continue;
+            }
+
+            if (cmd == "fact" || cmd == "fib") {
+                int value = 0;
+                size_t optionStart = 1;
+
+                if (parts.size() >= 2 && !isOptionToken(parts[1])) {
+                    if (!parseInt(parts[1], value)) {
+                        cerr << "Invalid number: " << parts[1] << "\n";
+                        continue;
+                    }
+                    optionStart = 2;
+                } else {
+                    if (!promptIntValue("Enter value (0-63): ", value)) {
+                        cerr << "Invalid number input.\n";
+                        continue;
+                    }
+                }
+
+                RunOptions options;
+                string err;
+                if (!parseRunOptionsTokens(parts, optionStart, options, err)) {
+                    cerr << err << "\n";
+                    continue;
+                }
+
+                runPresetProgram(cmd, value, options);
+                continue;
+            }
+
+            if (cmd == "asm") {
+                if (parts.size() < 2) {
+                    cerr << "Missing ASM file path.\n";
+                    continue;
+                }
+
+                const string asmPath = parts[1];
+                RunOptions options;
+                string err;
+                if (!parseRunOptionsTokens(parts, 2, options, err)) {
+                    cerr << err << "\n";
+                    continue;
+                }
+
+                runAsmProgram(asmPath, options);
+                continue;
+            }
+
+            if (cmd == "asm-build") {
+                if (parts.size() < 2) {
+                    cerr << "Missing ASM file path.\n";
+                    continue;
+                }
+                string outBin = (parts.size() >= 3) ? parts[2] : "program.bin";
+                assembleToBinary(parts[1], outBin);
+                continue;
+            }
+
+            if (cmd == "run-bin") {
+                if (parts.size() < 2) {
+                    cerr << "Missing binary file path.\n";
+                    continue;
+                }
+                RunOptions options;
+                string err;
+                if (!parseRunOptionsTokens(parts, 2, options, err)) {
+                    cerr << err << "\n";
+                    continue;
+                }
+                runBinProgram(parts[1], options);
+                continue;
+            }
+
+            if (cmd == "dump-bin") {
+                if (parts.size() < 2) {
+                    cerr << "Missing binary file path.\n";
+                    continue;
+                }
+                dumpBinary(parts[1]);
+                continue;
+            }
+
+            if (cmd == "trace-summary") {
+                const string path = (parts.size() >= 2) ? parts[1] : "trace.jsonl";
+                traceSummary(path);
+                continue;
+            }
+
+            if (cmd == "viewer") {
+                bool open = (parts.size() >= 2 && parts[1] == "--open");
+                handleViewerCommand(open);
+                continue;
+            }
+
+            if (cmd == "kali-ui") {
+                bool open = (parts.size() >= 2 && parts[1] == "--open");
+                handleKaliUiCommand(open);
+                continue;
+            }
+
+            if (cmd == "kali-app") {
+                bool open = (parts.size() >= 2 && parts[1] == "--open");
+                handleKaliAppCommand(open);
+                continue;
+            }
+
+            cerr << "Unknown shell command: " << cmd << "\n";
+        }
     }
 
     int runAsmProgram(const string& asmPath, const RunOptions& options) {
@@ -437,6 +848,61 @@ namespace {
         cout << "ASM program executed successfully.\n";
         printFinalState(vm);
         if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+        return 0;
+    }
+
+    int assembleToBinary(const string& asmPath, const string& binPath) {
+        vector<uint16_t> words;
+        string err;
+        if (!assembleAsmToWords(asmPath, words, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+
+        if (!writeBinaryProgram(binPath, words, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+
+        cout << "Assembled " << words.size() << " instructions to binary: " << binPath << "\n";
+        return 0;
+    }
+
+    int runBinProgram(const string& binPath, const RunOptions& options) {
+        VmState vm;
+        vector<uint16_t> words;
+        string err;
+        if (!loadBinaryProgram(vm, binPath, words, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+
+        vector<StepRecord> trace;
+        if (!runVm(vm, options, trace, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+
+        cout << "Binary program executed successfully (" << words.size() << " instructions loaded).\n";
+        printFinalState(vm);
+        if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+        return 0;
+    }
+
+    int dumpBinary(const string& binPath) {
+        VmState vm;
+        vector<uint16_t> words;
+        string err;
+        if (!loadBinaryProgram(vm, binPath, words, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+
+        cout << "Binary dump: " << binPath << "\n";
+        cout << "Instruction words: " << words.size() << "\n";
+        for (size_t i = 0; i < words.size(); i++) {
+            cout << "  [" << i << "] = " << words[i] << "\n";
+        }
         return 0;
     }
 
@@ -491,6 +957,134 @@ namespace {
         }
         return 0;
     }
+
+    int handleKaliUiCommand(bool open) {
+        const string uiPath = "kali_ui.html";
+        ifstream probe(uiPath);
+        if (!probe.good()) {
+            cerr << "kali_ui.html not found in current directory. Run command from custom_vm_project folder.\n";
+            return 1;
+        }
+        probe.close();
+
+        cout << "Kali UI path: " << uiPath << "\n";
+        if (open) {
+#ifdef _WIN32
+            string cmd = "start \"\" \"" + uiPath + "\"";
+#elif __APPLE__
+            string cmd = "open \"" + uiPath + "\"";
+#else
+            string cmd = "xdg-open \"" + uiPath + "\"";
+#endif
+            int rc = system(cmd.c_str());
+            if (rc != 0) {
+                cerr << "Failed to launch Kali UI in browser.\n";
+                return 1;
+            }
+            cout << "Kali UI opened in browser.\n";
+        }
+        return 0;
+    }
+
+    int handleKaliAppCommand(bool open) {
+        const string appPath = "kali_ui.hta";
+        const string uiPath = "kali_ui.html";
+        const string psHostPath = "kali_app.ps1";
+
+        ifstream probeUi(uiPath);
+        if (!probeUi.good()) {
+            cerr << "kali_ui.html not found in current directory. Run command from custom_vm_project folder.\n";
+            return 1;
+        }
+        probeUi.close();
+
+        ifstream probe(appPath);
+        if (!probe.good()) {
+            cerr << "kali_ui.hta not found in current directory. Run command from custom_vm_project folder.\n";
+            return 1;
+        }
+        probe.close();
+
+        ifstream probePs(psHostPath);
+        const bool hasPsHost = probePs.good();
+        if (probePs.good()) probePs.close();
+
+        cout << "Kali app path: " << appPath << "\n";
+        if (open) {
+#ifdef _WIN32
+            char absBuffer[4096] = {0};
+            string uiArg = uiPath;
+            if (_fullpath(absBuffer, uiPath.c_str(), sizeof(absBuffer)) != nullptr) {
+                string absPath(absBuffer);
+                for (char& ch : absPath) {
+                    if (ch == '\\') ch = '/';
+                }
+                uiArg = "file:///" + absPath;
+            }
+
+            const string edgePath1 = "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe";
+            const string edgePath2 = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+            const string chromePath1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+            const string chromePath2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+
+            auto fileExists = [](const string& p) {
+                ifstream f(p);
+                return f.good();
+            };
+
+            string edgeExe;
+            if (fileExists(edgePath1)) edgeExe = edgePath1;
+            else if (fileExists(edgePath2)) edgeExe = edgePath2;
+
+            string chromeExe;
+            if (fileExists(chromePath1)) chromeExe = chromePath1;
+            else if (fileExists(chromePath2)) chromeExe = chromePath2;
+
+            if (!edgeExe.empty()) {
+                int rcEdge = system(("start \"\" \"" + edgeExe + "\" --new-window --app=\"" + uiArg + "\"").c_str());
+                if (rcEdge == 0) {
+                    cout << "Kali app launched as modern app window (Edge).\n";
+                    return 0;
+                }
+            }
+
+            if (!chromeExe.empty()) {
+                int rcChrome = system(("start \"\" \"" + chromeExe + "\" --new-window --app=\"" + uiArg + "\"").c_str());
+                if (rcChrome == 0) {
+                    cout << "Kali app launched as modern app window (Chrome).\n";
+                    return 0;
+                }
+            }
+
+            if (hasPsHost) {
+                int rcPs = system(("start \"\" powershell -NoProfile -ExecutionPolicy Bypass -File \"" + psHostPath + "\"").c_str());
+                if (rcPs == 0) {
+                    cout << "Kali app launched as desktop window (legacy PowerShell host).\n";
+                    return 0;
+                }
+            }
+
+            int rc = system(("start \"\" mshta.exe \"" + appPath + "\"").c_str());
+            if (rc == 0) {
+                cout << "Kali app launch requested via HTA.\n";
+                return 0;
+            }
+
+            int rcDefault = system(("start \"\" \"" + uiPath + "\"").c_str());
+            if (rcDefault == 0) {
+                cout << "Kali app fallback launched in default browser window.\n";
+                return 0;
+            }
+
+            cerr << "Failed to launch Kali app window.\n";
+            return 1;
+#else
+            cerr << "kali-app is currently supported on Windows only. Use 'kali-ui --open' on this platform.\n";
+            return 1;
+#endif
+        }
+        return 0;
+    }
 }
 
 int main(int argc, char** argv) {
@@ -504,6 +1098,14 @@ int main(int argc, char** argv) {
     if (cmd == "help" || cmd == "--help" || cmd == "-h") {
         printUsage();
         return 0;
+    }
+
+    if (cmd == "menu") {
+        return runInteractiveMenu();
+    }
+
+    if (cmd == "shell") {
+        return runKaliShell();
     }
 
     if (cmd == "fact" || cmd == "fib") {
@@ -553,6 +1155,40 @@ int main(int argc, char** argv) {
         return runAsmProgram(asmPath, options);
     }
 
+    if (cmd == "asm-build") {
+        if (argc < 3) {
+            cerr << "Missing ASM file path.\n";
+            printUsage();
+            return 1;
+        }
+        string outBin = (argc >= 4) ? argv[3] : "program.bin";
+        return assembleToBinary(argv[2], outBin);
+    }
+
+    if (cmd == "run-bin") {
+        if (argc < 3) {
+            cerr << "Missing binary file path.\n";
+            printUsage();
+            return 1;
+        }
+        RunOptions options;
+        string err;
+        if (!parseRunOptions(3, argc, argv, options, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+        return runBinProgram(argv[2], options);
+    }
+
+    if (cmd == "dump-bin") {
+        if (argc < 3) {
+            cerr << "Missing binary file path.\n";
+            printUsage();
+            return 1;
+        }
+        return dumpBinary(argv[2]);
+    }
+
     if (cmd == "trace-summary") {
         string path = (argc >= 3) ? argv[2] : "trace.jsonl";
         return traceSummary(path);
@@ -562,6 +1198,18 @@ int main(int argc, char** argv) {
         bool open = false;
         if (argc >= 3 && string(argv[2]) == "--open") open = true;
         return handleViewerCommand(open);
+    }
+
+    if (cmd == "kali-ui") {
+        bool open = false;
+        if (argc >= 3 && string(argv[2]) == "--open") open = true;
+        return handleKaliUiCommand(open);
+    }
+
+    if (cmd == "kali-app") {
+        bool open = false;
+        if (argc >= 3 && string(argv[2]) == "--open") open = true;
+        return handleKaliAppCommand(open);
     }
 
     cerr << "Unknown command: " << cmd << "\n";
