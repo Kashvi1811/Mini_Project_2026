@@ -9,6 +9,10 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 using namespace std;
 
 namespace {
@@ -593,17 +597,53 @@ namespace {
         return parseInt(trim(input), out);
     }
 
+    string padRight(const string& text, size_t width) {
+        if (text.size() >= width) return text.substr(0, width);
+        return text + string(width - text.size(), ' ');
+    }
+
+    void printWindowBox(const string& title, const vector<string>& lines) {
+        size_t width = title.size();
+        for (const auto& line : lines) {
+            width = max(width, line.size());
+        }
+        width = max<size_t>(width, 44);
+
+        const string topBottom = "+" + string(width + 2, '-') + "+";
+        const string divider = "|" + string(width + 2, '-') + "|";
+
+        cout << topBottom << "\n";
+        cout << "| " << padRight(title, width) << " |\n";
+        cout << divider << "\n";
+        for (const auto& line : lines) {
+            cout << "| " << padRight(line, width) << " |\n";
+        }
+        cout << topBottom << "\n";
+    }
+
+    void waitForEnter() {
+        cout << "\nPress Enter to continue...";
+        string ignore;
+        getline(cin, ignore);
+    }
+
     int runInteractiveMenu() {
+        string status = "Ready.";
+
         while (true) {
-            cout << "\n=== VM CLI Menu ===\n"
-                 << "1) Factorial\n"
-                 << "2) Fibonacci\n"
-                 << "3) Run ASM file\n"
-                 << "4) Trace summary\n"
-                 << "5) Viewer path\n"
-                 << "6) Open viewer\n"
-                 << "0) Exit\n"
-                 << "Select option: ";
+            cout << "\n";
+            printWindowBox("Custom VM Terminal :: VM CLI Menu", {
+                "1) Factorial",
+                "2) Fibonacci",
+                "3) Run ASM file",
+                "4) Trace summary",
+                "5) Viewer path",
+                "6) Open viewer",
+                "0) Exit",
+                "",
+                "Status: " + status
+            });
+            cout << "Select option: ";
 
             string rawChoice;
             if (!getline(cin, rawChoice)) return 0;
@@ -614,12 +654,14 @@ namespace {
             if (choice == "1" || choice == "2") {
                 int n = 0;
                 if (!promptIntValue("Enter value (0-63): ", n)) {
-                    cout << "Invalid number.\n";
+                    status = "Invalid number.";
                     continue;
                 }
                 RunOptions options;
                 const string preset = (choice == "1") ? "fact" : "fib";
-                runPresetProgram(preset, n, options);
+                const int rc = runPresetProgram(preset, n, options);
+                status = (rc == 0) ? "Preset run completed." : "Preset run failed.";
+                waitForEnter();
                 continue;
             }
 
@@ -629,11 +671,13 @@ namespace {
                 if (!getline(cin, asmPath)) return 0;
                 asmPath = trim(asmPath);
                 if (asmPath.empty()) {
-                    cout << "ASM path cannot be empty.\n";
+                    status = "ASM path cannot be empty.";
                     continue;
                 }
                 RunOptions options;
-                runAsmProgram(asmPath, options);
+                const int rc = runAsmProgram(asmPath, options);
+                status = (rc == 0) ? "ASM run completed." : "ASM run failed.";
+                waitForEnter();
                 continue;
             }
 
@@ -643,21 +687,27 @@ namespace {
                 if (!getline(cin, tracePath)) return 0;
                 tracePath = trim(tracePath);
                 if (tracePath.empty()) tracePath = "trace.jsonl";
-                traceSummary(tracePath);
+                const int rc = traceSummary(tracePath);
+                status = (rc == 0) ? "Trace summary completed." : "Trace summary failed.";
+                waitForEnter();
                 continue;
             }
 
             if (choice == "5") {
-                handleViewerCommand(false);
+                const int rc = handleViewerCommand(false);
+                status = (rc == 0) ? "Viewer path displayed." : "Viewer path failed.";
+                waitForEnter();
                 continue;
             }
 
             if (choice == "6") {
-                handleViewerCommand(true);
+                const int rc = handleViewerCommand(true);
+                status = (rc == 0) ? "Viewer opened." : "Viewer open failed.";
+                waitForEnter();
                 continue;
             }
 
-            cout << "Unknown option. Try again.\n";
+            status = "Unknown option. Try again.";
         }
     }
 
@@ -1012,9 +1062,10 @@ namespace {
         cout << "Kali app path: " << appPath << "\n";
         if (open) {
 #ifdef _WIN32
-            char absBuffer[4096] = {0};
             string uiArg = uiPath;
-            if (_fullpath(absBuffer, uiPath.c_str(), sizeof(absBuffer)) != nullptr) {
+            char absBuffer[4096] = {0};
+            const DWORD resolved = GetFullPathNameA(uiPath.c_str(), static_cast<DWORD>(sizeof(absBuffer)), absBuffer, nullptr);
+            if (resolved > 0 && resolved < sizeof(absBuffer)) {
                 string absPath(absBuffer);
                 for (char& ch : absPath) {
                     if (ch == '\\') ch = '/';
