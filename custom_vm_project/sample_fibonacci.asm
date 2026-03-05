@@ -1,0 +1,19 @@
+// Fibonacci for 8 terms -> final term in R0
+LOAD R0, 0
+LOAD R1, 1
+LOAD R3, 8
+LOAD R4, 7
+JZ R3, 12
+SUB R3, 1
+JZ R3, 10
+LOAD R2, 0
+ADD R2, R0
+ADD R2, R1
+LOAD R0, 0
+ADD R0, R1
+LOAD R1, 0
+ADD R1, R2
+SUB R3, 1
+JZ R3, 1
+JMP R4
+HALT

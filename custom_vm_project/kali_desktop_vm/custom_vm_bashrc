@@ -1,0 +1,41 @@
+# Custom VM dedicated terminal profile
+
+# Base shell behavior
+set -o emacs
+shopt -s checkwinsize histappend
+HISTSIZE=5000
+HISTFILESIZE=10000
+HISTCONTROL=ignoreboth:erasedups
+PROMPT_DIRTRIM=2
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
+# Keep cursor and terminal state healthy
+stty sane 2>/dev/null || true
+if command -v tput >/dev/null 2>&1; then
+  tput cnorm 2>/dev/null || true
+fi
+
+# Better defaults for this project shell
+export TERM="${TERM:-xterm-256color}"
+export CLICOLOR=1
+export CUSTOM_VM_HOME="${CUSTOM_VM_HOME:-$HOME/custom_vm_app}"
+
+# Project aliases
+alias ll='ls -alF --color=auto'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
+alias vmh='./vm_cli help'
+alias vmm='./vm_cli menu'
+alias vms='./vm_cli shell'
+alias vmv='./vm_cli viewer --open'
+
+# Prompt (Kali-inspired custom VM style)
+PS1='\[\e[1;37m\]┌──(\[\e[1;32m\]custom-vm\[\e[1;37m\]㉿\[\e[1;36m\]\h\[\e[1;37m\])-['
+PS1+='\[\e[1;34m\]\w\[\e[1;37m\]]\n└─\[\e[1;32m\]$\[\e[0m\] '
+
+# Re-apply cursor visibility each prompt redraw
+PROMPT_COMMAND='stty sane 2>/dev/null || true; tput cnorm 2>/dev/null || true'
+
+echo -e "\e[1;36m[ Custom VM Terminal ]\e[0m"
+echo -e "\e[0;37mQuick commands:\e[0m vmm  vms  vmv  vmh"

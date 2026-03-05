@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Custom VM Interface (Autostart)
+Exec=__APP_DIR__/run_no_sudo.sh
+X-GNOME-Autostart-enabled=true
+NoDisplay=false
+Hidden=false

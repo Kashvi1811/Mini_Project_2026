@@ -100,8 +100,29 @@ g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
 .\vm_cli.exe fact 5
 .\vm_cli.exe fib 8
 
+# Prompt mode (asks for number)
+.\vm_cli.exe fact
+.\vm_cli.exe fib
+
+# Guided menu mode
+.\vm_cli.exe menu
+
+# Kali-style terminal shell mode
+.\vm_cli.exe shell
+
+# Kali-style app window (desktop-like UI)
+.\vm_cli.exe kali-ui --open
+
+# Native app-like window on Windows (no browser chrome)
+.\vm_cli.exe kali-app --open
+
 # Custom ASM program
 .\vm_cli.exe asm .\my_program.asm --trace .\trace.jsonl
+
+# Assemble ASM -> binary and execute binary
+.\vm_cli.exe asm-build .\sample_factorial.asm .\factorial.bin
+.\vm_cli.exe run-bin .\factorial.bin --trace .\trace_factorial_bin.jsonl
+.\vm_cli.exe dump-bin .\factorial.bin
 
 # Trace quick summary
 .\vm_cli.exe trace-summary .\trace.jsonl
@@ -117,6 +138,23 @@ g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
 - Choose a preset (**Factorial**, **Fibonacci**, or **Basic Addition**) or type code.
 - Click **Compile & Flash**.
 - Use **Next Step** (manual) or **Auto Run**.
+
+### 3) 🐧 WSL Support
+
+- WSL-specific scripts and commands are in `custom_vm_project/wsl/`
+- Start here: `custom_vm_project/wsl/README_WSL.md`
+- Includes:
+  - `run_demo_wsl.sh` (full CLI demo)
+  - `open_ui_wsl.sh` (open `kali_ui.html` / `viewer.html`)
+  - `wsl_shell.sh` (build + open themed shell)
+  - `Makefile` shortcuts for build/test run
+
+### 4) 🖥️ Full Kali Desktop VM Pack
+
+- Separate folder for OS-level/Kali-desktop style packaging:
+  - `custom_vm_project/kali_desktop_vm/`
+- Start with:
+  - `custom_vm_project/kali_desktop_vm/README.md`
 
 ---
 
@@ -144,6 +182,20 @@ This subset is intentionally small to keep the instruction mapping clear and edu
 - **Fibonacci (`fib n`)**
   - Iterative register updates (`prev`, `curr`, `temp`)
   - Demonstrates jump-based loop control
+
+- **ASM samples (submission-ready)**
+  - `custom_vm_project/sample_factorial.asm`
+  - `custom_vm_project/sample_fibonacci.asm`
+  - `custom_vm_project/sample_addition.asm`
+
+---
+
+## 📚 Documentation Deliverables
+
+- Instruction Set Manual: `custom_vm_project/INSTRUCTION_SET.md`
+- Architecture/Design Notes: `custom_vm_project/ARCHITECTURE_NOTES.md`
+
+> For final submission where PDF is required, export these markdown files to PDF.
 
 ---
 

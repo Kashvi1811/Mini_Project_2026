@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Custom VM Interface
+Comment=Kali-style custom VM launcher
+Exec=__APP_DIR__/run_no_sudo.sh
+Terminal=false
+Categories=Development;Education;
+StartupNotify=true

@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Architect VM - Logic Engine Edition</title>
+    <style>
+        :root {
+            --bg: #050b18;
+            --panel: #0f172a;
+            --accent: #c084fc;
+            --cyan: #22d3ee;
+            --green: #4ade80;
+            --rose: #fb7185;
+            --border: rgba(255, 255, 255, 0.08);
+            --card-bg: rgba(15, 23, 42, 0.6);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, sans-serif;
+            display: grid;
+            grid-template-columns: minmax(300px, 380px) 1fr;
+            min-height: 100vh;
+            overflow: auto;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            background: #0a1120;
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            max-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .logo-section h2 { margin: 0; font-size: 24px; letter-spacing: 1px; color: var(--cyan); }
+        .logo-section p { font-size: 13px; color: #64748b; margin: 4px 0 10px 0; }
+
+        .section-label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; display: block; }
+
+        /* Speed Control */
+        .speed-control {
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        /* Editor Tabs */
+        .tab-container { display: flex; gap: 5px; margin-bottom: 5px; }
+        .tab {
+            padding: 8px 14px; font-size: 12px; background: #1e293b; border-radius: 4px;
+            cursor: pointer; color: #94a3b8; border: 1px solid transparent;
+        }
+        .tab.active { background: var(--accent); color: white; }
+
+        .lang-select-wrap {
+            margin-bottom: 8px;
+        }
+        .lang-select {
+            width: 100%;
+            background: #0b1220;
+            color: #cbd5e1;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
+        }
+        .lang-select:focus {
+            border-color: var(--accent);
+        }
+
+        #editor-container { position: relative; }
+        textarea {
+            width: 100%; height: 180px; background: #000; color: var(--green);
+            border: 1px solid var(--border); border-radius: 6px; padding: 12px;
+            font-family: 'Fira Code', monospace; font-size: 14px; resize: none;
+            box-sizing: border-box; outline: none; line-height: 1.5;
+        }
+
+        .compile-error {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(251, 113, 133, 0.35);
+            background: rgba(251, 113, 133, 0.08);
+            color: #fecdd3;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .algo-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.3s;
+        }
+        .algo-card.active { border-color: var(--accent); background: rgba(192, 132, 252, 0.1); }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
+        .btn {
+            flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;
+            text-transform: uppercase; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-primary { background: var(--cyan); color: #000; }
+        .btn-secondary { background: #1e293b; color: white; }
+        
+        .btn-small { padding: 8px; font-size: 11px; flex: 1; }
+
+        .guide-box {
+            background: rgba(192, 132, 252, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 4px;
+        }
+        .guide-step {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 4px 0;
+        }
+        .guide-step b {
+            color: var(--cyan);
+        }
+
+        /* --- MAIN CANVAS --- */
+        .main-content {
+            padding: 30px; display: flex; flex-direction: column; gap: 20px;
+            background: radial-gradient(circle at 50% 50%, #111827 0%, #050b18 100%);
+            background-image: radial-gradient(var(--border) 1px, transparent 1px);
+            background-size: 25px 25px;
+            min-width: 0;
+            overflow: auto;
+            box-sizing: border-box;
+        }
+
+        .flow-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; flex-wrap: wrap; }
+        .work-module { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; flex-shrink: 0; }
+
+        .ram-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .ram-cell {
+            width: 50px; height: 50px; background: #1e293b; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+            color: #64748b; border: 1px solid transparent; transition: 0.3s;
+        }
+        .ram-cell.active { border-color: var(--cyan); color: var(--cyan); background: rgba(34, 211, 238, 0.1); font-weight: bold; }
+
+        .cpu-module { flex: 1; max-width: 600px; text-align: center; }
+        .ir-labels { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-bottom: 6px; }
+        .ir-label { font-size: 10px; color: #64748b; font-weight: 800; text-transform: uppercase; }
+        .bin-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; background: #000; padding: 12px; border-radius: 6px; }
+        .bit { height: 38px; background: #1e293b; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .bit.on { background: var(--cyan); color: #000; font-weight: bold; box-shadow: 0 0 10px var(--cyan); }
+        .bit.op { background: var(--accent); color: #fff; }
+
+        .reg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 340px; }
+        .reg-card { background: #0f172a; border: 1px solid var(--border); padding: 12px; border-radius: 8px; transition: 0.4s; }
+        .reg-card.active { border-color: var(--green); box-shadow: 0 0 15px rgba(74, 222, 128, 0.2); }
+        .reg-id { font-size: 12px; color: var(--green); font-weight: 800; }
+        .reg-val { font-size: 26px; font-weight: 700; display: block; margin: 4px 0; }
+        .reg-desc { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+        .var-tag { color: var(--accent); font-weight: bold; font-size: 11px; }
+
+        .narration-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px; display: flex; justify-content: space-around; }
+        .step-item { display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 14px; }
+        .step-num { width: 26px; height: 26px; border-radius: 50%; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
+        .step-item.active { color: var(--accent); font-weight: bold; }
+        .step-item.active .step-num { background: var(--accent); color: white; }
+
+        .explanation-panel { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 180px; max-height: 320px; overflow-y: auto; }
+        .explain-layout { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; align-items: start; }
+        .explain-main { min-width: 0; }
+        .exp-title { font-size: 14px; font-weight: 800; color: var(--cyan); text-transform: uppercase; margin-bottom: 8px; }
+        .exp-text { font-size: 15px; color: #cbd5e1; line-height: 1.6; padding-right: 6px; }
+        .highlight-text { color: var(--accent); font-weight: bold; }
+        .counter-panel { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+        .counter-title { font-size: 12px; color: var(--accent); font-weight: 800; text-transform: uppercase; margin-bottom: 6px; }
+        .counter-text { font-size: 12px; color: #cbd5e1; line-height: 1.45; max-height: 220px; overflow-y: auto; }
+        .counter-line { margin-bottom: 6px; }
+
+        .mini-guide {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+        }
+        .mini-guide-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 6px;
+        }
+        .mini-guide-line {
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 3px 0;
+        }
+        .mini-guide-line b {
+            color: var(--accent);
+        }
+
+        .hidden { display: none; }
+
+       #hover-info {
+    position: absolute; /* follow hovered element */
+    display: none;
+    background: rgba(15,23,42,0.9);
+    color: var(--cyan);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: monospace;
+    z-index: 9999;
+
+    /* shrink to content */
+    width: max-content;
+    max-width: 300px; /* optional max width */
+    white-space: nowrap; /* keep single line unless too long */
+
+    /* spacing inside content */
+    line-height: 1.5;
+}
+
+        @media (max-width: 1280px) {
+            .flow-container {
+                gap: 12px;
+            }
+
+            .cpu-module {
+                order: 1;
+                flex: 1 1 100%;
+                max-width: none;
+            }
+
+            .flow-container .work-module:first-child,
+            .flow-container .work-module:last-child {
+                flex: 1 1 calc(50% - 12px);
+                min-width: 320px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .main-content {
+                overflow: visible;
+            }
+
+            .flow-container {
+                flex-direction: column;
+            }
+
+            .flow-container .work-module,
+            .cpu-module,
+            .reg-grid {
+                width: 100%;
+                max-width: none;
+            }
+
+            .reg-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .explain-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main-content,
+            .sidebar {
+                padding: 16px;
+            }
+
+            .reg-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .narration-bar {
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: flex-start;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="hover-info" style="
+    position: fixed;
+    top: 50px;
+    right: 50px;
+    background: rgba(15,23,42,0.9);
+    color: var(--cyan);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: monospace;
+    display: none;
+    z-index: 9999;
+">
+    
+    <div id="hover-info-content"></div>
+    <div id="hover-info-close" style="margin-top:8px; text-align:right; cursor:pointer; color: var(--rose); font-weight:700;">✕</div>
+</div>
+
+    <aside class="sidebar">
+        <div class="logo-section">
+            <h2>CPU Simulator 3.0</h2>
+            <p>From High-Level Logic to Binary Execution</p>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab active" id="tab-c" onclick="switchEditor('c')">High-Level</div>
+            <div class="tab" id="tab-asm" onclick="switchEditor('asm')">Assembly (ASM)</div>
+        </div>
+
+        <div id="lang-select-wrap" class="lang-select-wrap">
+            <span class="section-label">High-Level Language</span>
+            <select id="lang-select" class="lang-select" onchange="setHighLevelLanguage(this.value)">
+                <option value="cpp" selected>C++</option>
+                <option value="c">C</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+            </select>
+        </div>
+
+        <div id="editor-container">
+            <textarea id="c-editor" placeholder="// Write your C++ code here" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"></textarea>
+            <textarea id="asm-editor" class="hidden" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off">LOAD R0, 1
+LOAD R1, 5
+LOAD R2, 3
+MUL R0, R1
+SUB R1, 1
+JZ R1, 1
+JMP R2
+HALT</textarea>
+            <div id="compile-error" class="compile-error"></div>
+        </div>
+
+        <div class="speed-control">
+            <span class="section-label">Auto-Run Speed</span>
+            <input type="range" id="speed-slider" min="100" max="5000" step="100" value="3000" oninput="updateSpeedLabel(this.value)">
+            <div id="speed-label" style="font-size: 10px; color: var(--accent); text-align: right; margin-top: 5px;">3.0s delay</div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="triggerFlash()">⚡ Compile & Flash</button>
+            <button class="btn btn-secondary" onclick="resetSim()">Reset</button>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-secondary btn-small" onclick="triggerBack()">⬅ BACK</button>
+            <button id="step-btn" class="btn btn-primary btn-small" style="background: var(--accent); color: #fff;" onclick="triggerStep()">NEXT STEP ▶</button>
+        </div>
+        <div class="btn-group">
+            <button id="auto-btn" class="btn btn-secondary btn-small" onclick="toggleAuto()" style="flex: 2;">🔄 AUTO RUN</button>
+        </div>
+
+        <div class="guide-box">
+            <span class="section-label" style="margin-bottom: 6px;">How To Run Your Program</span>
+            <div class="guide-step"><b>1) Write or edit code</b> in High-Level/ASM editor and choose your language from the dropdown.</div>
+            <div class="guide-step"><b>2) Press Compile &amp; Flash</b> once after every code change to load new instructions.</div>
+            <div class="guide-step"><b>3) Press Next Step</b> repeatedly to execute step-by-step (Fetch → Execute).</div>
+            <div class="guide-step"><b>4) Use Auto Run</b> for automatic stepping, and <b>Back</b> to undo one step.</div>
+            <div class="guide-step"><b>Important:</b> If you edit code again, press <b>Compile &amp; Flash</b> before stepping.</div>
+        </div>
+
+        <span class="section-label">Quick Presets</span>
+        <div id="program-list" style="display:flex; flex-direction:column; gap:8px;">
+            <div class="algo-card" onclick="loadPreset('fact')">
+                <div style="font-size: 13px; font-weight: 600;">Factorial N!</div>
+            </div>
+            <div class="algo-card" onclick="loadPreset('fib')">
+                <div style="font-size: 13px; font-weight: 600;">Fibonacci Series</div>
+            </div>
+            <div class="algo-card" onclick="loadPreset('add')">
+                <div style="font-size: 13px; font-weight: 600;">Basic Addition</div>
+            </div>
+        </div>
+
+        <div id="status-bar" style="font-size: 12px; color: var(--cyan); margin-top: 10px; padding: 12px; background: rgba(34, 211, 238, 0.05); border-radius: 4px;">
+            Awaiting logic flash...
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="flow-container">
+            <div class="work-module">
+                <span class="section-label">Main Memory (RAM) – Instruction Storage</span>
+
+<div style="font-size:12px; margin-bottom:8px; color: var(--cyan);">
+    Program Counter (PC): 
+    <span id="pc-display" style="font-weight:bold;">0</span>
+</div>
+
+<div style="font-size:11px; margin-bottom:8px; color:#94a3b8;">
+    Memory Window: <span id="mem-window" style="font-weight:bold; color: var(--accent);">0 - 23</span>
+</div>
+
+<div class="ram-grid" id="mem-grid"></div>
+            </div>
+
+            <div class="work-module cpu-module">
+                <span class="section-label">
+Instruction Register (IR) – 16-bit Instruction Breakdown
+</span>
+                <div class="ir-labels">
+                    <div style="grid-column: span 4" class="ir-label">Opcode (4b)</div>
+                    <div style="grid-column: span 3" class="ir-label">Dest (3b)</div>
+                    <div style="grid-column: span 3" class="ir-label">Src1 (3b)</div>
+                    <div style="grid-column: span 6" class="ir-label">Imm / Src2 (6b)</div>
+                </div>
+                <div class="bin-grid" id="bit-display"></div>
+                <div class="mini-guide" style="margin-top: 10px; margin-bottom: 0; text-align: left;">
+                    <div class="mini-guide-title">IR Field Guide</div>
+                    <div class="mini-guide-line"><b>Opcode (4 bits):</b> which operation to run (ADD, LOAD, JMP...).</div>
+                    <div class="mini-guide-line"><b>Dest (3 bits):</b> register where result is stored.</div>
+                    <div class="mini-guide-line"><b>Src1 (3 bits):</b> second register input used by operation.</div>
+                    <div class="mini-guide-line"><b>Imm / Src2 (6 bits):</b> constant value or extra input field.</div>
+                </div>
+                
+                <div id="logic-display" style="margin-top: 25px;">
+                    <div id="op-name" style="font-size: 20px; font-weight: 800; color: var(--cyan);">STANDBY</div>
+                    <div id="op-math" style="font-size: 13px; color: #64748b; margin-top: 6px;">Instruction processing...</div>
+                </div>
+            </div>
+
+            <div class="work-module">
+                <span class="section-label">Register File</span>
+                <div class="mini-guide" style="margin-top: 0; margin-bottom: 10px;">
+                    <div class="mini-guide-title">Register Guide</div>
+                    <div class="mini-guide-line"><b>R0:</b> accumulator (main result register).</div>
+                    <div class="mini-guide-line"><b>R1:</b> loop counter / frequently updated value.</div>
+                    <div class="mini-guide-line"><b>R2:</b> return/jump helper address.</div>
+                    <div class="mini-guide-line"><b>R3-R7:</b> general-purpose working registers.</div>
+                </div>
+                <div class="reg-grid" id="reg-file"></div>
+            </div>
+        </div>
+
+        <div class="narration-bar">
+            <div class="step-item active" id="s1"><div class="step-num">1</div><span><b>FETCH</b></span></div>
+            <div class="step-item" id="s2"><div class="step-num">2</div><span><b>EXECUTE</b></span></div>
+            <div class="step-item" id="s3"><div class="step-num">3</div><span><b>STORE</b></span></div>
+        </div>
+
+        <div class="explanation-panel">
+            <div class="explain-layout">
+                <div class="explain-main">
+                    <div class="exp-title" id="exp-title">System Ready</div>
+                    <div class="exp-text" id="exp-text">Select a preset or write code to begin.</div>
+                </div>
+                <div class="counter-panel">
+                    <div class="counter-title">Counter Trace</div>
+                    <div class="counter-text" id="counter-text">Execution updates will appear here after each step.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+    function createFreshVmState() {
+        return { pc: 0, regs: new Array(8).fill(0), mem: new Array(64).fill(null), stage: 0, halted: false };
+    }
+
+    let vm = createFreshVmState();
+    const MEM_VIEW_SIZE = 24;
+    let activeMode = 'c';
+    let autoTimer = null;
+    let history = [];
+    let currentPreset = "";
+    let presetVal = 0;
+    let lastCompiledLayout = null;
+    let counterTrace = [];
+    let counterStep = 0;
+    let lastCompiledSource = "";
+    let lastEncodedProgram = null;
+    let lastCompiledLanguage = "";
+    let highLevelLanguage = 'cpp';
+
+    const highLevelLanguageNames = {
+        cpp: 'C++',
+        c: 'C',
+        java: 'Java',
+        python: 'Python'
+    };
+
+    const regNames = ["Accumulator (R0)", "Loop Counter (R1)", "Return Address (R2)", "General R3", "General R4", "General R5", "General R6", "General R7"];
+
+    function clearPresetSelection() {
+        document.querySelectorAll('#program-list .algo-card').forEach((card) => card.classList.remove('active'));
+    }
+
+    function resetRuntimeState(options = {}) {
+        const { clearEditors = false } = options;
+
+        stopAuto();
+        clearCompileError();
+        vm = createFreshVmState();
+        history = [];
+        currentPreset = "";
+        presetVal = 0;
+        lastCompiledLayout = null;
+        lastCompiledSource = "";
+        lastEncodedProgram = null;
+        lastCompiledLanguage = "";
+        resetCounterTrace();
+        updateStepLights(0);
+        clearPresetSelection();
+
+        hoverPinned = false;
+        hideVarInfo();
+
+        if (clearEditors) {
+            const highLevelEditor = document.getElementById('c-editor');
+            const asmEditor = document.getElementById('asm-editor');
+            if (highLevelEditor) highLevelEditor.value = '';
+            if (asmEditor) asmEditor.value = '';
+        }
+
+        const statusBar = document.getElementById('status-bar');
+        if (statusBar) statusBar.innerText = 'Awaiting logic flash...';
+
+        const expTitle = document.getElementById('exp-title');
+        if (expTitle) expTitle.innerText = 'System Ready';
+
+        const expText = document.getElementById('exp-text');
+        if (expText) expText.innerText = 'Select a preset or write code to begin.';
+
+        updateUI();
+        updateBitDisplay(0);
+        updateInstructionExplainer(null);
+    }
+
+    function updateSpeedLabel(val) {
+        document.getElementById('speed-label').innerText = (val/1000).toFixed(1) + "s delay";
+        if(autoTimer) { stopAuto(); toggleAuto(); }
+    }
+
+    function switchEditor(mode) {
+        activeMode = mode;
+        document.getElementById('c-editor').classList.toggle('hidden', mode !== 'c');
+        document.getElementById('asm-editor').classList.toggle('hidden', mode !== 'asm');
+        document.getElementById('tab-c').classList.toggle('active', mode === 'c');
+        document.getElementById('tab-asm').classList.toggle('active', mode === 'asm');
+        document.getElementById('lang-select-wrap').classList.toggle('hidden', mode !== 'c');
+        clearCompileError();
+    }
+
+    function updateHighLevelPlaceholder() {
+        const editor = document.getElementById('c-editor');
+        if (!editor) return;
+        const label = highLevelLanguageNames[highLevelLanguage] || 'C++';
+        editor.placeholder = `// Write your ${label} code here`;
+    }
+
+    function setHighLevelLanguage(language) {
+        const languageChanged = highLevelLanguage !== language;
+        highLevelLanguage = language;
+
+        const select = document.getElementById('lang-select');
+        if (select && select.value !== language) select.value = language;
+
+        clearCompileError();
+        updateHighLevelPlaceholder();
+
+        if (languageChanged) {
+            resetRuntimeState({ clearEditors: true });
+            const selectedLang = highLevelLanguageNames[highLevelLanguage] || 'High-Level';
+            document.getElementById('status-bar').innerText = `${selectedLang} mode selected. Editor and VM reset.`;
+        }
+    }
+
+    function normalizeCommonHighLevelSource(code) {
+        const lines = code.split('\n');
+        const normalized = [];
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+
+            if (line.startsWith('//')) {
+                normalized.push(line);
+                continue;
+            }
+
+            let match = line.match(/^([A-Za-z_]\w*(?:\[\d+\])?)\s*([+\-*])=\s*(.+?)\s*;?$/);
+            if (match) {
+                const target = match[1];
+                const op = match[2];
+                const expr = match[3].trim();
+                normalized.push(`${target} = ${target} ${op} ${expr};`);
+                continue;
+            }
+
+            match = line.match(/^([A-Za-z_]\w*(?:\[\d+\])?)\s*(\+\+|--)\s*;?$/);
+            if (match) {
+                const target = match[1];
+                const op = match[2] === '++' ? '+' : '-';
+                normalized.push(`${target} = ${target} ${op} 1;`);
+                continue;
+            }
+
+            match = line.match(/^(\+\+|--)\s*([A-Za-z_]\w*(?:\[\d+\])?)\s*;?$/);
+            if (match) {
+                const target = match[2];
+                const op = match[1] === '++' ? '+' : '-';
+                normalized.push(`${target} = ${target} ${op} 1;`);
+                continue;
+            }
+
+            normalized.push(line);
+        }
+
+        return normalized.join('\n');
+    }
+
+    function preprocessCSource(code) {
+        const lines = code.split('\n');
+        const converted = [];
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+
+            if (line.startsWith('//')) {
+                converted.push(line);
+                continue;
+            }
+
+            if (/^#include\b/.test(line)) continue;
+            if (/^using\s+namespace\s+\w+\s*;?$/.test(line)) continue;
+            if (/^int\s+main\s*\(.*\)\s*\{?$/.test(line)) continue;
+            if (line === '{' || line === '}') continue;
+            if (/^return\s+\d+\s*;?$/.test(line)) continue;
+
+            const primitiveDecl = line.match(/^(?:unsigned\s+)?(?:long\s+long|long|short)\s+(.+)$/);
+            if (primitiveDecl) {
+                converted.push(`int ${primitiveDecl[1]}`);
+                continue;
+            }
+
+            const arrayNoSizeInit = line.match(/^int\s+(\w+)\s*\[\s*\]\s*=\s*\{([^}]*)\}\s*;$/);
+            if (arrayNoSizeInit) {
+                const name = arrayNoSizeInit[1];
+                const values = arrayNoSizeInit[2].split(',').map(part => part.trim()).filter(Boolean);
+                converted.push(`int ${name}[${values.length}] = {${values.join(', ')}};`);
+                continue;
+            }
+
+            converted.push(line);
+        }
+
+        return converted.join('\n');
+    }
+
+    function preprocessJavaSource(code) {
+        const lines = code.split('\n');
+        const converted = [];
+        const collectionKinds = {};
+
+        const updateCollectionLength = (name, delta) => {
+            if (!collectionKinds[name]) return;
+            collectionKinds[name].length = Math.max(0, (collectionKinds[name].length ?? 0) + delta);
+        };
+
+        const withCommonJavaReplacements = (inputLine) => {
+            let out = inputLine;
+
+            Object.entries(collectionKinds).forEach(([name, info]) => {
+                const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                out = out.replace(new RegExp(`\\b${escaped}\\.size\\(\\)`, 'g'), String(info.length ?? 0));
+                if (info.kind === 'vector') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\.get\\(\\s*(\\d+)\\s*\\)`, 'g'), `${name}[$1]`);
+                }
+                if (info.kind === 'stack') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\.peek\\(\\)`, 'g'), `${name}.top()`);
+                }
+                if (info.kind === 'queue') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\.peek\\(\\)`, 'g'), `${name}.front()`);
+                    out = out.replace(new RegExp(`\\b${escaped}\\.element\\(\\)`, 'g'), `${name}.front()`);
+                }
+            });
+
+            return out;
+        };
+
+        for (const rawLine of lines) {
+            let line = rawLine.trim();
+            if (!line) continue;
+            if (line.startsWith('//')) {
+                converted.push(line);
+                continue;
+            }
+
+            if (/^package\s+[\w.]+\s*;?$/.test(line)) continue;
+            if (/^import\s+.+;?$/.test(line)) continue;
+            if (/^@\w+/.test(line)) continue;
+            if (/^public\s+class\s+\w+\s*\{?$/.test(line)) continue;
+            if (/^class\s+\w+\s*\{?$/.test(line)) continue;
+            if (/^public\s+static\s+void\s+main\s*\(.*\)\s*\{?$/.test(line)) continue;
+            if (line === '{' || line === '}') continue;
+
+            line = line.replace(/^(?:public|private|protected|static|final)\s+/, '');
+
+            const vectorDeclInit = line.match(/^(?:ArrayList|List|Vector)\s*<\s*Integer\s*>\s+(\w+)\s*=\s*(?:List\.of|Arrays\.asList)\s*\(([^)]*)\)\s*;$/);
+            if (vectorDeclInit) {
+                const name = vectorDeclInit[1];
+                const values = vectorDeclInit[2].split(',').map(part => part.trim()).filter(Boolean);
+                converted.push(`vector<int> ${name} = {${values.join(', ')}};`);
+                collectionKinds[name] = { kind: 'vector', length: values.length };
+                continue;
+            }
+
+            const vectorDecl = line.match(/^(?:ArrayList|List|Vector)\s*<\s*Integer\s*>\s+(\w+)\s*=\s*new\s+(?:ArrayList|Vector)\s*<\s*(?:Integer)?\s*>\s*(?:\(\s*(\d+)?\s*\))?\s*;$/);
+            if (vectorDecl) {
+                const name = vectorDecl[1];
+                const sized = vectorDecl[2] ? parseInt(vectorDecl[2], 10) : null;
+                converted.push(sized !== null ? `vector<int> ${name}(${sized});` : `vector<int> ${name};`);
+                collectionKinds[name] = { kind: 'vector', length: sized ?? 0 };
+                continue;
+            }
+
+            const stackDecl = line.match(/^Stack\s*<\s*Integer\s*>\s+(\w+)\s*=\s*new\s+Stack\s*<\s*(?:Integer)?\s*>\s*\(\s*\)\s*;$/);
+            if (stackDecl) {
+                const name = stackDecl[1];
+                converted.push(`stack<int> ${name};`);
+                collectionKinds[name] = { kind: 'stack', length: 0 };
+                continue;
+            }
+
+            const queueDecl = line.match(/^(?:Queue|Deque)\s*<\s*Integer\s*>\s+(\w+)\s*=\s*new\s+(?:LinkedList|ArrayDeque)\s*<\s*(?:Integer)?\s*>\s*\(\s*\)\s*;$/);
+            if (queueDecl) {
+                const name = queueDecl[1];
+                converted.push(`queue<int> ${name};`);
+                collectionKinds[name] = { kind: 'queue', length: 0 };
+                continue;
+            }
+
+            const methodCall = line.match(/^(\w+)\.(\w+)\((.*)\)\s*;$/);
+            if (methodCall) {
+                const name = methodCall[1];
+                const method = methodCall[2];
+                const args = methodCall[3].trim();
+                const collection = collectionKinds[name];
+
+                if (collection?.kind === 'vector') {
+                    if (method === 'add') {
+                        converted.push(`${name}.push_back(${args});`);
+                        updateCollectionLength(name, 1);
+                        continue;
+                    }
+                    if (method === 'remove' && (args === `${name}.size() - 1` || args === `${name}.size()-1` || args === '-1')) {
+                        converted.push(`${name}.pop_back();`);
+                        updateCollectionLength(name, -1);
+                        continue;
+                    }
+                }
+
+                if (collection?.kind === 'stack') {
+                    if (method === 'push') {
+                        converted.push(`${name}.push(${args});`);
+                        updateCollectionLength(name, 1);
+                        continue;
+                    }
+                    if (method === 'pop') {
+                        converted.push(`${name}.pop();`);
+                        updateCollectionLength(name, -1);
+                        continue;
+                    }
+                }
+
+                if (collection?.kind === 'queue') {
+                    if (method === 'add' || method === 'offer') {
+                        converted.push(`${name}.push(${args});`);
+                        updateCollectionLength(name, 1);
+                        continue;
+                    }
+                    if (method === 'poll' || (method === 'remove' && !args)) {
+                        converted.push(`${name}.pop();`);
+                        updateCollectionLength(name, -1);
+                        continue;
+                    }
+                }
+            }
+
+            const arrayInit = line.match(/^int\[\]\s+(\w+)\s*=\s*\{([^}]*)\}\s*;$/);
+            if (arrayInit) {
+                const name = arrayInit[1];
+                const values = arrayInit[2].split(',').map(part => part.trim()).filter(Boolean);
+                converted.push(`int ${name}[${values.length}] = {${values.join(', ')}};`);
+                continue;
+            }
+
+            const arraySized = line.match(/^int\[\]\s+(\w+)\s*=\s*new\s+int\[(\d+)\]\s*;$/);
+            if (arraySized) {
+                converted.push(`int ${arraySized[1]}[${arraySized[2]}];`);
+                continue;
+            }
+
+            line = withCommonJavaReplacements(line);
+            converted.push(line);
+        }
+
+        return converted.join('\n');
+    }
+
+    function preprocessPythonSource(code) {
+        const lines = code.split('\n');
+        const converted = [];
+        const declaredScalars = new Set();
+        const declaredCollections = new Set();
+        const collectionLengths = {};
+        const collectionKinds = {};
+        const dictEntries = {};
+
+        const isIdentifier = (token) => /^[A-Za-z_]\w*$/.test(token);
+        const isIndexExpr = (token) => /^[A-Za-z_]\w*\[-?\d+\]$/.test(token);
+
+        const parseCsvItems = (text) => {
+            if (!text || !text.trim()) return [];
+            return text.split(',').map(part => part.trim()).filter(Boolean);
+        };
+
+        const parseDictPairs = (text, lineIndex) => {
+            const pairs = [];
+            const items = parseCsvItems(text);
+            for (const item of items) {
+                const kv = item.match(/^(-?\d+)\s*:\s*(.+)$/);
+                if (!kv) {
+                    throw new Error(`Python line ${lineIndex + 1}: dictionary keys must be integer literals (e.g. {1: 10}).`);
+                }
+                pairs.push({ key: kv[1], value: kv[2].trim() });
+            }
+            return pairs;
+        };
+
+        const dictKeyVar = (name, key) => `__dict_${name}_k${String(key).replace(/[^A-Za-z0-9_]/g, '_')}`;
+
+        const inferCollectionKinds = () => {
+            const kinds = {};
+            const listDeclNames = new Set();
+
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line || line.startsWith('#')) continue;
+
+                const dictLike = line.match(/^([A-Za-z_]\w*)\s*=\s*\{(.*)\}$/);
+                if (dictLike) {
+                    const name = dictLike[1];
+                    const body = dictLike[2].trim();
+                    if (body === '' || body.includes(':')) kinds[name] = 'dict';
+                    else kinds[name] = 'set';
+                    continue;
+                }
+
+                const emptySetDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*set\(\s*\)$/);
+                if (emptySetDecl) {
+                    kinds[emptySetDecl[1]] = 'set';
+                    continue;
+                }
+
+                const tupleDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*\((.*)\)$/);
+                if (tupleDecl && tupleDecl[2].includes(',')) {
+                    kinds[tupleDecl[1]] = 'tuple';
+                    continue;
+                }
+
+                const listDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*\[(.*)\]$/);
+                if (listDecl) {
+                    const name = listDecl[1];
+                    listDeclNames.add(name);
+                    if (!kinds[name]) kinds[name] = 'vector';
+                    continue;
+                }
+
+                const queuePop = line.match(/^([A-Za-z_]\w*)\.pop\(\s*0\s*\)$/);
+                if (queuePop) {
+                    const name = queuePop[1];
+                    if (listDeclNames.has(name) || kinds[name]) kinds[name] = 'queue';
+                    continue;
+                }
+
+                const stackIndexReads = [...line.matchAll(/([A-Za-z_]\w*)\s*\[\s*-1\s*\]/g)];
+                for (const stackRead of stackIndexReads) {
+                    const name = stackRead[1];
+                    if ((listDeclNames.has(name) || kinds[name]) && kinds[name] !== 'queue') {
+                        kinds[name] = 'stack';
+                    }
+                }
+            }
+
+            return kinds;
+        };
+
+        const inferredKinds = inferCollectionKinds();
+
+        const replaceCollectionReads = (expr, lineIndex) => {
+            let out = expr;
+            Object.entries(collectionKinds).forEach(([name, kind]) => {
+                const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (kind === 'stack') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\s*\\[\\s*-1\\s*\\]`, 'g'), `${name}.top()`);
+                }
+                if (kind === 'queue') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\s*\\[\\s*0\\s*\\]`, 'g'), `${name}.front()`);
+                }
+                if (kind === 'dict') {
+                    out = out.replace(new RegExp(`\\b${escaped}\\s*\\[\\s*(-?\\d+)\\s*\\]`, 'g'), (_, key) => {
+                        const mapped = dictEntries[name]?.[String(key)];
+                        if (!mapped) {
+                            throw new Error(`Python line ${lineIndex + 1}: key ${key} not found in dictionary '${name}'.`);
+                        }
+                        return mapped;
+                    });
+                    out = out.replace(new RegExp(`\\b${escaped}\\.get\\(\\s*(-?\\d+)\\s*(?:,\\s*([^)]*))?\\)`, 'g'), (_, key, fallback) => {
+                        const mapped = dictEntries[name]?.[String(key)];
+                        if (mapped) return mapped;
+                        return (fallback && fallback.trim()) ? fallback.trim() : '0';
+                    });
+                }
+            });
+            return out;
+        };
+
+        const replaceLenCalls = (expr, lineIndex) => {
+            return expr.replace(/len\s*\(\s*([A-Za-z_]\w*)\s*\)/g, (_, name) => {
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: len(${name}) requires a declared collection.`);
+                }
+                return String(collectionLengths[name] ?? 0);
+            });
+        };
+
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const rawLine = lines[lineIndex];
+            const line = rawLine.trim();
+
+            if (!line) continue;
+
+            if (line.startsWith('#')) {
+                converted.push(`//${line.slice(1)}`);
+                continue;
+            }
+
+            if (/^(if|elif|else|for|while|def|class|try|except|with)\b/.test(line) || line.endsWith(':')) {
+                throw new Error(`Python line ${lineIndex + 1}: control flow and blocks are not supported yet.`);
+            }
+
+            const dictDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*\{(.*)\}$/);
+            if (dictDecl) {
+                const name = dictDecl[1];
+                const body = dictDecl[2].trim();
+
+                if (body.includes(':') || body === '') {
+                    const pairs = parseDictPairs(body, lineIndex);
+                    collectionKinds[name] = 'dict';
+                    declaredCollections.add(name);
+                    dictEntries[name] = {};
+
+                    for (const pair of pairs) {
+                        const valueExpr = replaceCollectionReads(replaceLenCalls(pair.value, lineIndex), lineIndex);
+                        const mappedVar = dictKeyVar(name, pair.key);
+                        if (!declaredScalars.has(mappedVar)) {
+                            converted.push(`int ${mappedVar} = ${valueExpr};`);
+                            declaredScalars.add(mappedVar);
+                            collectionLengths[name] = (collectionLengths[name] ?? 0) + 1;
+                        } else {
+                            converted.push(`${mappedVar} = ${valueExpr};`);
+                        }
+                        dictEntries[name][String(pair.key)] = mappedVar;
+                    }
+
+                    if (body === '') collectionLengths[name] = 0;
+                    continue;
+                }
+
+                const setItems = [...new Set(parseCsvItems(body))];
+                collectionKinds[name] = 'set';
+                declaredCollections.add(name);
+                collectionLengths[name] = setItems.length;
+                if (setItems.length === 0) converted.push(`vector<int> ${name};`);
+                else converted.push(`vector<int> ${name} = {${setItems.join(', ')}};`);
+                continue;
+            }
+
+            const emptySetDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*set\(\s*\)$/);
+            if (emptySetDecl) {
+                const name = emptySetDecl[1];
+                collectionKinds[name] = 'set';
+                declaredCollections.add(name);
+                collectionLengths[name] = 0;
+                converted.push(`vector<int> ${name};`);
+                continue;
+            }
+
+            const tupleDecl = line.match(/^([A-Za-z_]\w*)\s*=\s*\((.*)\)$/);
+            if (tupleDecl && tupleDecl[2].includes(',')) {
+                const name = tupleDecl[1];
+                const items = parseCsvItems(tupleDecl[2]);
+                if (items.length === 0) {
+                    throw new Error(`Python line ${lineIndex + 1}: empty tuple is not supported in this VM subset.`);
+                }
+                collectionKinds[name] = 'tuple';
+                declaredCollections.add(name);
+                collectionLengths[name] = items.length;
+                converted.push(`int ${name}[${items.length}] = {${items.join(', ')}};`);
+                continue;
+            }
+
+            const appendMatch = line.match(/^([A-Za-z_]\w*)\.append\((.+)\)$/);
+            if (appendMatch) {
+                const name = appendMatch[1];
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: append() target '${name}' must be declared first.`);
+                }
+                const expr = replaceCollectionReads(replaceLenCalls(appendMatch[2].trim(), lineIndex), lineIndex);
+                const kind = collectionKinds[name] || 'vector';
+                if (kind === 'tuple' || kind === 'dict') {
+                    throw new Error(`Python line ${lineIndex + 1}: append() is not supported for ${kind}.`);
+                }
+                if (kind === 'vector' || kind === 'set') converted.push(`${name}.push_back(${expr});`);
+                else converted.push(`${name}.push(${expr});`);
+                collectionLengths[name] = (collectionLengths[name] ?? 0) + 1;
+                continue;
+            }
+
+            const setAddMatch = line.match(/^([A-Za-z_]\w*)\.add\((.+)\)$/);
+            if (setAddMatch) {
+                const name = setAddMatch[1];
+                if (collectionKinds[name] !== 'set') {
+                    throw new Error(`Python line ${lineIndex + 1}: add() currently supports sets only.`);
+                }
+                const expr = replaceCollectionReads(replaceLenCalls(setAddMatch[2].trim(), lineIndex), lineIndex);
+                converted.push(`${name}.push_back(${expr});`);
+                collectionLengths[name] = (collectionLengths[name] ?? 0) + 1;
+                continue;
+            }
+
+            const popQueueMatch = line.match(/^([A-Za-z_]\w*)\.pop\(\s*0\s*\)$/);
+            if (popQueueMatch) {
+                const name = popQueueMatch[1];
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop(0) target '${name}' must be declared first.`);
+                }
+                if ((collectionLengths[name] ?? 0) <= 0) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop(0) from empty queue '${name}'.`);
+                }
+                if (collectionKinds[name] !== 'queue') {
+                    throw new Error(`Python line ${lineIndex + 1}: pop(0) is supported for queue-style lists only.`);
+                }
+                converted.push(`${name}.pop();`);
+                collectionLengths[name] -= 1;
+                continue;
+            }
+
+            const popMatch = line.match(/^([A-Za-z_]\w*)\.pop\(\)$/);
+            if (popMatch) {
+                const name = popMatch[1];
+                if (!declaredCollections.has(name)) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop() target '${name}' must be declared first.`);
+                }
+                if ((collectionLengths[name] ?? 0) <= 0) {
+                    throw new Error(`Python line ${lineIndex + 1}: pop() from empty '${name}'.`);
+                }
+                const kind = collectionKinds[name] || 'vector';
+                if (kind === 'tuple' || kind === 'dict') {
+                    throw new Error(`Python line ${lineIndex + 1}: pop() is not supported for ${kind}.`);
+                }
+                converted.push(kind === 'vector' || kind === 'set' ? `${name}.pop_back();` : `${name}.pop();`);
+                collectionLengths[name] -= 1;
+                continue;
+            }
+
+            const listDeclMatch = line.match(/^([A-Za-z_]\w*)\s*=\s*\[(.*)\]$/);
+            if (listDeclMatch) {
+                const name = listDeclMatch[1];
+                const rawItems = listDeclMatch[2].trim();
+                const items = parseCsvItems(rawItems);
+
+                if (items.some(item => item.includes('[') || item.includes(']'))) {
+                    throw new Error(`Python line ${lineIndex + 1}: nested lists are not supported.`);
+                }
+
+                const kind = inferredKinds[name] || 'vector';
+                collectionKinds[name] = kind;
+
+                if (kind === 'vector') {
+                    if (items.length === 0) converted.push(`vector<int> ${name};`);
+                    else converted.push(`vector<int> ${name} = {${items.join(', ')}};`);
+                } else if (kind === 'stack') {
+                    converted.push(`stack<int> ${name};`);
+                    items.forEach(item => converted.push(`${name}.push(${item});`));
+                } else if (kind === 'queue') {
+                    converted.push(`queue<int> ${name};`);
+                    items.forEach(item => converted.push(`${name}.push(${item});`));
+                } else {
+                    if (items.length === 0) converted.push(`vector<int> ${name};`);
+                    else converted.push(`vector<int> ${name} = {${items.join(', ')}};`);
+                }
+
+                declaredCollections.add(name);
+                collectionLengths[name] = items.length;
+                continue;
+            }
+
+            const compoundMatch = line.match(/^([A-Za-z_]\w*(?:\[\-?\d+\])?)\s*([+\-*])=\s*(.+)$/);
+            if (compoundMatch) {
+                const target = compoundMatch[1];
+                const op = compoundMatch[2];
+                const rhs = replaceCollectionReads(replaceLenCalls(compoundMatch[3].trim(), lineIndex), lineIndex);
+                const varName = target.split('[')[0];
+
+                if (target.includes('[') && !declaredCollections.has(varName) && !dictEntries[varName]) {
+                    throw new Error(`Python line ${lineIndex + 1}: '${varName}' must be declared before index update.`);
+                }
+
+                if (!target.includes('[') && !declaredScalars.has(target) && !declaredCollections.has(target)) {
+                    declaredScalars.add(target);
+                    converted.push(`int ${target} = 0;`);
+                }
+
+                converted.push(`${target} = ${target} ${op} ${rhs};`);
+                continue;
+            }
+
+            const assignMatch = line.match(/^(.+?)\s*=\s*(.+)$/);
+            if (assignMatch) {
+                const target = assignMatch[1].trim();
+                const expr = replaceCollectionReads(replaceLenCalls(assignMatch[2].trim(), lineIndex), lineIndex);
+
+                if (isIndexExpr(target)) {
+                    const arrayName = target.split('[')[0];
+                    const keyMatch = target.match(/^\w+\[\s*(-?\d+)\s*\]$/);
+
+                    if (collectionKinds[arrayName] === 'dict') {
+                        if (!keyMatch) {
+                            throw new Error(`Python line ${lineIndex + 1}: dictionary keys must be integer literals.`);
+                        }
+                        const key = keyMatch[1];
+                        if (!dictEntries[arrayName]) dictEntries[arrayName] = {};
+                        let mappedVar = dictEntries[arrayName][String(key)];
+                        if (!mappedVar) {
+                            mappedVar = dictKeyVar(arrayName, key);
+                            dictEntries[arrayName][String(key)] = mappedVar;
+                            collectionLengths[arrayName] = (collectionLengths[arrayName] ?? 0) + 1;
+                        }
+                        if (declaredScalars.has(mappedVar)) converted.push(`${mappedVar} = ${expr};`);
+                        else {
+                            converted.push(`int ${mappedVar} = ${expr};`);
+                            declaredScalars.add(mappedVar);
+                        }
+                        continue;
+                    }
+
+                    if (!declaredCollections.has(arrayName)) {
+                        throw new Error(`Python line ${lineIndex + 1}: '${arrayName}' must be declared before index assignment.`);
+                    }
+
+                    const kind = collectionKinds[arrayName];
+                    if (kind === 'tuple') {
+                        throw new Error(`Python line ${lineIndex + 1}: tuple '${arrayName}' is immutable.`);
+                    }
+
+                    if (kind === 'stack' || kind === 'queue') {
+                        throw new Error(`Python line ${lineIndex + 1}: direct index assignment is not supported for ${kind}.`);
+                    }
+
+                    converted.push(`${target} = ${expr};`);
+                    continue;
+                }
+
+                if (!isIdentifier(target)) {
+                    throw new Error(`Python line ${lineIndex + 1}: unsupported assignment target '${target}'.`);
+                }
+
+                if (declaredScalars.has(target)) {
+                    converted.push(`${target} = ${expr};`);
+                } else {
+                    converted.push(`int ${target} = ${expr};`);
+                    declaredScalars.add(target);
+                }
+                continue;
+            }
+
+            throw new Error(`Python line ${lineIndex + 1}: unsupported statement '${line}'.`);
+        }
+
+        return converted.join('\n');
+    }
+
+    function compileHighLevel(code) {
+        const finalizeSource = (input) => normalizeCommonHighLevelSource(input);
+
+        if (highLevelLanguage === 'cpp' || highLevelLanguage === 'c') {
+            const prepared = highLevelLanguage === 'c' ? preprocessCSource(code) : code;
+            return compileCPP(finalizeSource(prepared));
+        }
+
+        if (highLevelLanguage === 'java') {
+            return compileCPP(finalizeSource(preprocessJavaSource(code)));
+        }
+
+        if (highLevelLanguage === 'python') {
+            return compileCPP(finalizeSource(preprocessPythonSource(code)));
+        }
+
+        return compileCPP(finalizeSource(code));
+    }
+
+    function showCompileError(message) {
+        const box = document.getElementById('compile-error');
+        if (!box) return;
+        box.innerText = `Compile error: ${message}`;
+        box.style.display = 'block';
+    }
+
+    function clearCompileError() {
+        const box = document.getElementById('compile-error');
+        if (!box) return;
+        box.innerText = '';
+        box.style.display = 'none';
+    }
+
+    function getOpcodeName(op) {
+        const names = {
+            0: "HALT",
+            1: "ADD",
+            4: "JZ",
+            5: "JMP",
+            6: "LOAD",
+            7: "MUL",
+            8: "SUB",
+            9: "STORE",
+            10: "LOADM"
+        };
+        return names[op] || `OP${op}`;
+    }
+
+    function buildInstructionSummary(ins) {
+        if (!ins) {
+            return {
+                opName: "STANDBY",
+                opMath: "Instruction processing..."
+            };
+        }
+
+        const op = (ins >> 12) & 0xF;
+        const rd = (ins >> 9) & 7;
+        const rs = (ins >> 6) & 7;
+        const imm = ins & 0x3F;
+
+        switch (op) {
+            case 0:
+                return {
+                    opName: "HALT",
+                    opMath: "Program stops here."
+                };
+            case 1:
+                return {
+                    opName: "ADD",
+                    opMath: `R${rd} = R${rd} + R${rs}`
+                };
+            case 4:
+                return {
+                    opName: "JZ",
+                    opMath: `If R${rd} == 0, jump by +${imm + 1}`
+                };
+            case 5:
+                return {
+                    opName: "JMP",
+                    opMath: `PC = R${rd}`
+                };
+            case 6:
+                return {
+                    opName: "LOAD",
+                    opMath: `R${rd} = ${imm}`
+                };
+            case 7:
+                return {
+                    opName: "MUL",
+                    opMath: `R${rd} = R${rd} × R${rs}`
+                };
+            case 8:
+                return {
+                    opName: "SUB",
+                    opMath: `R${rd} = R${rd} - ${imm}`
+                };
+            case 9:
+                return {
+                    opName: "STORE",
+                    opMath: `Memory[${imm}] = R${rd}`
+                };
+            case 10:
+                return {
+                    opName: "LOADM",
+                    opMath: `R${rd} = Memory[${imm}]`
+                };
+            default:
+                return {
+                    opName: `OP${op}`,
+                    opMath: "Unknown/unsupported opcode."
+                };
+        }
+    }
+
+    function updateInstructionExplainer(ins, beforeState = null, phase = 'idle') {
+        const summary = buildInstructionSummary(ins);
+        const opNameEl = document.getElementById('op-name');
+        const opMathEl = document.getElementById('op-math');
+        if (!opNameEl || !opMathEl) return;
+
+        if (phase === 'fetch') {
+            opNameEl.innerText = `STEP: FETCH`;
+            opMathEl.innerText = summary.opMath;
+            return;
+        }
+
+        if (phase === 'execute') {
+            opNameEl.innerText = `STEP: EXECUTE`;
+            opMathEl.innerText = summary.opMath;
+            return;
+        }
+
+        opNameEl.innerText = summary.opName;
+        opMathEl.innerText = summary.opMath;
+    }
+
+    function renderCounterTrace() {
+        const el = document.getElementById('counter-text');
+        if (!el) return;
+        if (counterTrace.length === 0) {
+            el.innerText = 'Execution updates will appear here after each step.';
+            return;
+        }
+        el.innerHTML = counterTrace
+            .map(line => `<div class="counter-line">• ${line}</div>`)
+            .join('');
+    }
+
+    function resetCounterTrace() {
+        counterTrace = [];
+        counterStep = 0;
+        renderCounterTrace();
+    }
+
+    function logCounterTrace(before, instruction) {
+        const op = instruction ? ((instruction >> 12) & 0xF) : 0;
+        const rd = instruction ? ((instruction >> 9) & 0x7) : 0;
+        const rs = instruction ? ((instruction >> 6) & 0x7) : 0;
+        const imm = instruction ? (instruction & 0x3F) : 0;
+
+        counterStep += 1;
+        let message = "";
+
+        switch (op) {
+            case 0:
+                message = `Step ${counterStep}: Program halted at PC ${before.pc}.`;
+                break;
+            case 1:
+                message = `Step ${counterStep}: Added R${rs} (${before.regs[rs]}) to R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 4:
+                if (before.regs[rd] === 0) {
+                    message = `Step ${counterStep}: R${rd} is 0, so jump taken by +${imm}. PC moved to ${vm.pc}.`;
+                } else {
+                    message = `Step ${counterStep}: R${rd} is ${before.regs[rd]}, so no jump. PC moved to ${vm.pc}.`;
+                }
+                break;
+            case 5:
+                message = `Step ${counterStep}: Jumped to address in R${rd}. PC is now ${vm.pc}.`;
+                break;
+            case 6:
+                message = `Step ${counterStep}: Loaded ${imm} into R${rd}.`;
+                break;
+            case 7:
+                message = `Step ${counterStep}: Multiplied R${rd} by R${rs}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 8:
+                message = `Step ${counterStep}: Subtracted ${imm} from R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            case 9:
+                message = `Step ${counterStep}: Stored R${rd} (${before.regs[rd]}) into Memory[${imm}].`;
+                break;
+            case 10:
+                message = `Step ${counterStep}: Loaded Memory[${imm}] into R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                break;
+            default:
+                message = `Step ${counterStep}: Executed ${getOpcodeName(op)}.`;
+        }
+
+        counterTrace.push(message);
+        if (counterTrace.length > 12) counterTrace.shift();
+        renderCounterTrace();
+    }
+
+    function encodeProgram(rawCode, memSize) {
+        const lines = rawCode.split('\n');
+        let idx = 0;
+        const errors = [];
+        const program = [];
+
+        const parseReg = (token) => {
+            if (!/^R[0-7]$/.test(token)) return null;
+            return parseInt(token.slice(1), 10);
+        };
+
+        const parseImm6 = (token) => {
+            const value = parseInt(token, 10);
+            if (isNaN(value) || value < 0 || value > 63) return null;
+            return value;
+        };
+
+        lines.forEach((line, lineIndex) => {
+            const text = line.trim();
+            if(!text || text.startsWith("//")) return;
+            if (idx >= memSize) {
+                errors.push(`Line ${lineIndex + 1}: Program exceeds RAM capacity (${memSize} cells).`);
+                return;
+            }
+
+            const p = text.replace(/,/g,'').split(/\s+/);
+            const instruction = p[0];
+            let op = 0;
+            let rd = 0;
+            let rs = 0;
+            let imm = 0;
+
+            if (instruction === "HALT") {
+                program[idx++] = 0;
+                return;
+            }
+
+            if (instruction === "ADD" || instruction === "MUL") {
+                rd = parseReg(p[1]);
+                rs = parseReg(p[2]);
+                if (rd === null || rs === null) {
+                    errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, Rm\".`);
+                    return;
+                }
+                op = instruction === "ADD" ? 1 : 7;
+            } else if (instruction === "JMP") {
+                rd = parseReg(p[1]);
+                if (rd === null) {
+                    errors.push(`Line ${lineIndex + 1}: JMP expects format \"JMP Rn\".`);
+                    return;
+                }
+                op = 5;
+            } else if (instruction === "LOAD" || instruction === "SUB" || instruction === "JZ" || instruction === "STORE" || instruction === "LOADM") {
+                rd = parseReg(p[1]);
+                imm = parseImm6(p[2]);
+                if (rd === null || imm === null) {
+                    errors.push(`Line ${lineIndex + 1}: ${instruction} expects format \"${instruction} Rn, imm(0-63)\".`);
+                    return;
+                }
+                if (instruction === "LOAD") op = 6;
+                else if (instruction === "SUB") op = 8;
+                else if (instruction === "JZ") op = 4;
+                else if (instruction === "STORE") op = 9;
+                else op = 10;
+            } else {
+                errors.push(`Line ${lineIndex + 1}: Unknown instruction \"${instruction}\".`);
+                return;
+            }
+
+            program[idx++] = ((op & 0xF) << 12) |
+                             ((rd & 0x7) << 9) |
+                             ((rs & 0x7) << 6) |
+                             (imm & 0x3F);
+        });
+
+        return { program, errors };
+    }
+
+    function programCore(program) {
+        if (!program || program.length === 0) return [];
+        return program[program.length - 1] === 0 ? program.slice(0, -1) : program.slice();
+    }
+
+    function isPrefixProgram(oldProgram, newProgram) {
+        const oldCore = programCore(oldProgram);
+        const newCore = programCore(newProgram);
+        if (oldCore.length > newCore.length) return false;
+        for (let i = 0; i < oldCore.length; i++) {
+            if (oldCore[i] !== newCore[i]) return false;
+        }
+        return true;
+    }
+
+    function loadPreset(type) {
+        currentPreset = type;
+        if(type === 'fact') {
+            presetVal = prompt("What is the value till you want to run (Factorial N)?", "5");
+            if(presetVal === null) return;
+            switchEditor('asm');
+            document.getElementById('asm-editor').value = `LOAD R0, 1\nLOAD R1, ${presetVal}\nLOAD R2, 3\nMUL R0, R1\nSUB R1, 1\nJZ R1, 2\nJMP R2\nHALT`;
+        } 
+        else if(type === 'fib') {
+            presetVal = prompt("What is the value till you want to run (Fibonacci N)?", "4");
+            if(presetVal === null) return;
+            switchEditor('asm');
+
+            // Robust Fibonacci assembly:
+            // R0 = prev (starts 0)
+            // R1 = curr (starts 1)
+            // R3 = counter (n)
+            // R4 = loop start index (we set to 6)
+            // After looping (n-1) times, R1 will contain F(n)
+            // Program constructed so indexes match the logic below.
+            const n = parseInt(presetVal, 10) || 0;
+            const lines = [
+                "LOAD R0, 0",        // 0
+                "LOAD R1, 1",        // 1
+                `LOAD R3, ${n}`,    // 2  counter = n
+                "LOAD R4, 6",        // 3  loop target index (absolute)
+                // if n == 0 -> HALT immediately (R0 already 0)
+                "JZ R3, 12",         // 4  if R3==0 -> jump to HALT (index 16) (we compute correct offset below but 12 is safe because of program length)
+                "SUB R3, 1",         // 5  decrement counter: now counter = n-1
+                // loop start (index 6)
+                "LOAD R2, 0",        // 6  temp = 0
+                "ADD R2, R0",        // 7  temp = prev
+                "ADD R2, R1",        // 8  temp = prev + curr
+                "LOAD R0, 0",        // 9  prev = 0
+                "ADD R0, R1",        //10  prev = curr
+                "LOAD R1, 0",        //11  curr = 0
+                "ADD R1, R2",        //12  curr = temp
+                "SUB R3, 1",         //13  counter-- 
+                "JZ R3, 2",          //14  if counter==0 -> jump to HALT (skip JMP)
+                "JMP R4",            //15  jump back to loop start (index stored in R4)
+                "HALT"               //16
+            ];
+            // The JZ at index 4 has offset 12 to reach HALT at index 16: 4 + 12 = 16.
+            // The JZ at index 14 uses offset 2 to reach HALT at 16: 14 + 2 = 16.
+            document.getElementById('asm-editor').value = lines.join("\n");
+        }
+        else {
+            switchEditor('c');
+            setHighLevelLanguage('cpp');
+            document.getElementById('c-editor').value = "int arr[3] = {2, 4, 6};\nvector<int> v = {1, 3};\nv.push_back(5);\nstack<int> st;\nst.push(7);\nqueue<int> q;\nq.push(9);\nint total = arr[1] + v[2] + st.top() + q.front();";
+        }
+    }
+
+    function compileCPP(code) {
+    const lines = code.split("\n");
+    const asm = [];
+    const scalarRegs = {};
+    const scalarOrder = [];
+    const arrays = {};
+    const vectors = {};
+    const stacks = {};
+    const queues = {};
+    const DEFAULT_COLLECTION_CAPACITY = 4;
+    const COLLECTION_GROWTH_BUFFER = 4;
+    let nextReg = 0;
+    let memPtr = 63;
+    let compilerTempCells = null;
+
+    const isNumber = (token) => /^\d+$/.test(token);
+    const parseNumber = (token, what = "value") => {
+        if (!isNumber(token)) throw new Error(`Invalid ${what}: ${token}`);
+        const value = parseInt(token, 10);
+        if (value < 0 || value > 65535) throw new Error(`${what} must be between 0 and 65535.`);
+        return value;
+    };
+
+    const emitLoadImmediate = (targetReg, value, contextLabel = "immediate") => {
+        if (value < 0 || value > 65535) {
+            throw new Error(`${contextLabel} must be between 0 and 65535.`);
+        }
+
+        if (value <= 63) {
+            asm.push(`LOAD R${targetReg}, ${value}`);
+            return;
+        }
+
+        const emitLoadR7Large = (largeValue) => {
+            const base = 63;
+            const base2 = base * base;
+            const high = Math.floor(largeValue / base2);
+            const rem = largeValue % base2;
+            const mid = Math.floor(rem / base);
+            const low = rem % base;
+
+            const temps = ensureCompilerTempCells();
+            asm.push(`STORE R5, ${temps.r5}`);
+            asm.push(`STORE R6, ${temps.r6}`);
+
+            asm.push(`LOAD R7, ${high}`);
+            asm.push(`LOAD R6, ${base}`);
+            asm.push(`MUL R7, R6`);
+            asm.push(`LOAD R5, ${mid}`);
+            asm.push(`ADD R7, R5`);
+            asm.push(`MUL R7, R6`);
+            asm.push(`LOAD R5, ${low}`);
+            asm.push(`ADD R7, R5`);
+
+            asm.push(`LOADM R6, ${temps.r6}`);
+            asm.push(`LOADM R5, ${temps.r5}`);
+        };
+
+        if (targetReg === 7) {
+            emitLoadR7Large(value);
+            return;
+        }
+
+        emitLoadR7Large(value);
+        asm.push(`LOAD R${targetReg}, 0`);
+        asm.push(`ADD R${targetReg}, R7`);
+    };
+
+    const getReg = (name) => {
+        if (scalarRegs[name] !== undefined) return scalarRegs[name];
+        if (nextReg > 6) throw new Error("Too many scalar variables. Use up to 7 scalars.");
+        scalarRegs[name] = nextReg;
+        scalarOrder.push(name);
+        nextReg += 1;
+        return scalarRegs[name];
+    };
+
+    const allocateCells = (count, label) => {
+        if (count <= 0) throw new Error(`Invalid allocation size for ${label}.`);
+        const base = memPtr - count + 1;
+        if (base < 0) throw new Error(`Not enough memory for ${label}.`);
+        memPtr = base - 1;
+        return base;
+    };
+
+    const ensureCompilerTempCells = () => {
+        if (compilerTempCells === null) {
+            const selfCell = allocateCells(1, "compiler temp self");
+            const accCell = allocateCells(1, "compiler temp acc");
+            const r6Cell = allocateCells(1, "compiler temp R6");
+            const r5Cell = allocateCells(1, "compiler temp R5");
+            compilerTempCells = { self: selfCell, acc: accCell, r5: r5Cell, r6: r6Cell };
+        }
+        return compilerTempCells;
+    };
+
+    const parseInitList = (text) => {
+        if (!text || !text.trim()) return [];
+        return text.split(",").map(item => parseNumber(item.trim(), "initializer"));
+    };
+
+    const resolveStructuredTermToAddress = (term) => {
+        const stackTop = term.match(/^(\w+)\.top\(\)$/);
+        if (stackTop) {
+            const name = stackTop[1];
+            const stack = stacks[name];
+            if (!stack) throw new Error(`Unknown stack: ${name}`);
+            if (stack.size === 0) throw new Error(`Stack is empty: ${name}`);
+            return stack.base + stack.size - 1;
+        }
+
+        const queueFront = term.match(/^(\w+)\.front\(\)$/);
+        if (queueFront) {
+            const name = queueFront[1];
+            const queue = queues[name];
+            if (!queue) throw new Error(`Unknown queue: ${name}`);
+            if (queue.size === 0) throw new Error(`Queue is empty: ${name}`);
+            return queue.base + queue.head;
+        }
+
+        const queueBack = term.match(/^(\w+)\.back\(\)$/);
+        if (queueBack) {
+            const name = queueBack[1];
+            const queue = queues[name];
+            if (!queue) throw new Error(`Unknown queue: ${name}`);
+            if (queue.size === 0) throw new Error(`Queue is empty: ${name}`);
+            const lastIndex = (queue.head + queue.size - 1) % queue.capacity;
+            return queue.base + lastIndex;
+        }
+
+        return null;
+    };
+
+    const resolveMemAddress = (term, forWrite = false) => {
+        const match = term.match(/^(\w+)\[(\d+)\]$/);
+        if (!match) return null;
+        const name = match[1];
+        const index = parseInt(match[2], 10);
+
+        if (arrays[name]) {
+            if (index >= arrays[name].size) throw new Error(`Index out of bounds: ${term}`);
+            return arrays[name].base + index;
+        }
+
+        if (vectors[name]) {
+            const meta = vectors[name];
+            if (index >= meta.capacity) throw new Error(`Vector capacity exceeded: ${term}`);
+            if (!forWrite && index >= meta.length) throw new Error(`Vector index out of current length: ${term}`);
+            if (forWrite && index >= meta.length) meta.length = index + 1;
+            return meta.base + index;
+        }
+
+        throw new Error(`Unknown array/vector: ${name}`);
+    };
+
+    const loadTermIntoR7 = (term) => {
+        if (isNumber(term)) {
+            const value = parseNumber(term, "immediate");
+            emitLoadImmediate(7, value, "immediate");
+            return;
+        }
+
+        const dsAddr = resolveStructuredTermToAddress(term);
+        if (dsAddr !== null) {
+            asm.push(`LOADM R7, ${dsAddr}`);
+            return;
+        }
+
+        const addr = resolveMemAddress(term, false);
+        if (addr !== null) {
+            asm.push(`LOADM R7, ${addr}`);
+            return;
+        }
+
+        if (/^\w+$/.test(term)) {
+            const reg = getReg(term);
+            asm.push(`LOAD R7, 0`);
+            asm.push(`ADD R7, R${reg}`);
+            return;
+        }
+
+        throw new Error(`Unsupported expression term: ${term}`);
+    };
+
+    const emitExpressionToReg = (destReg, expression, targetName = null) => {
+        const expr = expression.trim();
+        const normalizedTarget = (typeof targetName === 'string' && /^\w+$/.test(targetName)) ? targetName : null;
+
+        let selfSnapshotCell = null;
+        if (normalizedTarget && destReg !== 7) {
+            const selfRefPattern = new RegExp(`\\b${normalizedTarget}\\b`);
+            if (selfRefPattern.test(expr)) {
+                const temps = ensureCompilerTempCells();
+                selfSnapshotCell = temps.self;
+                asm.push(`STORE R${destReg}, ${selfSnapshotCell}`);
+            }
+        }
+
+        const subtractionMatch = expr.match(/^(.+?)\s*-\s*(\d+)$/);
+        if (subtractionMatch) {
+            const baseExpr = subtractionMatch[1].trim();
+            const amount = parseNumber(subtractionMatch[2].trim(), "immediate");
+            emitExpressionToReg(destReg, baseExpr, targetName);
+            let remaining = amount;
+            while (remaining > 0) {
+                const chunk = Math.min(63, remaining);
+                asm.push(`SUB R${destReg}, ${chunk}`);
+                remaining -= chunk;
+            }
+            return;
+        }
+
+        const multiplyMatch = expr.match(/^(.+?)\s*\*\s*(.+)$/);
+        if (multiplyMatch) {
+            if (destReg === 7) {
+                throw new Error(`Multiplication in this context is not supported for destination R7: ${expression}`);
+            }
+            const left = multiplyMatch[1].trim();
+            const right = multiplyMatch[2].trim();
+            emitExpressionToReg(destReg, left, targetName);
+            loadTermIntoR7(right);
+            asm.push(`MUL R${destReg}, R7`);
+            return;
+        }
+
+        if (isNumber(expr)) {
+            emitLoadImmediate(destReg, parseNumber(expr, "immediate"), "immediate");
+            return;
+        }
+
+        const parts = expr.split("+").map(part => part.trim()).filter(Boolean);
+        if (parts.length === 0) throw new Error(`Invalid expression: ${expression}`);
+
+        if (destReg === 7) {
+            const temps = ensureCompilerTempCells();
+            asm.push(`STORE R5, ${temps.r5}`);
+            asm.push(`STORE R6, ${temps.r6}`);
+            asm.push(`LOAD R7, 0`);
+            asm.push(`STORE R7, ${temps.acc}`);
+
+            parts.forEach(part => {
+                const dsAddr = resolveStructuredTermToAddress(part);
+                if (dsAddr !== null) {
+                    asm.push(`LOADM R7, ${dsAddr}`);
+                    asm.push(`LOADM R5, ${temps.acc}`);
+                    asm.push(`ADD R5, R7`);
+                    asm.push(`STORE R5, ${temps.acc}`);
+                    return;
+                }
+
+                const addr = resolveMemAddress(part, false);
+                if (addr !== null) {
+                    asm.push(`LOADM R7, ${addr}`);
+                    asm.push(`LOADM R5, ${temps.acc}`);
+                    asm.push(`ADD R5, R7`);
+                    asm.push(`STORE R5, ${temps.acc}`);
+                    return;
+                }
+
+                if (/^\w+$/.test(part) && !isNumber(part)) {
+                    const srcReg = getReg(part);
+                    if (srcReg === 5) {
+                        asm.push(`LOADM R7, ${temps.r5}`);
+                    } else if (srcReg === 6) {
+                        asm.push(`LOADM R7, ${temps.r6}`);
+                    } else {
+                        asm.push(`LOAD R7, 0`);
+                        asm.push(`ADD R7, R${srcReg}`);
+                    }
+                    asm.push(`LOADM R5, ${temps.acc}`);
+                    asm.push(`ADD R5, R7`);
+                    asm.push(`STORE R5, ${temps.acc}`);
+                    return;
+                }
+
+                if (isNumber(part)) {
+                    let remaining = parseNumber(part, "immediate");
+                    while (remaining > 0) {
+                        const chunk = Math.min(63, remaining);
+                        asm.push(`LOAD R7, ${chunk}`);
+                        asm.push(`LOADM R5, ${temps.acc}`);
+                        asm.push(`ADD R5, R7`);
+                        asm.push(`STORE R5, ${temps.acc}`);
+                        remaining -= chunk;
+                    }
+                    return;
+                }
+
+                throw new Error(`Unsupported expression term: ${part}`);
+            });
+
+            asm.push(`LOADM R7, ${temps.acc}`);
+            asm.push(`LOADM R6, ${temps.r6}`);
+            asm.push(`LOADM R5, ${temps.r5}`);
+            return;
+        }
+
+        asm.push(`LOAD R${destReg}, 0`);
+        parts.forEach(part => {
+            const dsAddr = resolveStructuredTermToAddress(part);
+            if (dsAddr !== null) {
+                asm.push(`LOADM R7, ${dsAddr}`);
+                asm.push(`ADD R${destReg}, R7`);
+                return;
+            }
+
+            const addr = resolveMemAddress(part, false);
+            if (addr !== null) {
+                asm.push(`LOADM R7, ${addr}`);
+                asm.push(`ADD R${destReg}, R7`);
+                return;
+            }
+            if (/^\w+$/.test(part) && !isNumber(part)) {
+                const srcReg = getReg(part);
+                if (selfSnapshotCell !== null && part === normalizedTarget) {
+                    asm.push(`LOADM R7, ${selfSnapshotCell}`);
+                    asm.push(`ADD R${destReg}, R7`);
+                    return;
+                }
+                asm.push(`ADD R${destReg}, R${srcReg}`);
+                return;
+            }
+            if (isNumber(part)) {
+                let remaining = parseNumber(part, "immediate");
+                while (remaining > 0) {
+                    const chunk = Math.min(63, remaining);
+                    asm.push(`LOAD R7, ${chunk}`);
+                    asm.push(`ADD R${destReg}, R7`);
+                    remaining -= chunk;
+                }
+                return;
+            }
+            throw new Error(`Unsupported expression term: ${part}`);
+        });
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith("//")) continue;
+
+        if (!line.endsWith(";")) {
+            throw new Error(`Syntax error: end each statement with ';' -> ${line}`);
+        }
+
+        const arrayDecl = line.match(/^int\s+(\w+)\s*\[\s*(\d+)\s*\]\s*(=\s*\{([^}]*)\})?\s*;$/);
+        if (arrayDecl) {
+            const name = arrayDecl[1];
+            const size = parseInt(arrayDecl[2], 10);
+            const initValues = parseInitList(arrayDecl[4]);
+            if (size <= 0) throw new Error(`Array size must be > 0: ${name}`);
+            const base = allocateCells(size, `array ${name}`);
+            arrays[name] = { base, size };
+            for (let index = 0; index < initValues.length && index < size; index++) {
+                const value = initValues[index];
+                asm.push(`LOAD R7, ${value}`);
+                asm.push(`STORE R7, ${base + index}`);
+            }
+            continue;
+        }
+
+        const vectorInitDecl = line.match(/^vector<int>\s+(\w+)\s*=\s*\{([^}]*)\}\s*;$/);
+        if (vectorInitDecl) {
+            const name = vectorInitDecl[1];
+            const initValues = parseInitList(vectorInitDecl[2]);
+            const capacity = Math.max(DEFAULT_COLLECTION_CAPACITY, initValues.length + COLLECTION_GROWTH_BUFFER);
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: initValues.length, capacity };
+            for (let index = 0; index < initValues.length; index++) {
+                const value = initValues[index];
+                asm.push(`LOAD R7, ${value}`);
+                asm.push(`STORE R7, ${base + index}`);
+            }
+            continue;
+        }
+
+        const vectorSizedDecl = line.match(/^vector<int>\s+(\w+)\s*\(\s*(\d+)\s*\)\s*;$/);
+        if (vectorSizedDecl) {
+            const name = vectorSizedDecl[1];
+            const initialSize = parseInt(vectorSizedDecl[2], 10);
+            const capacity = Math.max(initialSize + COLLECTION_GROWTH_BUFFER, DEFAULT_COLLECTION_CAPACITY);
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: initialSize, capacity };
+            continue;
+        }
+
+        const vectorDecl = line.match(/^vector<int>\s+(\w+)\s*;$/);
+        if (vectorDecl) {
+            const name = vectorDecl[1];
+            const capacity = DEFAULT_COLLECTION_CAPACITY;
+            const base = allocateCells(capacity, `vector ${name}`);
+            vectors[name] = { base, length: 0, capacity };
+            continue;
+        }
+
+        const stackDecl = line.match(/^stack<int>\s+(\w+)\s*(\(\s*(\d+)\s*\))?\s*;$/);
+        if (stackDecl) {
+            const name = stackDecl[1];
+            const capacity = stackDecl[3] ? parseInt(stackDecl[3], 10) : DEFAULT_COLLECTION_CAPACITY;
+            if (capacity <= 0) throw new Error(`Stack capacity must be > 0: ${name}`);
+            const base = allocateCells(capacity, `stack ${name}`);
+            stacks[name] = { base, size: 0, capacity };
+            continue;
+        }
+
+        const queueDecl = line.match(/^queue<int>\s+(\w+)\s*(\(\s*(\d+)\s*\))?\s*;$/);
+        if (queueDecl) {
+            const name = queueDecl[1];
+            const capacity = queueDecl[3] ? parseInt(queueDecl[3], 10) : DEFAULT_COLLECTION_CAPACITY;
+            if (capacity <= 0) throw new Error(`Queue capacity must be > 0: ${name}`);
+            const base = allocateCells(capacity, `queue ${name}`);
+            queues[name] = { base, size: 0, head: 0, capacity };
+            continue;
+        }
+
+        const pushBack = line.match(/^(\w+)\.push_back\((.+)\)\s*;$/);
+        if (pushBack) {
+            const name = pushBack[1];
+            const expr = pushBack[2].trim();
+            if (!vectors[name]) throw new Error(`Unknown vector: ${name}`);
+            const vector = vectors[name];
+            if (vector.length >= vector.capacity) throw new Error(`Vector capacity exceeded for ${name}`);
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${vector.base + vector.length}`);
+            vector.length += 1;
+            continue;
+        }
+
+        const popBack = line.match(/^(\w+)\.pop_back\(\)\s*;$/);
+        if (popBack) {
+            const name = popBack[1];
+            if (!vectors[name]) throw new Error(`Unknown vector: ${name}`);
+            const vector = vectors[name];
+            if (vector.length === 0) throw new Error(`Vector underflow: ${name}`);
+            vector.length -= 1;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${vector.base + vector.length}`);
+            continue;
+        }
+
+        const stackPush = line.match(/^(\w+)\.push\((.+)\)\s*;$/);
+        if (stackPush && stacks[stackPush[1]]) {
+            const name = stackPush[1];
+            const expr = stackPush[2].trim();
+            const stack = stacks[name];
+            if (stack.size >= stack.capacity) throw new Error(`Stack overflow: ${name}`);
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${stack.base + stack.size}`);
+            stack.size += 1;
+            continue;
+        }
+
+        const stackPop = line.match(/^(\w+)\.pop\(\)\s*;$/);
+        if (stackPop && stacks[stackPop[1]]) {
+            const name = stackPop[1];
+            const stack = stacks[name];
+            if (stack.size === 0) throw new Error(`Stack underflow: ${name}`);
+            const poppedIndex = stack.size - 1;
+            const poppedAddr = stack.base + poppedIndex;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${poppedAddr}`);
+            stack.size -= 1;
+            continue;
+        }
+
+        const queuePush = line.match(/^(\w+)\.push\((.+)\)\s*;$/);
+        if (queuePush && queues[queuePush[1]]) {
+            const name = queuePush[1];
+            const expr = queuePush[2].trim();
+            const queue = queues[name];
+            if (queue.size >= queue.capacity) throw new Error(`Queue overflow: ${name}`);
+            const tail = (queue.head + queue.size) % queue.capacity;
+            loadTermIntoR7(expr);
+            asm.push(`STORE R7, ${queue.base + tail}`);
+            queue.size += 1;
+            continue;
+        }
+
+        const queuePop = line.match(/^(\w+)\.pop\(\)\s*;$/);
+        if (queuePop && queues[queuePop[1]]) {
+            const name = queuePop[1];
+            const queue = queues[name];
+            if (queue.size === 0) throw new Error(`Queue underflow: ${name}`);
+            const poppedAddr = queue.base + queue.head;
+            asm.push("LOAD R7, 0");
+            asm.push(`STORE R7, ${poppedAddr}`);
+            queue.head = (queue.head + 1) % queue.capacity;
+            queue.size -= 1;
+            continue;
+        }
+
+        const indexAssign = line.match(/^(\w+\[\d+\])\s*=\s*(.+)\s*;$/);
+        if (indexAssign) {
+            const target = indexAssign[1];
+            const expr = indexAssign[2].trim();
+            const addr = resolveMemAddress(target, true);
+            emitExpressionToReg(7, expr, null);
+            asm.push(`STORE R7, ${addr}`);
+            continue;
+        }
+
+        const intDeclOnly = line.match(/^int\s+(\w+)\s*;$/);
+        if (intDeclOnly) {
+            const target = intDeclOnly[1];
+            const destReg = getReg(target);
+            asm.push(`LOAD R${destReg}, 0`);
+            continue;
+        }
+
+        const intAssign = line.match(/^int\s+(\w+)\s*=\s*(.+)\s*;$/);
+        const assign = line.match(/^(\w+)\s*=\s*(.+)\s*;$/);
+        if (intAssign || assign) {
+            const target = (intAssign || assign)[1];
+            const expression = (intAssign || assign)[2].trim();
+            const destReg = getReg(target);
+            emitExpressionToReg(destReg, expression, target);
+            continue;
+        }
+
+        throw new Error(`Unsupported C++ line: ${line}`);
+    }
+
+    if ((asm.length + 1) > (memPtr + 1)) {
+        throw new Error(`Program too large: code overlaps data memory. Reduce complexity or data structure sizes.`);
+    }
+
+    asm.push("HALT");
+    lastCompiledLayout = {
+        scalars: scalarOrder.map(name => ({ name, reg: scalarRegs[name] })),
+        arrays: JSON.parse(JSON.stringify(arrays)),
+        vectors: JSON.parse(JSON.stringify(vectors)),
+        stacks: JSON.parse(JSON.stringify(stacks)),
+        queues: JSON.parse(JSON.stringify(queues))
+    };
+    return asm.join("\n");
+}
+
+    function triggerFlash() {
+    stopAuto();
+    clearCompileError();
+
+    if (activeMode === 'c') {
+    currentPreset = '';
+} else {
+    lastCompiledLayout = null;
+}
+hoverPinned = false;
+hideVarInfo();
+
+    let rawCode;
+    let sourceCode;
+    try {
+        if(activeMode === 'c') {
+            sourceCode = document.getElementById('c-editor').value;
+            rawCode = compileHighLevel(sourceCode);
+        } else {
+            sourceCode = document.getElementById('asm-editor').value;
+            rawCode = sourceCode;
+        }
+    } catch (err) {
+        showCompileError(err.message);
+        document.getElementById('status-bar').innerText = "Compilation failed.";
+        resetCounterTrace();
+        return;
+    }
+
+    const encoded = encodeProgram(rawCode, vm.mem.length);
+    if (encoded.errors.length > 0) {
+        showCompileError(encoded.errors.slice(0, 2).join(' | '));
+        document.getElementById('status-bar').innerText = "Compilation failed.";
+        resetCounterTrace();
+        return;
+    }
+
+    const canIncremental =
+        activeMode === 'c' &&
+        lastEncodedProgram &&
+        lastCompiledSource &&
+        lastCompiledLanguage === highLevelLanguage &&
+        sourceCode.startsWith(lastCompiledSource) &&
+        isPrefixProgram(lastEncodedProgram, encoded.program);
+
+    if (canIncremental) {
+        const oldCoreLen = programCore(lastEncodedProgram).length;
+        for (let i = oldCoreLen; i < vm.mem.length; i++) vm.mem[i] = null;
+        for (let i = oldCoreLen; i < encoded.program.length; i++) vm.mem[i] = encoded.program[i];
+
+        vm.pc = oldCoreLen;
+        vm.stage = 0;
+        vm.halted = false;
+        history = [];
+        counterTrace.push(`Continued from previous state at instruction ${oldCoreLen}.`);
+        if (counterTrace.length > 12) counterTrace.shift();
+        renderCounterTrace();
+        document.getElementById('status-bar').innerText = "Incremental flash complete. Continue stepping from new lines.";
+    } else {
+        resetCounterTrace();
+        vm = createFreshVmState();
+        history = [];
+        for (let i = 0; i < encoded.program.length; i++) vm.mem[i] = encoded.program[i];
+        vm.pc = 0;
+        document.getElementById('status-bar').innerText = "RAM Flashed successfully.";
+    }
+
+    lastCompiledSource = sourceCode;
+    lastEncodedProgram = encoded.program.slice();
+    lastCompiledLanguage = activeMode === 'c' ? highLevelLanguage : 'asm';
+    updateUI();
+}
+
+let hoverPinned = false;
+
+function showVarInfo(name, memAddr, value, event) {
+    const info = document.getElementById('hover-info');
+    const content = document.getElementById('hover-info-content');
+    content.innerHTML = `<b>${name}</b><br>Memory: 0x${memAddr.toString(16).toUpperCase()}<br>Value: ${value}`;
+
+    if (!hoverPinned) {
+        info.style.display = 'block';
+
+        // Position near cursor
+        let x = event.clientX + 12; // small offset
+        let y = event.clientY + 12;
+
+        // Adjust to stay inside viewport
+        const rect = info.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
+        if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
+
+        info.style.left = x + 'px';
+        info.style.top = y + 'px';
+    }
+}
+
+function hideVarInfo() {
+    if (!hoverPinned) {
+        document.getElementById('hover-info').style.display = 'none';
+    }
+}
+
+const hoverCloseBtn = document.getElementById('hover-info-close');
+if (hoverCloseBtn) {
+    hoverCloseBtn.onclick = () => {
+        hoverPinned = false;
+        document.getElementById('hover-info').style.display = 'none';
+    };
+}
+
+// toggle pin when clicked on the box itself
+document.getElementById('hover-info').onclick = (e) => {
+    if (e.target.id !== 'hover-info-close') {
+        hoverPinned = !hoverPinned;
+        document.getElementById('hover-info').style.borderColor = hoverPinned ? 'var(--green)' : 'var(--border)';
+    }
+};
+
+    function triggerStep() {
+        if(vm.halted) { stopAuto(); return; }
+        saveState();
+
+        const ins = vm.mem[vm.pc];
+        const rd = ins ? ((ins >> 9) & 7) : 0;
+
+        if(vm.stage === 0) {
+            updateStepLights(1);
+            updateBitDisplay(ins);
+            updateInstructionExplainer(ins, null, 'fetch');
+            document.getElementById('exp-title').innerText = "Step 1: FETCH Phase";
+            let controlLabel = "Program Counter (PC)";
+            let controlValue = vm.pc;
+
+document.getElementById('exp-text').innerHTML = `
+Fetching instruction from 
+<span class="highlight-text">Memory[0x${vm.pc.toString(16).toUpperCase()}]</span> 
+using the <span class="highlight-text">${controlLabel}</span> 
+to control program flow.
+<br><br>
+<span class="highlight-text">${controlLabel}</span> = 
+<span class="highlight-text">${controlValue}</span>
+`;
+            vm.stage = 1;
+        } else {
+            updateStepLights(2);
+            const beforeState = { pc: vm.pc, regs: [...vm.regs] };
+            execute(ins);
+            updateInstructionExplainer(ins, beforeState, 'execute');
+            logCounterTrace(beforeState, ins);
+            document.getElementById('exp-title').innerText = "Step 2 & 3: EXECUTE & STORE";
+            
+            vm.stage = 0;
+            updateUI(rd);
+            if(vm.halted) {
+                stopAuto();
+                const registerSummary = vm.regs
+                    .map((value, index) => `<div>R${index} = ${value}</div>`)
+                    .join("");
+                const finalRegsHtml = `<b style='color:var(--cyan)'>Register Snapshot</b><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 2px; font-family: 'Fira Code', monospace; font-size: 13px;">${registerSummary}</div>`;
+                const dataSnapshotHtml = buildDataStructureSnapshotHtml();
+
+                // If preset fib, compute the correct Fibonacci value to ensure accurate result display
+                if(currentPreset === 'fib') {
+    const n = Math.max(0, parseInt(presetVal, 10) || 0);
+    const sequence = buildFibSequence(n);
+
+    document.getElementById('status-bar').innerText =
+        `HALT: Fibonacci sequence generated for ${n} terms`;
+
+    document.getElementById('exp-text').innerHTML = `
+<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+<div style="margin-top:6px;">${finalRegsHtml}</div>
+${dataSnapshotHtml}`;
+
+}  else if(currentPreset === 'fact') {
+    document.getElementById('status-bar').innerText =
+        "HALT: Factorial of " + presetVal + " = " + vm.regs[0];
+
+    document.getElementById('exp-text').innerHTML =
+        `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+        <div style="margin-top:6px;">${finalRegsHtml}</div>
+        ${dataSnapshotHtml}`;
+} else {
+    const langLabel = highLevelLanguageNames[highLevelLanguage] || 'High-Level';
+    document.getElementById('status-bar').innerText = `HALT: ${langLabel} Program Executed.`;
+
+    document.getElementById('exp-text').innerHTML =
+`<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+<div style="margin-top:4px;">${finalRegsHtml}</div>
+${dataSnapshotHtml}`;
+}
+                updateUI();
+            }
+        }
+    }
+
+    // small, safe fibonacci function (iterative)
+    function computeFib(n) {
+        n = Math.max(0, parseInt(n, 10) || 0);
+        if (n === 0) return 0;
+        if (n === 1) return 1;
+        let a = 0, b = 1;
+        for (let i = 2; i <= n; ++i) {
+            const c = a + b;
+            a = b;
+            b = c;
+        }
+        return b;
+    }
+
+    function buildFibSequence(n) {
+    if (n <= 0) return [];
+    if (n === 1) return [0];
+
+    const seq = [0, 1];
+    for (let i = 2; i < n; i++) {
+        seq.push(seq[i - 1] + seq[i - 2]);
+    }
+    return seq.slice(0, n);
+}
+
+    function buildDataStructureSnapshotHtml() {
+    if (!lastCompiledLayout) return "";
+
+    const lines = [];
+
+    (lastCompiledLayout.scalars || []).forEach((entry) => {
+        const regIndex = entry.reg;
+        const value = vm.regs[regIndex] ?? 0;
+        lines.push(`<div><b>${entry.name}</b> (var): ${value}</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.arrays || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.size; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (array): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.vectors || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.length; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (vector): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.stacks || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let index = 0; index < meta.size; index++) {
+            values.push(vm.mem[meta.base + index] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (stack top→right): [${values.join(", ")}]</div>`);
+    });
+
+    Object.entries(lastCompiledLayout.queues || {}).forEach(([name, meta]) => {
+        const values = [];
+        for (let offset = 0; offset < meta.size; offset++) {
+            const physicalIndex = (meta.head + offset) % meta.capacity;
+            values.push(vm.mem[meta.base + physicalIndex] ?? 0);
+        }
+        lines.push(`<div><b>${name}</b> (queue front→left): [${values.join(", ")}]</div>`);
+    });
+
+    if (lines.length === 0) return "";
+
+    return `<div style="margin-top:8px;"><b style='color:var(--accent)'>Data Structure Snapshot</b><div style="margin-top:4px; font-family: 'Fira Code', monospace; font-size: 12px; line-height: 1.45;">${lines.join("")}</div></div>`;
+}
+
+    function execute(ins) {
+        if(!ins || ((ins >> 12) & 0xF) === 0) { vm.halted = true; return; }
+        let op=(ins>>12)&0xF, rd=(ins>>9)&7, rs=(ins>>6)&7, imm=ins&0x3F;
+        switch(op) {
+            case 1: vm.regs[rd] = (vm.regs[rd] + vm.regs[rs]) & 0xFFFF; break;
+            case 4: if(vm.regs[rd] === 0) { vm.pc += (imm + 1); return; } break;
+            case 5: vm.pc = vm.regs[rd]; return; 
+            case 6: vm.regs[rd] = imm; break;
+            case 7: vm.regs[rd] = (vm.regs[rd] * vm.regs[rs]) & 0xFFFF; break;
+            case 8: vm.regs[rd] = (vm.regs[rd] - imm) & 0xFFFF; break;
+            case 9: // STORE
+    vm.mem[imm] = vm.regs[rd] & 0xFFFF;
+    break;
+                case 10: // LOADM
+            vm.regs[rd] = (vm.mem[imm] ?? 0) & 0xFFFF;
+            break;
+            default: vm.halted = true; return;
+        }
+        vm.pc++;
+        if (vm.pc < 0 || vm.pc >= vm.mem.length) vm.halted = true;
+    }
+
+    function toggleAuto() {
+        if(autoTimer) stopAuto();
+        else {
+            if(vm.halted) return;
+            let speed = parseInt(document.getElementById('speed-slider').value,10);
+            document.getElementById('auto-btn').innerText = "⏹ STOP AUTO";
+            document.getElementById('auto-btn').style.background = "var(--rose)";
+            autoTimer = setInterval(() => {
+                // If stage 0 (fetch) and no instruction (end-of-program), halt
+                if(vm.halted) { stopAuto(); return; }
+                triggerStep();
+            }, speed);
+        }
+    }
+
+    function stopAuto() {
+        if(autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        document.getElementById('auto-btn').innerText = "🔄 AUTO RUN";
+        document.getElementById('auto-btn').style.background = "#1e293b";
+    }
+
+    function saveState() { history.push(JSON.stringify(vm)); }
+    function triggerBack() { if(history.length > 0) { stopAuto(); vm = JSON.parse(history.pop()); updateUI(); } }
+    function updateStepLights(s) { ['s1','s2','s3'].forEach((id, i) => document.getElementById(id).classList.toggle('active', s === (i+1))); }
+    function resetSim() { stopAuto(); location.reload(); }
+
+    function updateBitDisplay(ins) {
+        const grid = document.getElementById('bit-display');
+        grid.innerHTML = ''; ins = ins || 0;
+        for(let i=15; i>=0; i--) {
+            const val = (ins >> i) & 1;
+            grid.innerHTML += `<div class="bit ${i >= 12 ? 'op' : (val ? 'on' : '')}">${val}</div>`;
+        }
+    }
+
+    function updateUI(glowIdx = null) {
+    document.getElementById('pc-display').innerText = vm.pc;
+
+    const pageStart = Math.floor(vm.pc / MEM_VIEW_SIZE) * MEM_VIEW_SIZE;
+    const pageEnd = Math.min(pageStart + MEM_VIEW_SIZE - 1, vm.mem.length - 1);
+    const memWindowEl = document.getElementById('mem-window');
+    if (memWindowEl) memWindowEl.innerText = `${pageStart} - ${pageEnd}`;
+
+    document.getElementById('mem-grid').innerHTML =
+        vm.mem.slice(pageStart, pageEnd + 1).map((val, i) => {
+            const realIndex = pageStart + i;
+            let display = val !== null ? val : `0x${realIndex.toString(16)}`;
+            return `
+                <div class="ram-cell ${vm.pc === realIndex ? 'active' : ''}">
+                    ${display}
+                </div>`;
+        }).join('');
+
+    document.getElementById('reg-file').innerHTML = vm.regs.map((v, i) => `
+        <div class="reg-card ${glowIdx === i ? 'active' : ''}">
+            <div class="reg-id">R${i}</div>
+            <span class="reg-val">${v}</span>
+            <div class="reg-desc">${regNames[i]}</div>
+        </div>`).join('');
+
+    updateBitDisplay(vm.mem[vm.pc] || 0);
+    
+document.querySelectorAll('.ram-cell').forEach((cell, idx) => {
+    const realIndex = pageStart + idx;
+    cell.onmouseenter = (e) => showVarInfo(`Memory[${realIndex}]`, realIndex, vm.mem[realIndex] ?? 0, e);
+    cell.onmouseleave = hideVarInfo;
+});
+
+document.querySelectorAll('.reg-card').forEach((card, idx) => {
+    card.onmouseenter = (e) => showVarInfo(`R${idx} (${regNames[idx]})`, idx, vm.regs[idx], e);
+    card.onmouseleave = hideVarInfo;
+});
+}
+    // initial UI
+    updateHighLevelPlaceholder();
+    updateUI();
+    updateBitDisplay(0);
+    updateInstructionExplainer(null);
+    document.getElementById('c-editor').addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        triggerFlash();
+    }
+});
+</script>
+</body>
+</html>

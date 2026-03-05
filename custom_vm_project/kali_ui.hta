@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Kali VM App</title>
+  <HTA:APPLICATION
+    ID="KaliVmApp"
+    APPLICATIONNAME="Kali VM App"
+    BORDER="thin"
+    CAPTION="yes"
+    CONTEXTMENU="no"
+    ICON=""
+    MAXIMIZEBUTTON="yes"
+    MINIMIZEBUTTON="yes"
+    NAVIGABLE="yes"
+    SCROLL="no"
+    SHOWINTASKBAR="yes"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="maximize"
+  />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0f14;
+      color: #d5e5f7;
+      font-family: Segoe UI, Arial, sans-serif;
+    }
+    #appFrame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #0a0f14;
+    }
+    #fallback {
+      display: none;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    a { color: #2ad1ff; }
+  </style>
+  <script>
+    function initApp() {
+      try {
+        var frame = document.getElementById('appFrame');
+        frame.src = 'kali_ui.html';
+      } catch (e) {
+        document.getElementById('fallback').style.display = 'block';
+      }
+    }
+  </script>
+</head>
+<body onload="initApp()">
+  <iframe id="appFrame" title="Kali VM UI"></iframe>
+  <div id="fallback">
+    <h2>Kali VM App</h2>
+    <p>Unable to load <b>kali_ui.html</b> in embedded mode.</p>
+    <p>Open it directly from your project folder.</p>
+  </div>
+</body>
+</html>
