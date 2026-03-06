@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -62,6 +63,58 @@ namespace {
         size_t right = text.size();
         while (right > left && isspace(static_cast<unsigned char>(text[right - 1]))) right--;
         return text.substr(left, right - left);
+    }
+
+    bool isDigitsOnly(const string& text) {
+        if (text.empty()) return false;
+        for (char ch : text) {
+            if (!isdigit(static_cast<unsigned char>(ch))) return false;
+        }
+        return true;
+    }
+
+    string stripMatchingQuotes(const string& text) {
+        if (text.size() >= 2) {
+            const char first = text.front();
+            const char last = text.back();
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return text.substr(1, text.size() - 2);
+            }
+        }
+        return text;
+    }
+
+    string normalizeUserPathInput(string input) {
+        input = trim(input);
+
+        // Accept Python-style raw string input like r"C:\path\file.asm".
+        if (input.size() >= 4 && (input[0] == 'r' || input[0] == 'R') &&
+            ((input[1] == '"' && input.back() == '"') || (input[1] == '\'' && input.back() == '\''))) {
+            input = input.substr(2, input.size() - 3);
+        } else {
+            input = stripMatchingQuotes(input);
+        }
+
+        if (input.empty()) return input;
+
+#if defined(__linux__) && !defined(_WIN32)
+        // Convert pasted Windows path (C:\foo\bar) to WSL path (/mnt/c/foo/bar).
+        if (input.size() >= 3 && isalpha(static_cast<unsigned char>(input[0])) && input[1] == ':' &&
+            (input[2] == '\\' || input[2] == '/')) {
+            char drive = static_cast<char>(tolower(static_cast<unsigned char>(input[0])));
+            string rest = input.substr(2);
+            for (char& ch : rest) {
+                if (ch == '\\') ch = '/';
+            }
+            while (!rest.empty() && rest.front() == '/') rest.erase(rest.begin());
+            input = "/mnt/";
+            input.push_back(drive);
+            input.push_back('/');
+            input += rest;
+        }
+#endif
+
+        return input;
     }
 
     vector<string> tokenizeInstruction(string line) {
@@ -597,53 +650,172 @@ namespace {
         return parseInt(trim(input), out);
     }
 
-    string padRight(const string& text, size_t width) {
-        if (text.size() >= width) return text.substr(0, width);
-        return text + string(width - text.size(), ' ');
+        bool commandExists(const string& commandName) {
+    #ifdef _WIN32
+        const string checkCmd = "where " + commandName + " >nul 2>nul";
+    #else
+        const string checkCmd = "command -v " + commandName + " >/dev/null 2>&1";
+    #endif
+        return system(checkCmd.c_str()) == 0;
+        }
+
+        bool readLineFromCommand(const string& command, string& outLine) {
+        outLine.clear();
+    #ifdef _WIN32
+        FILE* pipe = _popen(command.c_str(), "r");
+    #else
+        FILE* pipe = popen(command.c_str(), "r");
+    #endif
+        if (!pipe) return false;
+
+        char buffer[4096] = {0};
+        if (fgets(buffer, static_cast<int>(sizeof(buffer)), pipe) != nullptr) {
+            outLine = trim(string(buffer));
+        }
+
+    #ifdef _WIN32
+        _pclose(pipe);
+    #else
+        pclose(pipe);
+    #endif
+        return !outLine.empty();
+        }
+
+        bool chooseFileWithDialog(const string& title, const string& pattern, string& outPath) {
+    #ifdef _WIN32
+        (void)title;
+        (void)pattern;
+        outPath.clear();
+        return false;
+    #else
+        if (commandExists("zenity")) {
+            const string cmd = "zenity --file-selection --title=\"" + title + "\" --file-filter=\"" + pattern + "\" 2>/dev/null";
+            return readLineFromCommand(cmd, outPath);
+        }
+
+        if (commandExists("kdialog")) {
+            const string cmd = "kdialog --getopenfilename \"$PWD\" \"" + pattern + "\" --title \"" + title + "\" 2>/dev/null";
+            return readLineFromCommand(cmd, outPath);
+        }
+
+        outPath.clear();
+        return false;
+    #endif
+        }
+
+    bool chooseAsmPathInteractive(string& outPath) {
+        outPath.clear();
+
+        cout << "\nASM File Loader\n"
+             << "1) sample_addition.asm\n"
+             << "2) sample_factorial.asm\n"
+             << "3) sample_fibonacci.asm\n"
+             << "4) Browse .asm file (file picker)\n"
+             << "5) Enter custom path\n"
+             << "0) Back\n"
+             << "Tip: paste a full path directly here if you want.\n"
+             << "Select file: ";
+
+        string rawChoice;
+        if (!getline(cin, rawChoice)) return false;
+        const string choice = trim(rawChoice);
+
+        if (choice == "0") return false;
+
+        if (choice == "1") outPath = "sample_addition.asm";
+        else if (choice == "2") outPath = "sample_factorial.asm";
+        else if (choice == "3") outPath = "sample_fibonacci.asm";
+        else if (choice == "4") {
+            if (!chooseFileWithDialog("Select ASM File", "*.asm", outPath)) {
+                cout << "File picker unavailable/cancelled. Install zenity or kdialog, or choose custom path.\n";
+                return false;
+            }
+        } else if (choice == "5") {
+            cout << "Enter ASM file path: ";
+            if (!getline(cin, outPath)) return false;
+            outPath = normalizeUserPathInput(outPath);
+            if (outPath.empty()) {
+                cout << "ASM path cannot be empty.\n";
+                return false;
+            }
+        } else {
+            if (isDigitsOnly(choice)) {
+                cout << "Unknown file option. Try again.\n";
+                return false;
+            }
+            outPath = normalizeUserPathInput(choice);
+        }
+
+        ifstream probe(outPath);
+        if (!probe.good()) {
+            cout << "Warning: file not found in current directory: " << outPath << "\n";
+        }
+        return true;
     }
 
-    void printWindowBox(const string& title, const vector<string>& lines) {
-        size_t width = title.size();
-        for (const auto& line : lines) {
-            width = max(width, line.size());
+    bool chooseTracePathInteractive(string& outPath) {
+        outPath.clear();
+
+        cout << "\nTrace File Loader\n"
+             << "1) trace.jsonl\n"
+             << "2) trace_factorial_bin.jsonl\n"
+             << "3) trace_fibonacci_bin.jsonl\n"
+             << "4) trace_addition_bin.jsonl\n"
+             << "5) Browse .jsonl file (file picker)\n"
+             << "6) Enter custom path\n"
+             << "0) Back\n"
+             << "Tip: paste a full path directly here if you want.\n"
+             << "Select trace file: ";
+
+        string rawChoice;
+        if (!getline(cin, rawChoice)) return false;
+        const string choice = trim(rawChoice);
+
+        if (choice == "0") return false;
+
+        if (choice == "1") outPath = "trace.jsonl";
+        else if (choice == "2") outPath = "trace_factorial_bin.jsonl";
+        else if (choice == "3") outPath = "trace_fibonacci_bin.jsonl";
+        else if (choice == "4") outPath = "trace_addition_bin.jsonl";
+        else if (choice == "5") {
+            if (!chooseFileWithDialog("Select Trace File", "*.jsonl", outPath)) {
+                cout << "File picker unavailable/cancelled. Install zenity or kdialog, or choose custom path.\n";
+                return false;
+            }
+        } else if (choice == "6") {
+            cout << "Enter trace file path: ";
+            if (!getline(cin, outPath)) return false;
+            outPath = normalizeUserPathInput(outPath);
+            if (outPath.empty()) {
+                cout << "Trace path cannot be empty.\n";
+                return false;
+            }
+        } else {
+            if (isDigitsOnly(choice)) {
+                cout << "Unknown trace option. Try again.\n";
+                return false;
+            }
+            outPath = normalizeUserPathInput(choice);
         }
-        width = max<size_t>(width, 44);
 
-        const string topBottom = "+" + string(width + 2, '-') + "+";
-        const string divider = "|" + string(width + 2, '-') + "|";
-
-        cout << topBottom << "\n";
-        cout << "| " << padRight(title, width) << " |\n";
-        cout << divider << "\n";
-        for (const auto& line : lines) {
-            cout << "| " << padRight(line, width) << " |\n";
+        ifstream probe(outPath);
+        if (!probe.good()) {
+            cout << "Warning: file not found in current directory: " << outPath << "\n";
         }
-        cout << topBottom << "\n";
-    }
-
-    void waitForEnter() {
-        cout << "\nPress Enter to continue...";
-        string ignore;
-        getline(cin, ignore);
+        return true;
     }
 
     int runInteractiveMenu() {
-        string status = "Ready.";
-
         while (true) {
-            cout << "\n";
-            printWindowBox("Custom VM Terminal :: VM CLI Menu", {
-                "1) Factorial",
-                "2) Fibonacci",
-                "3) Run ASM file",
-                "4) Trace summary",
-                "5) Viewer path",
-                "6) Open viewer",
-                "0) Exit",
-                "",
-                "Status: " + status
-            });
-            cout << "Select option: ";
+            cout << "\n=== VM CLI Menu ===\n"
+                 << "1) Factorial\n"
+                 << "2) Fibonacci\n"
+                 << "3) Run ASM file (loader)\n"
+                 << "4) Trace summary\n"
+                  << "5) Open viewer\n"
+                  << "6) Viewer path\n"
+                 << "0) Exit\n"
+                 << "Select option: ";
 
             string rawChoice;
             if (!getline(cin, rawChoice)) return 0;
@@ -654,60 +826,45 @@ namespace {
             if (choice == "1" || choice == "2") {
                 int n = 0;
                 if (!promptIntValue("Enter value (0-63): ", n)) {
-                    status = "Invalid number.";
+                    cout << "Invalid number.\n";
                     continue;
                 }
                 RunOptions options;
                 const string preset = (choice == "1") ? "fact" : "fib";
-                const int rc = runPresetProgram(preset, n, options);
-                status = (rc == 0) ? "Preset run completed." : "Preset run failed.";
-                waitForEnter();
+                runPresetProgram(preset, n, options);
                 continue;
             }
 
             if (choice == "3") {
-                cout << "Enter ASM file path: ";
                 string asmPath;
-                if (!getline(cin, asmPath)) return 0;
-                asmPath = trim(asmPath);
-                if (asmPath.empty()) {
-                    status = "ASM path cannot be empty.";
+                if (!chooseAsmPathInteractive(asmPath)) {
                     continue;
                 }
                 RunOptions options;
-                const int rc = runAsmProgram(asmPath, options);
-                status = (rc == 0) ? "ASM run completed." : "ASM run failed.";
-                waitForEnter();
+                runAsmProgram(asmPath, options);
                 continue;
             }
 
             if (choice == "4") {
-                cout << "Trace file path (Enter for trace.jsonl): ";
                 string tracePath;
-                if (!getline(cin, tracePath)) return 0;
-                tracePath = trim(tracePath);
-                if (tracePath.empty()) tracePath = "trace.jsonl";
-                const int rc = traceSummary(tracePath);
-                status = (rc == 0) ? "Trace summary completed." : "Trace summary failed.";
-                waitForEnter();
+                if (!chooseTracePathInteractive(tracePath)) {
+                    continue;
+                }
+                traceSummary(tracePath);
                 continue;
             }
 
             if (choice == "5") {
-                const int rc = handleViewerCommand(false);
-                status = (rc == 0) ? "Viewer path displayed." : "Viewer path failed.";
-                waitForEnter();
+                handleViewerCommand(true);
                 continue;
             }
 
             if (choice == "6") {
-                const int rc = handleViewerCommand(true);
-                status = (rc == 0) ? "Viewer opened." : "Viewer open failed.";
-                waitForEnter();
+                handleViewerCommand(false);
                 continue;
             }
 
-            status = "Unknown option. Try again.";
+            cout << "Unknown option. Try again.\n";
         }
     }
 
