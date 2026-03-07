@@ -727,6 +727,7 @@ namespace {
                 "$dlg = New-Object System.Windows.Forms.OpenFileDialog; "
                 "$dlg.Title = '" + psTitle + "'; "
                 "$dlg.Filter = '" + psFilter + "'; "
+                "$dlg.AutoUpgradeEnabled = $false; "
                 "$dlg.InitialDirectory = (Get-Location).Path; "
                 "$dlg.CheckFileExists = $true; "
                 "$dlg.RestoreDirectory = $true; "
