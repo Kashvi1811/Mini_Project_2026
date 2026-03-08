@@ -13,7 +13,6 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
 $sourceCandidates = @(
-    (Join-Path $PSScriptRoot "kali_desktop_vm\vm_cli.cpp"),
     (Join-Path $PSScriptRoot "vm_cli.cpp")
 )
 

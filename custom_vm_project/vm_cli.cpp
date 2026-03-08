@@ -8,6 +8,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 #ifdef _WIN32
@@ -18,6 +20,8 @@ using namespace std;
 
 namespace {
     constexpr int MEMORY_SIZE = 1 << 16;
+    constexpr size_t MAX_RECENT_HISTORY = 5;
+    const string HISTORY_FILE = ".vm_cli_history";
 
     struct VmState {
         vector<uint16_t> memory = vector<uint16_t>(MEMORY_SIZE, 0);
@@ -40,6 +44,14 @@ namespace {
         string tracePath = "trace.jsonl";
         int maxSteps = 100000;
         bool printStepLog = false;
+    };
+
+    struct CliHistoryState {
+        bool loaded = false;
+        string lastAsmPath;
+        string lastTracePath;
+        vector<string> asmRecent;
+        vector<string> traceRecent;
     };
 
     int runPresetProgram(const string& preset, int value, const RunOptions& options);
@@ -135,6 +147,144 @@ namespace {
         return in.good();
     }
 
+    CliHistoryState& historyState() {
+        static CliHistoryState state;
+        return state;
+    }
+
+    void pushRecentPath(vector<string>& recent, const string& path) {
+        if (path.empty()) return;
+
+        const string needle = toLowerAscii(path);
+        recent.erase(
+            remove_if(recent.begin(), recent.end(), [&](const string& item) {
+                return toLowerAscii(item) == needle;
+            }),
+            recent.end());
+
+        recent.insert(recent.begin(), path);
+        if (recent.size() > MAX_RECENT_HISTORY) {
+            recent.resize(MAX_RECENT_HISTORY);
+        }
+    }
+
+    void saveHistoryState() {
+        const auto& st = historyState();
+        ofstream out(HISTORY_FILE, ios::trunc);
+        if (!out) return;
+
+        if (!st.lastAsmPath.empty()) out << "LAST_ASM\t" << st.lastAsmPath << "\n";
+        if (!st.lastTracePath.empty()) out << "LAST_TRACE\t" << st.lastTracePath << "\n";
+        for (const auto& p : st.asmRecent) out << "ASM\t" << p << "\n";
+        for (const auto& p : st.traceRecent) out << "TRACE\t" << p << "\n";
+    }
+
+    void ensureHistoryLoaded() {
+        auto& st = historyState();
+        if (st.loaded) return;
+
+        ifstream in(HISTORY_FILE);
+        string line;
+        while (getline(in, line)) {
+            line = trim(line);
+            if (line.empty()) continue;
+
+            const size_t tab = line.find('\t');
+            if (tab == string::npos) continue;
+
+            const string key = line.substr(0, tab);
+            const string value = trim(line.substr(tab + 1));
+            if (value.empty()) continue;
+
+            if (key == "LAST_ASM") st.lastAsmPath = value;
+            else if (key == "LAST_TRACE") st.lastTracePath = value;
+            else if (key == "ASM") pushRecentPath(st.asmRecent, value);
+            else if (key == "TRACE") pushRecentPath(st.traceRecent, value);
+        }
+
+        st.loaded = true;
+    }
+
+    void rememberAsmPath(const string& path) {
+        if (path.empty()) return;
+        ensureHistoryLoaded();
+        auto& st = historyState();
+        st.lastAsmPath = path;
+        pushRecentPath(st.asmRecent, path);
+        saveHistoryState();
+    }
+
+    void rememberTracePath(const string& path) {
+        if (path.empty()) return;
+        ensureHistoryLoaded();
+        auto& st = historyState();
+        st.lastTracePath = path;
+        pushRecentPath(st.traceRecent, path);
+        saveHistoryState();
+    }
+
+    bool chooseRecentPath(const vector<string>& recent, const string& title, string& outPath) {
+        outPath.clear();
+        if (recent.empty()) {
+            cout << "No recent entries yet.\n";
+            return false;
+        }
+
+        cout << "\n" << title << "\n";
+        for (size_t i = 0; i < recent.size(); i++) {
+            cout << (i + 1) << ") " << recent[i] << "\n";
+        }
+        cout << "0) Back\n"
+             << "Select recent item: ";
+
+        string input;
+        if (!getline(cin, input)) return false;
+        input = trim(input);
+        if (input == "0") return false;
+
+        int selected = 0;
+        try {
+            size_t idx = 0;
+            selected = stoi(input, &idx);
+            if (idx != input.size()) {
+                cout << "Invalid recent selection.\n";
+                return false;
+            }
+        } catch (...) {
+            cout << "Invalid recent selection.\n";
+            return false;
+        }
+        if (selected < 1 || selected > static_cast<int>(recent.size())) {
+            cout << "Invalid recent selection.\n";
+            return false;
+        }
+
+        outPath = recent[static_cast<size_t>(selected - 1)];
+        return true;
+    }
+
+    bool getLastAsmPath(string& outPath, string& err) {
+        ensureHistoryLoaded();
+        const auto& st = historyState();
+        if (st.lastAsmPath.empty()) {
+            err = "No last ASM file available yet.";
+            return false;
+        }
+        outPath = st.lastAsmPath;
+        return true;
+    }
+
+    bool getLastTracePath(string& outPath, string& err) {
+        ensureHistoryLoaded();
+        const auto& st = historyState();
+        if (st.lastTracePath.empty()) {
+            err = "No last trace file available yet.";
+            return false;
+        }
+        outPath = st.lastTracePath;
+        return true;
+    }
+
     vector<string> tokenizeInstruction(string line) {
         for (char& ch : line) {
             if (ch == ',') ch = ' ';
@@ -228,7 +378,68 @@ namespace {
         vm.memory[17] = 0;
     }
 
-    bool encodeAsmLine(const string& line, int lineNumber, uint16_t& encoded, string& err) {
+    string stripAsmComments(const string& rawLine) {
+        string line = rawLine;
+        const size_t slashPos = line.find("//");
+        const size_t hashPos = line.find('#');
+
+        size_t cutPos = string::npos;
+        if (slashPos != string::npos) cutPos = slashPos;
+        if (hashPos != string::npos) cutPos = (cutPos == string::npos) ? hashPos : min(cutPos, hashPos);
+
+        if (cutPos != string::npos) {
+            line = line.substr(0, cutPos);
+        }
+        return trim(line);
+    }
+
+    bool isValidAsmLabel(const string& label) {
+        if (label.empty()) return false;
+        const unsigned char c0 = static_cast<unsigned char>(label[0]);
+        if (!(isalpha(c0) || label[0] == '_')) return false;
+        for (char ch : label) {
+            const unsigned char c = static_cast<unsigned char>(ch);
+            if (!(isalnum(c) || ch == '_')) return false;
+        }
+        return true;
+    }
+
+    bool resolveImmediateToken(const string& token,
+                               const string& op,
+                               int lineNumber,
+                               int currentAddress,
+                               const unordered_map<string, int>& labels,
+                               int& imm,
+                               string& err) {
+        if (parseInt(token, imm)) return true;
+
+        const auto it = labels.find(token);
+        if (it == labels.end()) {
+            err = "Line " + to_string(lineNumber) + ": Unknown immediate/label \"" + token + "\".";
+            return false;
+        }
+
+        const int targetAddress = it->second;
+        if (op == "JZ") {
+            const int relativeOffset = targetAddress - (currentAddress + 1);
+            if (relativeOffset < 0 || relativeOffset > 63) {
+                err = "Line " + to_string(lineNumber) + ": JZ label \"" + token + "\" is out of forward range (0..63).";
+                return false;
+            }
+            imm = relativeOffset;
+            return true;
+        }
+
+        imm = targetAddress;
+        return true;
+    }
+
+    bool encodeAsmLine(const string& line,
+                       int lineNumber,
+                       uint16_t& encoded,
+                       string& err,
+                       const unordered_map<string, int>* labels = nullptr,
+                       int currentAddress = -1) {
         vector<string> p = tokenizeInstruction(line);
         if (p.empty()) return false;
 
@@ -256,10 +467,22 @@ namespace {
             }
             opcode = 5;
         } else if (op == "LOAD" || op == "SUB" || op == "JZ" || op == "STORE" || op == "LOADM") {
-            if (p.size() != 3 || !parseRegister(p[1], rd) || !parseInt(p[2], imm) || imm < 0 || imm > 63) {
+            if (p.size() != 3 || !parseRegister(p[1], rd)) {
                 err = "Line " + to_string(lineNumber) + ": " + op + " expects \"" + op + " Rn, imm(0-63)\".";
                 return false;
             }
+
+            bool immediateResolved = parseInt(p[2], imm);
+            if (!immediateResolved && labels != nullptr) {
+                immediateResolved = resolveImmediateToken(p[2], op, lineNumber, currentAddress, *labels, imm, err);
+            }
+            if (!immediateResolved || imm < 0 || imm > 63) {
+                if (err.empty()) {
+                    err = "Line " + to_string(lineNumber) + ": " + op + " expects \"" + op + " Rn, imm(0-63)\".";
+                }
+                return false;
+            }
+
             if (op == "LOAD") opcode = 6;
             else if (op == "SUB") opcode = 8;
             else if (op == "JZ") opcode = 4;
@@ -274,8 +497,8 @@ namespace {
         return true;
     }
 
-    bool loadAsmProgram(VmState& vm, const string& path, string& err) {
-        resetState(vm);
+    bool assembleSourceToWords(const string& path, vector<uint16_t>& programWords, string& err) {
+        programWords.clear();
 
         ifstream in(path);
         if (!in) {
@@ -283,67 +506,79 @@ namespace {
             return false;
         }
 
+        vector<pair<int, string>> instructionLines;
+        unordered_map<string, int> labels;
         string line;
-        int memIndex = 0;
         int lineNumber = 0;
+        int address = 0;
+
         while (getline(in, line)) {
             lineNumber++;
-            size_t commentPos = line.find("//");
-            if (commentPos != string::npos) line = line.substr(0, commentPos);
-            commentPos = line.find('#');
-            if (commentPos != string::npos) line = line.substr(0, commentPos);
-            line = trim(line);
+            line = stripAsmComments(line);
             if (line.empty()) continue;
 
-            if (memIndex >= MEMORY_SIZE) {
+            while (true) {
+                const size_t colonPos = line.find(':');
+                if (colonPos == string::npos) break;
+
+                const string label = trim(line.substr(0, colonPos));
+                if (!isValidAsmLabel(label)) {
+                    err = "Line " + to_string(lineNumber) + ": Invalid label name \"" + label + "\".";
+                    return false;
+                }
+                if (labels.find(label) != labels.end()) {
+                    err = "Line " + to_string(lineNumber) + ": Duplicate label \"" + label + "\".";
+                    return false;
+                }
+
+                labels[label] = address;
+                line = trim(line.substr(colonPos + 1));
+                if (line.empty()) break;
+            }
+
+            if (line.empty()) continue;
+            if (address >= MEMORY_SIZE) {
                 err = "Program exceeds VM memory capacity.";
                 return false;
             }
 
+            instructionLines.push_back({lineNumber, line});
+            address++;
+        }
+
+        for (size_t i = 0; i < instructionLines.size(); i++) {
             uint16_t encoded = 0;
-            if (!encodeAsmLine(line, lineNumber, encoded, err)) {
+            if (!encodeAsmLine(instructionLines[i].second,
+                               instructionLines[i].first,
+                               encoded,
+                               err,
+                               &labels,
+                               static_cast<int>(i))) {
                 return false;
             }
+            programWords.push_back(encoded);
+        }
 
-            vm.memory[memIndex++] = encoded;
+        return true;
+    }
+
+    bool loadAsmProgram(VmState& vm, const string& path, string& err) {
+        resetState(vm);
+
+        vector<uint16_t> words;
+        if (!assembleSourceToWords(path, words, err)) {
+            return false;
+        }
+
+        for (size_t i = 0; i < words.size(); i++) {
+            vm.memory[i] = words[i];
         }
 
         return true;
     }
 
     bool assembleAsmToWords(const string& path, vector<uint16_t>& programWords, string& err) {
-        programWords.clear();
-        ifstream in(path);
-        if (!in) {
-            err = "Unable to open ASM file: " + path;
-            return false;
-        }
-
-        string line;
-        int lineNumber = 0;
-        while (getline(in, line)) {
-            lineNumber++;
-            size_t commentPos = line.find("//");
-            if (commentPos != string::npos) line = line.substr(0, commentPos);
-            commentPos = line.find('#');
-            if (commentPos != string::npos) line = line.substr(0, commentPos);
-            line = trim(line);
-            if (line.empty()) continue;
-
-            if (programWords.size() >= static_cast<size_t>(MEMORY_SIZE)) {
-                err = "Program exceeds VM memory capacity.";
-                return false;
-            }
-
-            uint16_t encoded = 0;
-            if (!encodeAsmLine(line, lineNumber, encoded, err)) {
-                return false;
-            }
-
-            programWords.push_back(encoded);
-        }
-
-        return true;
+        return assembleSourceToWords(path, programWords, err);
     }
 
     bool writeBinaryProgram(const string& binPath, const vector<uint16_t>& programWords, string& err) {
@@ -529,10 +764,11 @@ namespace {
              << "  vm_cli fact [n] [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
              << "  vm_cli fib [n]  [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
              << "  vm_cli asm <path.asm> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli asm --last [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
              << "  vm_cli asm-build <path.asm> [out.bin]\n"
              << "  vm_cli run-bin <path.bin> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
              << "  vm_cli dump-bin <path.bin>\n"
-             << "  vm_cli trace-summary [trace.jsonl]\n"
+             << "  vm_cli trace-summary [trace.jsonl|--last]\n"
              << "  vm_cli viewer [--open]\n\n"
              << "  vm_cli kali-ui [--open]\n\n"
              << "  vm_cli kali-app [--open]\n\n"
@@ -753,6 +989,7 @@ namespace {
 
     bool chooseAsmPathInteractive(string& outPath) {
         outPath.clear();
+        ensureHistoryLoaded();
 
         while (true) {
             cout << "\nASM File Loader\n"
@@ -761,6 +998,8 @@ namespace {
                  << "3) sample_fibonacci.asm\n"
                  << "4) Browse .asm file (file picker)\n"
                  << "5) Enter custom path\n"
+                 << "6) Use last ASM file\n"
+                 << "7) Choose from recent ASM files\n"
                  << "0) Back\n"
                  << "Tip: paste a full path directly here if you want.\n"
                  << "Select file: ";
@@ -782,6 +1021,16 @@ namespace {
             } else if (choice == "5") {
                 cout << "Enter ASM file path: ";
                 if (!getline(cin, selectedPath)) return false;
+            } else if (choice == "6") {
+                string historyErr;
+                if (!getLastAsmPath(selectedPath, historyErr)) {
+                    cout << historyErr << "\n";
+                    continue;
+                }
+            } else if (choice == "7") {
+                if (!chooseRecentPath(historyState().asmRecent, "Recent ASM Files", selectedPath)) {
+                    continue;
+                }
             } else {
                 if (isDigitsOnly(choice)) {
                     cout << "Unknown file option. Try again.\n";
@@ -806,6 +1055,7 @@ namespace {
                 continue;
             }
 
+            rememberAsmPath(selectedPath);
             outPath = selectedPath;
             return true;
         }
@@ -813,6 +1063,7 @@ namespace {
 
     bool chooseTracePathInteractive(string& outPath) {
         outPath.clear();
+        ensureHistoryLoaded();
 
         while (true) {
             cout << "\nTrace File Loader\n"
@@ -822,6 +1073,8 @@ namespace {
                  << "4) trace_addition_bin.jsonl\n"
                  << "5) Browse .jsonl file (file picker)\n"
                  << "6) Enter custom path\n"
+                 << "7) Use last trace file\n"
+                 << "8) Choose from recent trace files\n"
                  << "0) Back\n"
                  << "Tip: paste a full path directly here if you want.\n"
                  << "Select trace file: ";
@@ -844,6 +1097,16 @@ namespace {
             } else if (choice == "6") {
                 cout << "Enter trace file path: ";
                 if (!getline(cin, selectedPath)) return false;
+            } else if (choice == "7") {
+                string historyErr;
+                if (!getLastTracePath(selectedPath, historyErr)) {
+                    cout << historyErr << "\n";
+                    continue;
+                }
+            } else if (choice == "8") {
+                if (!chooseRecentPath(historyState().traceRecent, "Recent Trace Files", selectedPath)) {
+                    continue;
+                }
             } else {
                 if (isDigitsOnly(choice)) {
                     cout << "Unknown trace option. Try again.\n";
@@ -868,6 +1131,7 @@ namespace {
                 continue;
             }
 
+            rememberTracePath(selectedPath);
             outPath = selectedPath;
             return true;
         }
@@ -980,10 +1244,11 @@ namespace {
                      << "  fact [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
                      << "  fib [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
                      << "  asm <file.asm> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  asm --last [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
                      << "  asm-build <file.asm> [out.bin]\n"
                      << "  run-bin <file.bin> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
                      << "  dump-bin <file.bin>\n"
-                     << "  trace-summary [trace.jsonl]\n"
+                     << "  trace-summary [trace.jsonl|--last]\n"
                      << "  viewer [--open]\n"
                      << "  kali-ui [--open]\n"
                      << "  kali-app [--open]\n"
@@ -1027,12 +1292,21 @@ namespace {
             }
 
             if (cmd == "asm") {
+                string asmPath;
                 if (parts.size() < 2) {
                     cerr << "Missing ASM file path.\n";
                     continue;
                 }
+                if (parts[1] == "--last") {
+                    string historyErr;
+                    if (!getLastAsmPath(asmPath, historyErr)) {
+                        cerr << historyErr << "\n";
+                        continue;
+                    }
+                } else {
+                    asmPath = parts[1];
+                }
 
-                const string asmPath = parts[1];
                 RunOptions options;
                 string err;
                 if (!parseRunOptionsTokens(parts, 2, options, err)) {
@@ -1079,7 +1353,18 @@ namespace {
             }
 
             if (cmd == "trace-summary") {
-                const string path = (parts.size() >= 2) ? parts[1] : "trace.jsonl";
+                string path = "trace.jsonl";
+                if (parts.size() >= 2) {
+                    if (parts[1] == "--last") {
+                        string historyErr;
+                        if (!getLastTracePath(path, historyErr)) {
+                            cerr << historyErr << "\n";
+                            continue;
+                        }
+                    } else {
+                        path = parts[1];
+                    }
+                }
                 traceSummary(path);
                 continue;
             }
@@ -1123,6 +1408,7 @@ namespace {
         cout << "ASM program executed successfully.\n";
         printFinalState(vm);
         if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+        rememberAsmPath(asmPath);
         return 0;
     }
 
@@ -1181,6 +1467,66 @@ namespace {
         return 0;
     }
 
+    bool extractJsonIntField(const string& line, const string& fieldName, int& outValue) {
+        const string key = "\"" + fieldName + "\":";
+        size_t pos = line.find(key);
+        if (pos == string::npos) return false;
+        pos += key.size();
+
+        while (pos < line.size() && isspace(static_cast<unsigned char>(line[pos]))) pos++;
+        if (pos >= line.size()) return false;
+
+        size_t end = pos;
+        if (line[end] == '-') end++;
+        while (end < line.size() && isdigit(static_cast<unsigned char>(line[end]))) end++;
+        if (end == pos || (line[pos] == '-' && end == pos + 1)) return false;
+
+        try {
+            size_t idx = 0;
+            const int parsed = stoi(line.substr(pos, end - pos), &idx);
+            if (idx == 0) return false;
+            outValue = parsed;
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    bool extractJsonRegs(const string& line, array<int, 8>& regsOut) {
+        const size_t regsKeyPos = line.find("\"regs\"");
+        if (regsKeyPos == string::npos) return false;
+
+        const size_t listStart = line.find('[', regsKeyPos);
+        const size_t listEnd = line.find(']', listStart == string::npos ? regsKeyPos : listStart);
+        if (listStart == string::npos || listEnd == string::npos || listEnd <= listStart) return false;
+
+        string content = line.substr(listStart + 1, listEnd - listStart - 1);
+        replace(content.begin(), content.end(), ',', ' ');
+
+        istringstream in(content);
+        for (size_t i = 0; i < regsOut.size(); i++) {
+            if (!(in >> regsOut[i])) return false;
+        }
+        return true;
+    }
+
+    string opcodeToName(int opcode) {
+        switch (opcode) {
+            case 0: return "HALT";
+            case 1: return "ADD";
+            case 2: return "AND";
+            case 3: return "NOT";
+            case 4: return "JZ";
+            case 5: return "JMP";
+            case 6: return "LOAD";
+            case 7: return "MUL";
+            case 8: return "SUB";
+            case 9: return "STORE";
+            case 10: return "LOADM";
+            default: return "OP" + to_string(opcode);
+        }
+    }
+
     int traceSummary(const string& tracePath) {
         ifstream in(tracePath);
         if (!in) {
@@ -1188,17 +1534,93 @@ namespace {
             return 1;
         }
 
+        rememberTracePath(tracePath);
+
         int total = 0;
+        int firstStep = -1;
+        int lastStep = -1;
         string last;
+        array<int, 8> firstRegs = {0, 0, 0, 0, 0, 0, 0, 0};
+        array<int, 8> lastRegs = {0, 0, 0, 0, 0, 0, 0, 0};
+        bool haveFirstRegs = false;
+        bool haveLastRegs = false;
+        array<int, 16> opcodeCounts = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
         string line;
         while (getline(in, line)) {
             if (trim(line).empty()) continue;
             total++;
             last = line;
+
+            int step = 0;
+            if (extractJsonIntField(line, "step", step)) {
+                if (firstStep < 0) firstStep = step;
+                lastStep = step;
+            }
+
+            int ins = 0;
+            if (extractJsonIntField(line, "ins", ins)) {
+                const int op = (ins >> 12) & 0xF;
+                if (op >= 0 && op < static_cast<int>(opcodeCounts.size())) {
+                    opcodeCounts[static_cast<size_t>(op)]++;
+                }
+            }
+
+            array<int, 8> regs = {0, 0, 0, 0, 0, 0, 0, 0};
+            if (extractJsonRegs(line, regs)) {
+                if (!haveFirstRegs) {
+                    firstRegs = regs;
+                    haveFirstRegs = true;
+                }
+                lastRegs = regs;
+                haveLastRegs = true;
+            }
         }
 
         cout << "Trace file: " << tracePath << "\n";
         cout << "Total logged steps: " << total << "\n";
+
+        if (total == 0) {
+            cout << "Trace file is empty.\n";
+            return 0;
+        }
+
+        if (firstStep >= 0 && lastStep >= 0) {
+            cout << "Step range: " << firstStep << " -> " << lastStep << "\n";
+        }
+
+        if (haveFirstRegs && haveLastRegs) {
+            cout << "Register deltas:\n";
+            bool anyDelta = false;
+            for (size_t i = 0; i < firstRegs.size(); i++) {
+                if (firstRegs[i] != lastRegs[i]) {
+                    cout << "  R" << i << ": " << firstRegs[i] << " -> " << lastRegs[i] << "\n";
+                    anyDelta = true;
+                }
+            }
+            if (!anyDelta) {
+                cout << "  (no register changes detected)\n";
+            }
+        }
+
+        vector<pair<int, int>> freq;
+        for (size_t op = 0; op < opcodeCounts.size(); op++) {
+            if (opcodeCounts[op] > 0) {
+                freq.push_back({opcodeCounts[op], static_cast<int>(op)});
+            }
+        }
+        sort(freq.begin(), freq.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
+            if (a.first != b.first) return a.first > b.first;
+            return a.second < b.second;
+        });
+
+        if (!freq.empty()) {
+            cout << "Opcode frequency:\n";
+            for (const auto& item : freq) {
+                cout << "  " << opcodeToName(item.second) << " (op=" << item.second << "): " << item.first << "\n";
+            }
+        }
+
         if (!last.empty()) {
             cout << "Last entry: " << last << "\n";
         }
@@ -1420,7 +1842,17 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        string asmPath = argv[2];
+        string asmPath;
+        if (string(argv[2]) == "--last") {
+            string historyErr;
+            if (!getLastAsmPath(asmPath, historyErr)) {
+                cerr << historyErr << "\n";
+                return 1;
+            }
+        } else {
+            asmPath = argv[2];
+        }
+
         RunOptions options;
         string err;
         if (!parseRunOptions(3, argc, argv, options, err)) {
@@ -1466,7 +1898,18 @@ int main(int argc, char** argv) {
     }
 
     if (cmd == "trace-summary") {
-        string path = (argc >= 3) ? argv[2] : "trace.jsonl";
+        string path = "trace.jsonl";
+        if (argc >= 3) {
+            if (string(argv[2]) == "--last") {
+                string historyErr;
+                if (!getLastTracePath(path, historyErr)) {
+                    cerr << historyErr << "\n";
+                    return 1;
+                }
+            } else {
+                path = argv[2];
+            }
+        }
         return traceSummary(path);
     }
 
