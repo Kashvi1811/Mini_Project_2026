@@ -117,6 +117,24 @@ namespace {
         return input;
     }
 
+    string toLowerAscii(string text) {
+        for (char& ch : text) {
+            ch = static_cast<char>(tolower(static_cast<unsigned char>(ch)));
+        }
+        return text;
+    }
+
+    bool hasExtensionIgnoreCase(const string& path, const string& extension) {
+        if (path.size() < extension.size()) return false;
+        const string pathTail = toLowerAscii(path.substr(path.size() - extension.size()));
+        return pathTail == toLowerAscii(extension);
+    }
+
+    bool fileReadable(const string& path) {
+        ifstream in(path);
+        return in.good();
+    }
+
     vector<string> tokenizeInstruction(string line) {
         for (char& ch : line) {
             if (ch == ',') ch = ' ';
@@ -683,10 +701,40 @@ namespace {
 
         bool chooseFileWithDialog(const string& title, const string& pattern, string& outPath) {
     #ifdef _WIN32
-        (void)title;
-        (void)pattern;
-        outPath.clear();
-        return false;
+            string filter = "All files (*.*)|*.*";
+            if (pattern.find("*.asm") != string::npos) {
+                filter = "ASM files (*.asm)|*.asm|All files (*.*)|*.*";
+            } else if (pattern.find("*.jsonl") != string::npos) {
+                filter = "JSONL files (*.jsonl)|*.jsonl|All files (*.*)|*.*";
+            }
+
+            auto escapePsSingleQuoted = [](const string& s) {
+                string out;
+                out.reserve(s.size());
+                for (char ch : s) {
+                    if (ch == '\'') out += "''";
+                    else out.push_back(ch);
+                }
+                return out;
+            };
+
+            const string psTitle = escapePsSingleQuoted(title);
+            const string psFilter = escapePsSingleQuoted(filter);
+
+            const string cmd =
+                "powershell -NoProfile -STA -ExecutionPolicy Bypass -Command \""
+                "Add-Type -AssemblyName System.Windows.Forms | Out-Null; "
+                "$dlg = New-Object System.Windows.Forms.OpenFileDialog; "
+                "$dlg.Title = '" + psTitle + "'; "
+                "$dlg.Filter = '" + psFilter + "'; "
+                "$dlg.AutoUpgradeEnabled = $false; "
+                "$dlg.InitialDirectory = (Get-Location).Path; "
+                "$dlg.CheckFileExists = $true; "
+                "$dlg.RestoreDirectory = $true; "
+                "if($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){ [Console]::Out.WriteLine($dlg.FileName) }"
+                "\"";
+
+            return readLineFromCommand(cmd, outPath);
     #else
         if (commandExists("zenity")) {
             const string cmd = "zenity --file-selection --title=\"" + title + "\" --file-filter=\"" + pattern + "\" 2>/dev/null";
@@ -706,103 +754,123 @@ namespace {
     bool chooseAsmPathInteractive(string& outPath) {
         outPath.clear();
 
-        cout << "\nASM File Loader\n"
-             << "1) sample_addition.asm\n"
-             << "2) sample_factorial.asm\n"
-             << "3) sample_fibonacci.asm\n"
-             << "4) Browse .asm file (file picker)\n"
-             << "5) Enter custom path\n"
-             << "0) Back\n"
-             << "Tip: paste a full path directly here if you want.\n"
-             << "Select file: ";
+        while (true) {
+            cout << "\nASM File Loader\n"
+                 << "1) sample_addition.asm\n"
+                 << "2) sample_factorial.asm\n"
+                 << "3) sample_fibonacci.asm\n"
+                 << "4) Browse .asm file (file picker)\n"
+                 << "5) Enter custom path\n"
+                 << "0) Back\n"
+                 << "Tip: paste a full path directly here if you want.\n"
+                 << "Select file: ";
 
-        string rawChoice;
-        if (!getline(cin, rawChoice)) return false;
-        const string choice = trim(rawChoice);
+            string rawChoice;
+            if (!getline(cin, rawChoice)) return false;
+            const string choice = trim(rawChoice);
+            if (choice == "0") return false;
 
-        if (choice == "0") return false;
-
-        if (choice == "1") outPath = "sample_addition.asm";
-        else if (choice == "2") outPath = "sample_factorial.asm";
-        else if (choice == "3") outPath = "sample_fibonacci.asm";
-        else if (choice == "4") {
-            if (!chooseFileWithDialog("Select ASM File", "*.asm", outPath)) {
-                cout << "File picker unavailable/cancelled. Install zenity or kdialog, or choose custom path.\n";
-                return false;
+            string selectedPath;
+            if (choice == "1") selectedPath = "sample_addition.asm";
+            else if (choice == "2") selectedPath = "sample_factorial.asm";
+            else if (choice == "3") selectedPath = "sample_fibonacci.asm";
+            else if (choice == "4") {
+                if (!chooseFileWithDialog("Select ASM File", "*.asm", selectedPath)) {
+                    cout << "No file selected. Choose again, or press 0 to go back.\n";
+                    continue;
+                }
+            } else if (choice == "5") {
+                cout << "Enter ASM file path: ";
+                if (!getline(cin, selectedPath)) return false;
+            } else {
+                if (isDigitsOnly(choice)) {
+                    cout << "Unknown file option. Try again.\n";
+                    continue;
+                }
+                selectedPath = choice;
             }
-        } else if (choice == "5") {
-            cout << "Enter ASM file path: ";
-            if (!getline(cin, outPath)) return false;
-            outPath = normalizeUserPathInput(outPath);
-            if (outPath.empty()) {
+
+            selectedPath = normalizeUserPathInput(selectedPath);
+            if (selectedPath.empty()) {
                 cout << "ASM path cannot be empty.\n";
-                return false;
+                continue;
             }
-        } else {
-            if (isDigitsOnly(choice)) {
-                cout << "Unknown file option. Try again.\n";
-                return false;
-            }
-            outPath = normalizeUserPathInput(choice);
-        }
 
-        ifstream probe(outPath);
-        if (!probe.good()) {
-            cout << "Warning: file not found in current directory: " << outPath << "\n";
+            if (!hasExtensionIgnoreCase(selectedPath, ".asm")) {
+                cout << "Please select an .asm file.\n";
+                continue;
+            }
+
+            if (!fileReadable(selectedPath)) {
+                cout << "File not found or not readable: " << selectedPath << "\n";
+                continue;
+            }
+
+            outPath = selectedPath;
+            return true;
         }
-        return true;
     }
 
     bool chooseTracePathInteractive(string& outPath) {
         outPath.clear();
 
-        cout << "\nTrace File Loader\n"
-             << "1) trace.jsonl\n"
-             << "2) trace_factorial_bin.jsonl\n"
-             << "3) trace_fibonacci_bin.jsonl\n"
-             << "4) trace_addition_bin.jsonl\n"
-             << "5) Browse .jsonl file (file picker)\n"
-             << "6) Enter custom path\n"
-             << "0) Back\n"
-             << "Tip: paste a full path directly here if you want.\n"
-             << "Select trace file: ";
+        while (true) {
+            cout << "\nTrace File Loader\n"
+                 << "1) trace.jsonl\n"
+                 << "2) trace_factorial_bin.jsonl\n"
+                 << "3) trace_fibonacci_bin.jsonl\n"
+                 << "4) trace_addition_bin.jsonl\n"
+                 << "5) Browse .jsonl file (file picker)\n"
+                 << "6) Enter custom path\n"
+                 << "0) Back\n"
+                 << "Tip: paste a full path directly here if you want.\n"
+                 << "Select trace file: ";
 
-        string rawChoice;
-        if (!getline(cin, rawChoice)) return false;
-        const string choice = trim(rawChoice);
+            string rawChoice;
+            if (!getline(cin, rawChoice)) return false;
+            const string choice = trim(rawChoice);
+            if (choice == "0") return false;
 
-        if (choice == "0") return false;
-
-        if (choice == "1") outPath = "trace.jsonl";
-        else if (choice == "2") outPath = "trace_factorial_bin.jsonl";
-        else if (choice == "3") outPath = "trace_fibonacci_bin.jsonl";
-        else if (choice == "4") outPath = "trace_addition_bin.jsonl";
-        else if (choice == "5") {
-            if (!chooseFileWithDialog("Select Trace File", "*.jsonl", outPath)) {
-                cout << "File picker unavailable/cancelled. Install zenity or kdialog, or choose custom path.\n";
-                return false;
+            string selectedPath;
+            if (choice == "1") selectedPath = "trace.jsonl";
+            else if (choice == "2") selectedPath = "trace_factorial_bin.jsonl";
+            else if (choice == "3") selectedPath = "trace_fibonacci_bin.jsonl";
+            else if (choice == "4") selectedPath = "trace_addition_bin.jsonl";
+            else if (choice == "5") {
+                if (!chooseFileWithDialog("Select Trace File", "*.jsonl", selectedPath)) {
+                    cout << "No file selected. Choose again, or press 0 to go back.\n";
+                    continue;
+                }
+            } else if (choice == "6") {
+                cout << "Enter trace file path: ";
+                if (!getline(cin, selectedPath)) return false;
+            } else {
+                if (isDigitsOnly(choice)) {
+                    cout << "Unknown trace option. Try again.\n";
+                    continue;
+                }
+                selectedPath = choice;
             }
-        } else if (choice == "6") {
-            cout << "Enter trace file path: ";
-            if (!getline(cin, outPath)) return false;
-            outPath = normalizeUserPathInput(outPath);
-            if (outPath.empty()) {
+
+            selectedPath = normalizeUserPathInput(selectedPath);
+            if (selectedPath.empty()) {
                 cout << "Trace path cannot be empty.\n";
-                return false;
+                continue;
             }
-        } else {
-            if (isDigitsOnly(choice)) {
-                cout << "Unknown trace option. Try again.\n";
-                return false;
-            }
-            outPath = normalizeUserPathInput(choice);
-        }
 
-        ifstream probe(outPath);
-        if (!probe.good()) {
-            cout << "Warning: file not found in current directory: " << outPath << "\n";
+            if (!hasExtensionIgnoreCase(selectedPath, ".jsonl")) {
+                cout << "Please select a .jsonl file.\n";
+                continue;
+            }
+
+            if (!fileReadable(selectedPath)) {
+                cout << "File not found or not readable: " << selectedPath << "\n";
+                continue;
+            }
+
+            outPath = selectedPath;
+            return true;
         }
-        return true;
     }
 
     int runInteractiveMenu() {
