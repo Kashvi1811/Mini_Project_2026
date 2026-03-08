@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #include <array>
 #include <unordered_map>
 #include <vector>
@@ -21,6 +22,8 @@ using namespace std;
 namespace {
     constexpr int MEMORY_SIZE = 1 << 16;
     constexpr size_t MAX_RECENT_HISTORY = 5;
+    constexpr int FACT_MAX_INPUT = 17;
+    constexpr int FIB_MAX_INPUT = 63;
     const string HISTORY_FILE = ".vm_cli_history";
 
     struct VmState {
@@ -44,6 +47,9 @@ namespace {
         string tracePath = "trace.jsonl";
         int maxSteps = 100000;
         bool printStepLog = false;
+        bool jsonOutput = false;
+        bool quietOutput = false;
+        bool verboseOutput = false;
     };
 
     struct CliHistoryState {
@@ -58,8 +64,8 @@ namespace {
     int runAsmProgram(const string& asmPath, const RunOptions& options);
     int runBinProgram(const string& binPath, const RunOptions& options);
     int assembleToBinary(const string& asmPath, const string& binPath);
-    int dumpBinary(const string& binPath);
-    int traceSummary(const string& tracePath);
+    int dumpBinary(const string& binPath, bool jsonOutput = false);
+    int traceSummary(const string& tracePath, bool jsonOutput = false);
     int handleViewerCommand(bool open);
     int handleKaliUiCommand(bool open);
     int handleKaliAppCommand(bool open);
@@ -75,6 +81,40 @@ namespace {
         size_t right = text.size();
         while (right > left && isspace(static_cast<unsigned char>(text[right - 1]))) right--;
         return text.substr(left, right - left);
+    }
+
+    string escapeJsonString(const string& text) {
+        string out;
+        out.reserve(text.size() + 8);
+        for (char ch : text) {
+            switch (ch) {
+                case '\\': out += "\\\\"; break;
+                case '"': out += "\\\""; break;
+                case '\n': out += "\\n"; break;
+                case '\r': out += "\\r"; break;
+                case '\t': out += "\\t"; break;
+                default: out.push_back(ch); break;
+            }
+        }
+        return out;
+    }
+
+    string hex16(uint16_t value) {
+        ostringstream out;
+        out << "0x" << uppercase << hex << setw(4) << setfill('0') << static_cast<unsigned int>(value);
+        return out.str();
+    }
+
+    void printJsonEnvelopePrefix(const string& command) {
+        cout << "{";
+        cout << "\"schemaVersion\":\"1.0\"";
+        cout << ",\"success\":true";
+        cout << ",\"command\":\"" << escapeJsonString(command) << "\"";
+        cout << ",\"data\":{";
+    }
+
+    void printJsonEnvelopeSuffix() {
+        cout << "},\"error\":null}";
     }
 
     bool isDigitsOnly(const string& text) {
@@ -315,6 +355,24 @@ namespace {
         return true;
     }
 
+    int getPresetMaxInput(const string& preset) {
+        return (preset == "fact") ? FACT_MAX_INPUT : FIB_MAX_INPUT;
+    }
+
+    string getPresetRangeText(const string& preset) {
+        return "0-" + to_string(getPresetMaxInput(preset));
+    }
+
+    bool validatePresetInput(const string& preset, int value, string& err) {
+        const int maxInput = getPresetMaxInput(preset);
+        if (value < 0 || value > maxInput) {
+            const string label = (preset == "fact") ? "factorial" : "fibonacci";
+            err = "Invalid " + label + " input: " + to_string(value) + ". Expected range " + getPresetRangeText(preset) + ".";
+            return false;
+        }
+        return true;
+    }
+
     void resetState(VmState& vm) {
         fill(vm.memory.begin(), vm.memory.end(), 0);
         for (int i = 0; i < 8; i++) vm.R[i] = 0;
@@ -342,7 +400,6 @@ namespace {
 
     void loadFact(VmState& vm, int n) {
         resetState(vm);
-        n = max(0, min(n, 63));
         vm.memory[0] = (6 << 12) | (0 << 9) | 1;
         vm.memory[1] = (6 << 12) | (1 << 9) | n;
         vm.memory[2] = (6 << 12) | (2 << 9) | 3;
@@ -355,7 +412,6 @@ namespace {
 
     void loadFib(VmState& vm, int steps) {
         resetState(vm);
-        steps = max(0, min(steps, 63));
         // Produces n terms: [F0, F1, ..., F(n-1)]
         // Final displayed term is kept in R0.
         vm.memory[0] = (6 << 12) | (0 << 9) | 0;
@@ -756,26 +812,39 @@ namespace {
         cout << "  FLAGS(Z,N,P) = (" << vm.FLAG_Z << ", " << vm.FLAG_N << ", " << vm.FLAG_P << ")\n";
     }
 
+    void printFinalStateJson(const VmState& vm) {
+        cout << "\"registers\":[";
+        for (int i = 0; i < 8; i++) {
+            if (i > 0) cout << ",";
+            cout << vm.R[i];
+        }
+        cout << "],\"pc\":" << vm.PC
+             << ",\"flags\":{\"z\":" << vm.FLAG_Z
+             << ",\"n\":" << vm.FLAG_N
+             << ",\"p\":" << vm.FLAG_P << "}";
+    }
+
     void printUsage() {
         cout << "VM CLI Usage:\n"
              << "  vm_cli help\n"
              << "  vm_cli menu\n"
              << "  vm_cli shell\n"
-             << "  vm_cli fact [n] [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
-             << "  vm_cli fib [n]  [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
-             << "  vm_cli asm <path.asm> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
-             << "  vm_cli asm --last [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
+             << "  vm_cli fact [n] [--trace <file>] [--no-trace] [--max-steps <n>] [--steps] [--quiet|--verbose] [--json|--format <text|json>]\n"
+             << "  vm_cli fib [n]  [--trace <file>] [--no-trace] [--max-steps <n>] [--steps] [--quiet|--verbose] [--json|--format <text|json>]\n"
+             << "  vm_cli asm <path.asm> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps] [--quiet|--verbose] [--json|--format <text|json>]\n"
+             << "  vm_cli asm --last [--trace <file>] [--no-trace] [--max-steps <n>] [--steps] [--quiet|--verbose] [--json|--format <text|json>]\n"
              << "  vm_cli asm-build <path.asm> [out.bin]\n"
-             << "  vm_cli run-bin <path.bin> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps]\n"
-             << "  vm_cli dump-bin <path.bin>\n"
-             << "  vm_cli trace-summary [trace.jsonl|--last]\n"
+             << "  vm_cli run-bin <path.bin> [--trace <file>] [--no-trace] [--max-steps <n>] [--steps] [--quiet|--verbose] [--json|--format <text|json>]\n"
+             << "  vm_cli dump-bin <path.bin> [--json|--format <text|json>]\n"
+             << "  vm_cli trace-summary [trace.jsonl|--last] [--json|--format <text|json>]\n"
              << "  vm_cli viewer [--open]\n\n"
              << "  vm_cli kali-ui [--open]\n\n"
              << "  vm_cli kali-app [--open]\n\n"
              << "Notes:\n"
              << "  - Immediate range is 0..63 in ASM instructions.\n"
              << "  - Binary format: 4-byte magic CVM1 + uint32 word count + uint16 instructions.\n"
-             << "  - Preset commands clamp n to 0..63.\n";
+             << "  - Factorial accepts n in 0.." << FACT_MAX_INPUT
+             << ". Fibonacci accepts n in 0.." << FIB_MAX_INPUT << ".\n";
     }
 
     bool parseRunOptionsTokens(const vector<string>& args, size_t startIndex, RunOptions& options, string& err) {
@@ -803,10 +872,40 @@ namespace {
                 options.maxSteps = parsed;
             } else if (arg == "--steps") {
                 options.printStepLog = true;
+            } else if (arg == "--quiet") {
+                options.quietOutput = true;
+            } else if (arg == "--verbose") {
+                options.verboseOutput = true;
+            } else if (arg == "--json") {
+                options.jsonOutput = true;
+            } else if (arg == "--format") {
+                if (i + 1 >= args.size()) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(args[++i]);
+                if (value == "json") options.jsonOutput = true;
+                else if (value == "text") options.jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
             } else {
                 err = "Unknown option: " + arg;
                 return false;
             }
+        }
+        if (options.jsonOutput && options.printStepLog) {
+            err = "--steps cannot be used with --json/--format json";
+            return false;
+        }
+        if (options.quietOutput && options.verboseOutput) {
+            err = "Cannot combine --quiet with --verbose";
+            return false;
+        }
+        if (options.jsonOutput && (options.quietOutput || options.verboseOutput)) {
+            err = "--quiet/--verbose cannot be used with --json/--format json";
+            return false;
         }
         return true;
     }
@@ -836,10 +935,40 @@ namespace {
                 options.maxSteps = parsed;
             } else if (arg == "--steps") {
                 options.printStepLog = true;
+            } else if (arg == "--quiet") {
+                options.quietOutput = true;
+            } else if (arg == "--verbose") {
+                options.verboseOutput = true;
+            } else if (arg == "--json") {
+                options.jsonOutput = true;
+            } else if (arg == "--format") {
+                if (i + 1 >= argc) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(argv[++i]);
+                if (value == "json") options.jsonOutput = true;
+                else if (value == "text") options.jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
             } else {
                 err = "Unknown option: " + arg;
                 return false;
             }
+        }
+        if (options.jsonOutput && options.printStepLog) {
+            err = "--steps cannot be used with --json/--format json";
+            return false;
+        }
+        if (options.quietOutput && options.verboseOutput) {
+            err = "Cannot combine --quiet with --verbose";
+            return false;
+        }
+        if (options.jsonOutput && (options.quietOutput || options.verboseOutput)) {
+            err = "--quiet/--verbose cannot be used with --json/--format json";
+            return false;
         }
         return true;
     }
@@ -848,7 +977,174 @@ namespace {
         return token.rfind("--", 0) == 0;
     }
 
+    bool parseOutputModeTokens(const vector<string>& args, size_t startIndex, bool& jsonOutput, string& err) {
+        for (size_t i = startIndex; i < args.size(); i++) {
+            const string& arg = args[i];
+            if (arg == "--json") {
+                jsonOutput = true;
+            } else if (arg == "--format") {
+                if (i + 1 >= args.size()) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(args[++i]);
+                if (value == "json") jsonOutput = true;
+                else if (value == "text") jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
+            } else {
+                err = "Unknown option: " + arg;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool parseOutputModeArgs(int startArg, int argc, char** argv, bool& jsonOutput, string& err) {
+        for (int i = startArg; i < argc; i++) {
+            const string arg = argv[i];
+            if (arg == "--json") {
+                jsonOutput = true;
+            } else if (arg == "--format") {
+                if (i + 1 >= argc) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(argv[++i]);
+                if (value == "json") jsonOutput = true;
+                else if (value == "text") jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
+            } else {
+                err = "Unknown option: " + arg;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool parseTraceSummaryTokens(const vector<string>& args,
+                                 size_t startIndex,
+                                 string& tracePath,
+                                 bool& jsonOutput,
+                                 string& err) {
+        tracePath = "trace.jsonl";
+        bool explicitPath = false;
+        bool useLast = false;
+
+        for (size_t i = startIndex; i < args.size(); i++) {
+            const string& token = args[i];
+            if (token == "--last") {
+                useLast = true;
+            } else if (token == "--json") {
+                jsonOutput = true;
+            } else if (token == "--format") {
+                if (i + 1 >= args.size()) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(args[++i]);
+                if (value == "json") jsonOutput = true;
+                else if (value == "text") jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
+            } else if (!isOptionToken(token)) {
+                if (explicitPath) {
+                    err = "trace-summary accepts only one trace path.";
+                    return false;
+                }
+                tracePath = token;
+                explicitPath = true;
+            } else {
+                err = "Unknown option: " + token;
+                return false;
+            }
+        }
+
+        if (useLast && explicitPath) {
+            err = "Cannot combine explicit trace path with --last";
+            return false;
+        }
+        if (useLast) {
+            string historyErr;
+            if (!getLastTracePath(tracePath, historyErr)) {
+                err = historyErr;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool parseTraceSummaryArgs(int argc,
+                               char** argv,
+                               int startArg,
+                               string& tracePath,
+                               bool& jsonOutput,
+                               string& err) {
+        tracePath = "trace.jsonl";
+        bool explicitPath = false;
+        bool useLast = false;
+
+        for (int i = startArg; i < argc; i++) {
+            const string token = argv[i];
+            if (token == "--last") {
+                useLast = true;
+            } else if (token == "--json") {
+                jsonOutput = true;
+            } else if (token == "--format") {
+                if (i + 1 >= argc) {
+                    err = "Missing value for --format";
+                    return false;
+                }
+                const string value = toLowerAscii(argv[++i]);
+                if (value == "json") jsonOutput = true;
+                else if (value == "text") jsonOutput = false;
+                else {
+                    err = "Invalid --format value. Use text or json";
+                    return false;
+                }
+            } else if (!isOptionToken(token)) {
+                if (explicitPath) {
+                    err = "trace-summary accepts only one trace path.";
+                    return false;
+                }
+                tracePath = token;
+                explicitPath = true;
+            } else {
+                err = "Unknown option: " + token;
+                return false;
+            }
+        }
+
+        if (useLast && explicitPath) {
+            err = "Cannot combine explicit trace path with --last";
+            return false;
+        }
+        if (useLast) {
+            string historyErr;
+            if (!getLastTracePath(tracePath, historyErr)) {
+                err = historyErr;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     int runPresetProgram(const string& preset, int value, const RunOptions& options) {
+        string inputErr;
+        if (!validatePresetInput(preset, value, inputErr)) {
+            cerr << inputErr << "\n";
+            return 1;
+        }
+
         VmState vm;
         if (preset == "fact") loadFact(vm, value);
         else loadFib(vm, value);
@@ -860,25 +1156,62 @@ namespace {
             return 1;
         }
 
-        if (preset == "fact") {
-            cout << "Factorial(" << max(0, min(value, 63)) << ") result in R0 = " << vm.R[0] << "\n";
-        } else {
-            const int n = max(0, min(value, 63));
-            vector<uint16_t> sequence;
-            if (n > 0) {
-                sequence.reserve(n);
-                uint16_t a = 0;
-                uint16_t b = 1;
-                sequence.push_back(a);
-                for (int i = 1; i < n; i++) {
-                    sequence.push_back(b);
-                    uint16_t next = static_cast<uint16_t>((a + b) & 0xFFFF);
-                    a = b;
-                    b = next;
-                }
+        const int n = value;
+        vector<uint16_t> sequence;
+        if (preset == "fib" && n > 0) {
+            sequence.reserve(n);
+            uint16_t a = 0;
+            uint16_t b = 1;
+            sequence.push_back(a);
+            for (int i = 1; i < n; i++) {
+                sequence.push_back(b);
+                uint16_t next = static_cast<uint16_t>((a + b) & 0xFFFF);
+                a = b;
+                b = next;
             }
+        }
 
-            cout << "Fibonacci sequence (" << n << " terms): ";
+        if (options.jsonOutput) {
+            printJsonEnvelopePrefix(preset);
+            cout << "\"input\":" << value;
+            cout << ",\"clampedInput\":" << n;
+            cout << ",\"resultR0\":" << vm.R[0];
+            if (preset == "fib") {
+                cout << ",\"sequence\":[";
+                for (size_t i = 0; i < sequence.size(); i++) {
+                    if (i > 0) cout << ",";
+                    cout << sequence[i];
+                }
+                cout << "]";
+            }
+            cout << ",";
+            printFinalStateJson(vm);
+            cout << ",\"trace\":{\"enabled\":" << (options.writeTrace ? "true" : "false");
+            if (options.writeTrace) {
+                cout << ",\"path\":\"" << escapeJsonString(options.tracePath) << "\"";
+            }
+            cout << "}";
+            printJsonEnvelopeSuffix();
+            cout << "\n";
+            return 0;
+        }
+
+        if (options.quietOutput) {
+            if (preset == "fact") {
+                cout << "Factorial of " << n << " = " << vm.R[0] << "\n";
+            } else {
+                cout << "Fibonacci final term for n=" << n << " = " << vm.R[0] << "\n";
+            }
+            return 0;
+        }
+
+        if (preset == "fact") {
+            cout << "Result:\n";
+            cout << "  Factorial(" << n << ") = " << vm.R[0] << "\n\n";
+        } else {
+            cout << "Result:\n";
+            cout << "  Fibonacci(" << n << " terms)\n";
+            cout << "  Sequence: ";
             if (sequence.empty()) {
                 cout << "[]\n";
             } else {
@@ -889,11 +1222,31 @@ namespace {
                 }
                 cout << "]\n";
             }
-
-            cout << "VM final Fibonacci term (R0) = " << vm.R[0] << "\n";
+            cout << "  Final term (R0): " << vm.R[0] << "\n\n";
         }
-        printFinalState(vm);
-        if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+
+        cout << "Registers:\n";
+        for (int i = 0; i < 8; i += 2) {
+            cout << "  R" << i << ": " << setw(5) << dec << vm.R[i]
+                 << " (" << hex16(vm.R[i]) << ")"
+                 << "   R" << (i + 1) << ": " << setw(5) << dec << vm.R[i + 1]
+                 << " (" << hex16(vm.R[i + 1]) << ")\n";
+        }
+        cout << "  PC: " << vm.PC << "\n";
+        cout << "  FLAGS: Z=" << vm.FLAG_Z << " N=" << vm.FLAG_N << " P=" << vm.FLAG_P << "\n\n";
+
+        if (options.verboseOutput) {
+            cout << "Trace:\n";
+            cout << "  enabled: " << (options.writeTrace ? "true" : "false") << "\n";
+            if (options.writeTrace) {
+                cout << "  path: " << options.tracePath << "\n";
+            }
+            cout << "\n";
+        } else if (options.writeTrace) {
+            cout << "Trace: " << options.tracePath << "\n\n";
+        }
+
+        cout << "Status: OK\n";
         return 0;
     }
 
@@ -902,6 +1255,72 @@ namespace {
         string input;
         if (!getline(cin, input)) return false;
         return parseInt(trim(input), out);
+    }
+
+    bool promptRunOutputMode(RunOptions& options) {
+        while (true) {
+            cout << "\nOutput mode\n"
+                 << "1) Standard text\n"
+                  << "2) Quiet\n"
+                 << "3) Verbose\n"
+                 << "4) JSON\n"
+                 << "0) Back\n"
+                 << "Select mode: ";
+
+            string input;
+            if (!getline(cin, input)) return false;
+            input = trim(input);
+
+            if (input == "0") return false;
+
+            options.quietOutput = false;
+            options.verboseOutput = false;
+            options.jsonOutput = false;
+
+            if (input == "1") {
+                return true;
+            }
+            if (input == "2") {
+                options.quietOutput = true;
+                return true;
+            }
+            if (input == "3") {
+                options.verboseOutput = true;
+                return true;
+            }
+            if (input == "4") {
+                options.jsonOutput = true;
+                return true;
+            }
+
+            cout << "Unknown mode. Try again.\n";
+        }
+    }
+
+    bool promptTraceSummaryMode(bool& jsonOutput) {
+        while (true) {
+            cout << "\nTrace summary mode\n"
+                 << "1) Standard text\n"
+                 << "2) JSON\n"
+                 << "0) Back\n"
+                 << "Select mode: ";
+
+            string input;
+            if (!getline(cin, input)) return false;
+            input = trim(input);
+
+            if (input == "0") return false;
+            if (input == "1") {
+                jsonOutput = false;
+                return true;
+            }
+            if (input == "2") {
+                jsonOutput = true;
+                return true;
+            }
+
+            cout << "Unknown mode. Try again.\n";
+        }
     }
 
         bool commandExists(const string& commandName) {
@@ -1144,8 +1563,7 @@ namespace {
                  << "2) Fibonacci\n"
                  << "3) Run ASM file (loader)\n"
                  << "4) Trace summary\n"
-                  << "5) Open viewer\n"
-                  << "6) Viewer path\n"
+                << "5) Viewer path\n"
                  << "0) Exit\n"
                  << "Select option: ";
 
@@ -1157,12 +1575,21 @@ namespace {
 
             if (choice == "1" || choice == "2") {
                 int n = 0;
-                if (!promptIntValue("Enter value (0-63): ", n)) {
+                const string preset = (choice == "1") ? "fact" : "fib";
+                const string prompt = "Enter value (" + getPresetRangeText(preset) + "): ";
+                if (!promptIntValue(prompt, n)) {
                     cout << "Invalid number.\n";
                     continue;
                 }
+                string valueErr;
+                if (!validatePresetInput(preset, n, valueErr)) {
+                    cout << valueErr << "\n";
+                    continue;
+                }
                 RunOptions options;
-                const string preset = (choice == "1") ? "fact" : "fib";
+                if (!promptRunOutputMode(options)) {
+                    continue;
+                }
                 runPresetProgram(preset, n, options);
                 continue;
             }
@@ -1173,6 +1600,9 @@ namespace {
                     continue;
                 }
                 RunOptions options;
+                if (!promptRunOutputMode(options)) {
+                    continue;
+                }
                 runAsmProgram(asmPath, options);
                 continue;
             }
@@ -1182,17 +1612,16 @@ namespace {
                 if (!chooseTracePathInteractive(tracePath)) {
                     continue;
                 }
-                traceSummary(tracePath);
+                bool jsonOutput = false;
+                if (!promptTraceSummaryMode(jsonOutput)) {
+                    continue;
+                }
+                traceSummary(tracePath, jsonOutput);
                 continue;
             }
 
             if (choice == "5") {
                 handleViewerCommand(true);
-                continue;
-            }
-
-            if (choice == "6") {
-                handleViewerCommand(false);
                 continue;
             }
 
@@ -1241,14 +1670,14 @@ namespace {
             if (cmd == "help") {
                 cout << "Commands:\n"
                      << "  help\n"
-                     << "  fact [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
-                     << "  fib [n] [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
-                     << "  asm <file.asm> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
-                     << "  asm --last [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
+                     << "  fact [n] [--trace file] [--no-trace] [--max-steps n] [--steps] [--quiet|--verbose] [--json|--format text|json]\n"
+                     << "  fib [n] [--trace file] [--no-trace] [--max-steps n] [--steps] [--quiet|--verbose] [--json|--format text|json]\n"
+                     << "  asm <file.asm> [--trace file] [--no-trace] [--max-steps n] [--steps] [--quiet|--verbose] [--json|--format text|json]\n"
+                     << "  asm --last [--trace file] [--no-trace] [--max-steps n] [--steps] [--quiet|--verbose] [--json|--format text|json]\n"
                      << "  asm-build <file.asm> [out.bin]\n"
-                     << "  run-bin <file.bin> [--trace file] [--no-trace] [--max-steps n] [--steps]\n"
-                     << "  dump-bin <file.bin>\n"
-                     << "  trace-summary [trace.jsonl|--last]\n"
+                     << "  run-bin <file.bin> [--trace file] [--no-trace] [--max-steps n] [--steps] [--quiet|--verbose] [--json|--format text|json]\n"
+                     << "  dump-bin <file.bin> [--json|--format text|json]\n"
+                     << "  trace-summary [trace.jsonl|--last] [--json|--format text|json]\n"
                      << "  viewer [--open]\n"
                      << "  kali-ui [--open]\n"
                      << "  kali-app [--open]\n"
@@ -1264,6 +1693,7 @@ namespace {
             }
 
             if (cmd == "fact" || cmd == "fib") {
+                const string preset = cmd;
                 int value = 0;
                 size_t optionStart = 1;
 
@@ -1274,10 +1704,17 @@ namespace {
                     }
                     optionStart = 2;
                 } else {
-                    if (!promptIntValue("Enter value (0-63): ", value)) {
+                    const string prompt = "Enter value (" + getPresetRangeText(preset) + "): ";
+                    if (!promptIntValue(prompt, value)) {
                         cerr << "Invalid number input.\n";
                         continue;
                     }
+                }
+
+                string valueErr;
+                if (!validatePresetInput(preset, value, valueErr)) {
+                    cerr << valueErr << "\n";
+                    continue;
                 }
 
                 RunOptions options;
@@ -1287,7 +1724,7 @@ namespace {
                     continue;
                 }
 
-                runPresetProgram(cmd, value, options);
+                runPresetProgram(preset, value, options);
                 continue;
             }
 
@@ -1348,24 +1785,25 @@ namespace {
                     cerr << "Missing binary file path.\n";
                     continue;
                 }
-                dumpBinary(parts[1]);
+                bool jsonOutput = false;
+                string err;
+                if (!parseOutputModeTokens(parts, 2, jsonOutput, err)) {
+                    cerr << err << "\n";
+                    continue;
+                }
+                dumpBinary(parts[1], jsonOutput);
                 continue;
             }
 
             if (cmd == "trace-summary") {
-                string path = "trace.jsonl";
-                if (parts.size() >= 2) {
-                    if (parts[1] == "--last") {
-                        string historyErr;
-                        if (!getLastTracePath(path, historyErr)) {
-                            cerr << historyErr << "\n";
-                            continue;
-                        }
-                    } else {
-                        path = parts[1];
-                    }
+                string path;
+                bool jsonOutput = false;
+                string err;
+                if (!parseTraceSummaryTokens(parts, 1, path, jsonOutput, err)) {
+                    cerr << err << "\n";
+                    continue;
                 }
-                traceSummary(path);
+                traceSummary(path, jsonOutput);
                 continue;
             }
 
@@ -1405,9 +1843,53 @@ namespace {
             return 1;
         }
 
-        cout << "ASM program executed successfully.\n";
-        printFinalState(vm);
-        if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+        if (options.jsonOutput) {
+            printJsonEnvelopePrefix("asm");
+            cout << "\"asmPath\":\"" << escapeJsonString(asmPath) << "\"";
+            cout << ",\"trace\":{\"enabled\":" << (options.writeTrace ? "true" : "false");
+            if (options.writeTrace) {
+                cout << ",\"path\":\"" << escapeJsonString(options.tracePath) << "\"";
+            }
+            cout << "},";
+            printFinalStateJson(vm);
+            printJsonEnvelopeSuffix();
+            cout << "\n";
+            rememberAsmPath(asmPath);
+            return 0;
+        }
+
+        if (options.quietOutput) {
+            cout << vm.R[0] << "\n";
+            rememberAsmPath(asmPath);
+            return 0;
+        }
+
+        cout << "Result:\n";
+        cout << "  ASM program executed successfully\n";
+        cout << "  source: " << asmPath << "\n\n";
+
+        cout << "Registers:\n";
+        for (int i = 0; i < 8; i += 2) {
+            cout << "  R" << i << ": " << setw(5) << dec << vm.R[i]
+                 << " (" << hex16(vm.R[i]) << ")"
+                 << "   R" << (i + 1) << ": " << setw(5) << dec << vm.R[i + 1]
+                 << " (" << hex16(vm.R[i + 1]) << ")\n";
+        }
+        cout << "  PC: " << vm.PC << "\n";
+        cout << "  FLAGS: Z=" << vm.FLAG_Z << " N=" << vm.FLAG_N << " P=" << vm.FLAG_P << "\n\n";
+
+        if (options.verboseOutput) {
+            cout << "Trace:\n";
+            cout << "  enabled: " << (options.writeTrace ? "true" : "false") << "\n";
+            if (options.writeTrace) {
+                cout << "  path: " << options.tracePath << "\n";
+            }
+            cout << "\n";
+        } else if (options.writeTrace) {
+            cout << "Trace: " << options.tracePath << "\n\n";
+        }
+
+        cout << "Status: OK\n";
         rememberAsmPath(asmPath);
         return 0;
     }
@@ -1444,19 +1926,78 @@ namespace {
             return 1;
         }
 
-        cout << "Binary program executed successfully (" << words.size() << " instructions loaded).\n";
-        printFinalState(vm);
-        if (options.writeTrace) cout << "Trace written to: " << options.tracePath << "\n";
+        if (options.jsonOutput) {
+            printJsonEnvelopePrefix("run-bin");
+            cout << "\"binPath\":\"" << escapeJsonString(binPath) << "\"";
+            cout << ",\"instructionCount\":" << words.size();
+            cout << ",\"trace\":{\"enabled\":" << (options.writeTrace ? "true" : "false");
+            if (options.writeTrace) {
+                cout << ",\"path\":\"" << escapeJsonString(options.tracePath) << "\"";
+            }
+            cout << "},";
+            printFinalStateJson(vm);
+            printJsonEnvelopeSuffix();
+            cout << "\n";
+            return 0;
+        }
+
+        if (options.quietOutput) {
+            cout << vm.R[0] << "\n";
+            return 0;
+        }
+
+        cout << "Result:\n";
+        cout << "  Binary program executed successfully\n";
+        cout << "  source: " << binPath << "\n";
+        cout << "  instruction count: " << words.size() << "\n\n";
+
+        cout << "Registers:\n";
+        for (int i = 0; i < 8; i += 2) {
+            cout << "  R" << i << ": " << setw(5) << dec << vm.R[i]
+                 << " (" << hex16(vm.R[i]) << ")"
+                 << "   R" << (i + 1) << ": " << setw(5) << dec << vm.R[i + 1]
+                 << " (" << hex16(vm.R[i + 1]) << ")\n";
+        }
+        cout << "  PC: " << vm.PC << "\n";
+        cout << "  FLAGS: Z=" << vm.FLAG_Z << " N=" << vm.FLAG_N << " P=" << vm.FLAG_P << "\n\n";
+
+        if (options.verboseOutput) {
+            cout << "Trace:\n";
+            cout << "  enabled: " << (options.writeTrace ? "true" : "false") << "\n";
+            if (options.writeTrace) {
+                cout << "  path: " << options.tracePath << "\n";
+            }
+            cout << "\n";
+        } else if (options.writeTrace) {
+            cout << "Trace: " << options.tracePath << "\n\n";
+        }
+
+        cout << "Status: OK\n";
         return 0;
     }
 
-    int dumpBinary(const string& binPath) {
+    int dumpBinary(const string& binPath, bool jsonOutput) {
         VmState vm;
         vector<uint16_t> words;
         string err;
         if (!loadBinaryProgram(vm, binPath, words, err)) {
             cerr << err << "\n";
             return 1;
+        }
+
+        if (jsonOutput) {
+            printJsonEnvelopePrefix("dump-bin");
+            cout << "\"binPath\":\"" << escapeJsonString(binPath) << "\"";
+            cout << ",\"instructionCount\":" << words.size();
+            cout << ",\"instructions\":[";
+            for (size_t i = 0; i < words.size(); i++) {
+                if (i > 0) cout << ",";
+                cout << words[i];
+            }
+            cout << "]";
+            printJsonEnvelopeSuffix();
+            cout << "\n";
+            return 0;
         }
 
         cout << "Binary dump: " << binPath << "\n";
@@ -1527,7 +2068,7 @@ namespace {
         }
     }
 
-    int traceSummary(const string& tracePath) {
+    int traceSummary(const string& tracePath, bool jsonOutput) {
         ifstream in(tracePath);
         if (!in) {
             cerr << "Unable to open trace file: " << tracePath << "\n";
@@ -1577,6 +2118,54 @@ namespace {
             }
         }
 
+        vector<pair<int, int>> freq;
+        for (size_t op = 0; op < opcodeCounts.size(); op++) {
+            if (opcodeCounts[op] > 0) {
+                freq.push_back({opcodeCounts[op], static_cast<int>(op)});
+            }
+        }
+        sort(freq.begin(), freq.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
+            if (a.first != b.first) return a.first > b.first;
+            return a.second < b.second;
+        });
+
+        if (jsonOutput) {
+            printJsonEnvelopePrefix("trace-summary");
+            cout << "\"tracePath\":\"" << escapeJsonString(tracePath) << "\"";
+            cout << ",\"totalLoggedSteps\":" << total;
+            if (total > 0 && firstStep >= 0 && lastStep >= 0) {
+                cout << ",\"stepRange\":{\"from\":" << firstStep << ",\"to\":" << lastStep << "}";
+            }
+            if (haveFirstRegs && haveLastRegs) {
+                cout << ",\"registerDeltas\":[";
+                bool first = true;
+                for (size_t i = 0; i < firstRegs.size(); i++) {
+                    if (firstRegs[i] != lastRegs[i]) {
+                        if (!first) cout << ",";
+                        first = false;
+                        cout << "{\"register\":\"R" << i
+                             << "\",\"from\":" << firstRegs[i]
+                             << ",\"to\":" << lastRegs[i] << "}";
+                    }
+                }
+                cout << "]";
+            }
+            cout << ",\"opcodeFrequency\":[";
+            for (size_t i = 0; i < freq.size(); i++) {
+                if (i > 0) cout << ",";
+                cout << "{\"opcode\":" << freq[i].second
+                     << ",\"name\":\"" << opcodeToName(freq[i].second)
+                     << "\",\"count\":" << freq[i].first << "}";
+            }
+            cout << "]";
+            if (!last.empty()) {
+                cout << ",\"lastEntryRaw\":\"" << escapeJsonString(last) << "\"";
+            }
+            printJsonEnvelopeSuffix();
+            cout << "\n";
+            return 0;
+        }
+
         cout << "Trace file: " << tracePath << "\n";
         cout << "Total logged steps: " << total << "\n";
 
@@ -1602,17 +2191,6 @@ namespace {
                 cout << "  (no register changes detected)\n";
             }
         }
-
-        vector<pair<int, int>> freq;
-        for (size_t op = 0; op < opcodeCounts.size(); op++) {
-            if (opcodeCounts[op] > 0) {
-                freq.push_back({opcodeCounts[op], static_cast<int>(op)});
-            }
-        }
-        sort(freq.begin(), freq.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
-            if (a.first != b.first) return a.first > b.first;
-            return a.second < b.second;
-        });
 
         if (!freq.empty()) {
             cout << "Opcode frequency:\n";
@@ -1807,6 +2385,7 @@ int main(int argc, char** argv) {
     }
 
     if (cmd == "fact" || cmd == "fib") {
+        const string preset = cmd;
         int value = 0;
         int optionStart = 3;
 
@@ -1816,13 +2395,19 @@ int main(int argc, char** argv) {
                 return 1;
             }
         } else {
-            cout << "Enter value for " << cmd << " (0-63): ";
+            cout << "Enter value for " << preset << " (" << getPresetRangeText(preset) << "): ";
             string input;
             if (!getline(cin, input) || !parseInt(trim(input), value)) {
                 cerr << "Invalid number input.\n";
                 return 1;
             }
             optionStart = 2;
+        }
+
+        string valueErr;
+        if (!validatePresetInput(preset, value, valueErr)) {
+            cerr << valueErr << "\n";
+            return 1;
         }
 
         RunOptions options;
@@ -1832,7 +2417,7 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        return runPresetProgram(cmd, value, options);
+        return runPresetProgram(preset, value, options);
     }
 
     if (cmd == "asm") {
@@ -1894,23 +2479,24 @@ int main(int argc, char** argv) {
             printUsage();
             return 1;
         }
-        return dumpBinary(argv[2]);
+        bool jsonOutput = false;
+        string err;
+        if (!parseOutputModeArgs(3, argc, argv, jsonOutput, err)) {
+            cerr << err << "\n";
+            return 1;
+        }
+        return dumpBinary(argv[2], jsonOutput);
     }
 
     if (cmd == "trace-summary") {
-        string path = "trace.jsonl";
-        if (argc >= 3) {
-            if (string(argv[2]) == "--last") {
-                string historyErr;
-                if (!getLastTracePath(path, historyErr)) {
-                    cerr << historyErr << "\n";
-                    return 1;
-                }
-            } else {
-                path = argv[2];
-            }
+        string path;
+        bool jsonOutput = false;
+        string err;
+        if (!parseTraceSummaryArgs(argc, argv, 2, path, jsonOutput, err)) {
+            cerr << err << "\n";
+            return 1;
         }
-        return traceSummary(path);
+        return traceSummary(path, jsonOutput);
     }
 
     if (cmd == "viewer") {
