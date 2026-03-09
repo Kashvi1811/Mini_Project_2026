@@ -24,7 +24,16 @@ namespace {
     constexpr size_t MAX_RECENT_HISTORY = 5;
     constexpr int FACT_MAX_INPUT = 17;
     constexpr int FIB_MAX_INPUT = 63;
+    const string CLI_VERSION = "1.0";
     const string HISTORY_FILE = ".vm_cli_history";
+
+    // Keep menu IDs stable to avoid breaking docs/demo scripts that reference option numbers.
+    const string MENU_OPT_FACTORIAL = "1";
+    const string MENU_OPT_FIBONACCI = "2";
+    const string MENU_OPT_RUN_ASM = "3";
+    const string MENU_OPT_TRACE_SUMMARY = "4";
+    const string MENU_OPT_VIEWER = "5";
+    const string MENU_OPT_EXIT = "0";
 
     struct VmState {
         vector<uint16_t> memory = vector<uint16_t>(MEMORY_SIZE, 0);
@@ -367,7 +376,8 @@ namespace {
         const int maxInput = getPresetMaxInput(preset);
         if (value < 0 || value > maxInput) {
             const string label = (preset == "fact") ? "factorial" : "fibonacci";
-            err = "Invalid " + label + " input: " + to_string(value) + ". Expected range " + getPresetRangeText(preset) + ".";
+            const string range = getPresetRangeText(preset);
+            err = "Invalid " + label + " input: " + to_string(value) + ". Expected range " + range + ".";
             return false;
         }
         return true;
@@ -825,7 +835,8 @@ namespace {
     }
 
     void printUsage() {
-        cout << "VM CLI Usage:\n"
+           cout << "Custom VM CLI v" << CLI_VERSION << "\n"
+               << "VM CLI Usage:\n"
              << "  vm_cli help\n"
              << "  vm_cli menu\n"
              << "  vm_cli shell\n"
@@ -1557,25 +1568,26 @@ namespace {
     }
 
     int runInteractiveMenu() {
+        cout << "\nCustom VM CLI v" << CLI_VERSION << "\n";
         while (true) {
             cout << "\n=== VM CLI Menu ===\n"
-                 << "1) Factorial\n"
-                 << "2) Fibonacci\n"
-                 << "3) Run ASM file (loader)\n"
-                 << "4) Trace summary\n"
-                << "5) Viewer path\n"
-                 << "0) Exit\n"
+                 << MENU_OPT_FACTORIAL << ") Factorial\n"
+                 << MENU_OPT_FIBONACCI << ") Fibonacci\n"
+                 << MENU_OPT_RUN_ASM << ") Run ASM file (loader)\n"
+                 << MENU_OPT_TRACE_SUMMARY << ") Trace summary\n"
+                 << MENU_OPT_VIEWER << ") Viewer path\n"
+                 << MENU_OPT_EXIT << ") Exit\n"
                  << "Select option: ";
 
             string rawChoice;
             if (!getline(cin, rawChoice)) return 0;
             const string choice = trim(rawChoice);
 
-            if (choice == "0") return 0;
+            if (choice == MENU_OPT_EXIT) return 0;
 
-            if (choice == "1" || choice == "2") {
+            if (choice == MENU_OPT_FACTORIAL || choice == MENU_OPT_FIBONACCI) {
                 int n = 0;
-                const string preset = (choice == "1") ? "fact" : "fib";
+                const string preset = (choice == MENU_OPT_FACTORIAL) ? "fact" : "fib";
                 const string prompt = "Enter value (" + getPresetRangeText(preset) + "): ";
                 if (!promptIntValue(prompt, n)) {
                     cout << "Invalid number.\n";
@@ -1594,7 +1606,7 @@ namespace {
                 continue;
             }
 
-            if (choice == "3") {
+            if (choice == MENU_OPT_RUN_ASM) {
                 string asmPath;
                 if (!chooseAsmPathInteractive(asmPath)) {
                     continue;
@@ -1607,7 +1619,7 @@ namespace {
                 continue;
             }
 
-            if (choice == "4") {
+            if (choice == MENU_OPT_TRACE_SUMMARY) {
                 string tracePath;
                 if (!chooseTracePathInteractive(tracePath)) {
                     continue;
@@ -1620,7 +1632,7 @@ namespace {
                 continue;
             }
 
-            if (choice == "5") {
+            if (choice == MENU_OPT_VIEWER) {
                 handleViewerCommand(true);
                 continue;
             }
@@ -1641,6 +1653,7 @@ namespace {
         cout << ANSI_BOLD << ANSI_GREEN
              << "\nCustom VM Secure Shell (Kali-style)\n"
              << ANSI_CYAN
+             << "Custom VM CLI v" << CLI_VERSION << "\n"
              << "Type 'help' to list commands. Type 'exit' to quit.\n"
              << ANSI_RESET;
 
