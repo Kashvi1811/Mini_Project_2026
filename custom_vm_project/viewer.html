@@ -215,27 +215,6 @@
 
         .hidden { display: none; }
 
-       #hover-info {
-    position: absolute; /* follow hovered element */
-    display: none;
-    background: rgba(15,23,42,0.9);
-    color: var(--cyan);
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 13px;
-    font-family: monospace;
-    z-index: 9999;
-
-    /* shrink to content */
-    width: max-content;
-    max-width: 300px; /* optional max width */
-    white-space: nowrap; /* keep single line unless too long */
-
-    /* spacing inside content */
-    line-height: 1.5;
-}
-
         @media (max-width: 1280px) {
             .flow-container {
                 gap: 12px;
@@ -309,25 +288,6 @@
     </style>
 </head>
 <body>
-
-    <div id="hover-info" style="
-    position: fixed;
-    top: 50px;
-    right: 50px;
-    background: rgba(15,23,42,0.9);
-    color: var(--cyan);
-    padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 13px;
-    font-family: monospace;
-    display: none;
-    z-index: 9999;
-">
-    
-    <div id="hover-info-content"></div>
-    <div id="hover-info-close" style="margin-top:8px; text-align:right; cursor:pointer; color: var(--rose); font-weight:700;">✕</div>
-</div>
 
     <aside class="sidebar">
         <div class="logo-section">
@@ -533,9 +493,6 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         resetCounterTrace();
         updateStepLights(0);
         clearPresetSelection();
-
-        hoverPinned = false;
-        hideVarInfo();
 
         if (clearEditors) {
             const highLevelEditor = document.getElementById('c-editor');
@@ -1376,47 +1333,47 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         const rs = instruction ? ((instruction >> 6) & 0x7) : 0;
         const imm = instruction ? (instruction & 0x3F) : 0;
 
-        counterStep += 1;
+        const stepIndex = counterStep;
         let message = "";
 
         switch (op) {
             case 0:
-                message = `Step ${counterStep}: Program halted at PC ${before.pc}.`;
+                message = `Step ${stepIndex}: Program halted at PC ${before.pc}.`;
                 break;
             case 1:
-                message = `Step ${counterStep}: Added R${rs} (${before.regs[rs]}) to R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                message = `Step ${stepIndex}: Added R${rs} (${before.regs[rs]}) to R${rd}. R${rd} is now ${vm.regs[rd]}.`;
                 break;
             case 4:
                 if (before.regs[rd] === 0) {
-                    message = `Step ${counterStep}: R${rd} is 0, so jump taken by +${imm}. PC moved to ${vm.pc}.`;
+                    message = `Step ${stepIndex}: R${rd} is 0, so jump taken by +${imm}. PC moved to ${vm.pc}.`;
                 } else {
-                    message = `Step ${counterStep}: R${rd} is ${before.regs[rd]}, so no jump. PC moved to ${vm.pc}.`;
+                    message = `Step ${stepIndex}: R${rd} is ${before.regs[rd]}, so no jump. PC moved to ${vm.pc}.`;
                 }
                 break;
             case 5:
-                message = `Step ${counterStep}: Jumped to address in R${rd}. PC is now ${vm.pc}.`;
+                message = `Step ${stepIndex}: Jumped to address in R${rd}. PC is now ${vm.pc}.`;
                 break;
             case 6:
-                message = `Step ${counterStep}: Loaded ${imm} into R${rd}.`;
+                message = `Step ${stepIndex}: Loaded ${imm} into R${rd}.`;
                 break;
             case 7:
-                message = `Step ${counterStep}: Multiplied R${rd} by R${rs}. R${rd} is now ${vm.regs[rd]}.`;
+                message = `Step ${stepIndex}: Multiplied R${rd} by R${rs}. R${rd} is now ${vm.regs[rd]}.`;
                 break;
             case 8:
-                message = `Step ${counterStep}: Subtracted ${imm} from R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                message = `Step ${stepIndex}: Subtracted ${imm} from R${rd}. R${rd} is now ${vm.regs[rd]}.`;
                 break;
             case 9:
-                message = `Step ${counterStep}: Stored R${rd} (${before.regs[rd]}) into Memory[${imm}].`;
+                message = `Step ${stepIndex}: Stored R${rd} (${before.regs[rd]}) into Memory[${imm}].`;
                 break;
             case 10:
-                message = `Step ${counterStep}: Loaded Memory[${imm}] into R${rd}. R${rd} is now ${vm.regs[rd]}.`;
+                message = `Step ${stepIndex}: Loaded Memory[${imm}] into R${rd}. R${rd} is now ${vm.regs[rd]}.`;
                 break;
             default:
-                message = `Step ${counterStep}: Executed ${getOpcodeName(op)}.`;
+                message = `Step ${stepIndex}: Executed ${getOpcodeName(op)}.`;
         }
 
         counterTrace.push(message);
-        if (counterTrace.length > 12) counterTrace.shift();
+        counterStep += 1;
         renderCounterTrace();
     }
 
@@ -2111,9 +2068,6 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
 } else {
     lastCompiledLayout = null;
 }
-hoverPinned = false;
-hideVarInfo();
-
     let rawCode;
     let sourceCode;
     try {
@@ -2157,7 +2111,6 @@ hideVarInfo();
         vm.halted = false;
         history = [];
         counterTrace.push(`Continued from previous state at instruction ${oldCoreLen}.`);
-        if (counterTrace.length > 12) counterTrace.shift();
         renderCounterTrace();
         document.getElementById('status-bar').innerText = "Incremental flash complete. Continue stepping from new lines.";
     } else {
@@ -2174,52 +2127,6 @@ hideVarInfo();
     lastCompiledLanguage = activeMode === 'c' ? highLevelLanguage : 'asm';
     updateUI();
 }
-
-let hoverPinned = false;
-
-function showVarInfo(name, memAddr, value, event) {
-    const info = document.getElementById('hover-info');
-    const content = document.getElementById('hover-info-content');
-    content.innerHTML = `<b>${name}</b><br>Memory: 0x${memAddr.toString(16).toUpperCase()}<br>Value: ${value}`;
-
-    if (!hoverPinned) {
-        info.style.display = 'block';
-
-        // Position near cursor
-        let x = event.clientX + 12; // small offset
-        let y = event.clientY + 12;
-
-        // Adjust to stay inside viewport
-        const rect = info.getBoundingClientRect();
-        if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
-        if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
-
-        info.style.left = x + 'px';
-        info.style.top = y + 'px';
-    }
-}
-
-function hideVarInfo() {
-    if (!hoverPinned) {
-        document.getElementById('hover-info').style.display = 'none';
-    }
-}
-
-const hoverCloseBtn = document.getElementById('hover-info-close');
-if (hoverCloseBtn) {
-    hoverCloseBtn.onclick = () => {
-        hoverPinned = false;
-        document.getElementById('hover-info').style.display = 'none';
-    };
-}
-
-// toggle pin when clicked on the box itself
-document.getElementById('hover-info').onclick = (e) => {
-    if (e.target.id !== 'hover-info-close') {
-        hoverPinned = !hoverPinned;
-        document.getElementById('hover-info').style.borderColor = hoverPinned ? 'var(--green)' : 'var(--border)';
-    }
-};
 
     function triggerStep() {
         if(vm.halted) { stopAuto(); return; }
@@ -2291,6 +2198,16 @@ ${dataSnapshotHtml}`;
         <div style="margin-top:8px;"><b>Factorial of ${n} = ${factValue}</b></div>
         ${dataSnapshotHtml}`;
 } else {
+    if (activeMode === 'asm') {
+    const asmOutput = vm.regs[0];
+    document.getElementById('status-bar').innerText = `HALT: ASM output (R0) = ${asmOutput}`;
+
+    document.getElementById('exp-text').innerHTML =
+`<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
+<div style="margin-top:4px;">${finalRegsHtml}</div>
+<div style="margin-top:8px;"><b>Output (R0) = ${asmOutput}</b></div>
+${dataSnapshotHtml}`;
+    } else {
     const langLabel = highLevelLanguageNames[highLevelLanguage] || 'High-Level';
     document.getElementById('status-bar').innerText = `HALT: ${langLabel} Program Executed.`;
 
@@ -2298,6 +2215,7 @@ ${dataSnapshotHtml}`;
 `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
 <div style="margin-top:4px;">${finalRegsHtml}</div>
 ${dataSnapshotHtml}`;
+    }
 }
                 updateUI();
             }
@@ -2461,17 +2379,6 @@ ${dataSnapshotHtml}`;
         </div>`).join('');
 
     updateBitDisplay(vm.mem[vm.pc] || 0);
-    
-document.querySelectorAll('.ram-cell').forEach((cell, idx) => {
-    const realIndex = pageStart + idx;
-    cell.onmouseenter = (e) => showVarInfo(`Memory[${realIndex}]`, realIndex, vm.mem[realIndex] ?? 0, e);
-    cell.onmouseleave = hideVarInfo;
-});
-
-document.querySelectorAll('.reg-card').forEach((card, idx) => {
-    card.onmouseenter = (e) => showVarInfo(`R${idx} (${regNames[idx]})`, idx, vm.regs[idx], e);
-    card.onmouseleave = hideVarInfo;
-});
 }
     // initial UI
     updateHighLevelPlaceholder();
