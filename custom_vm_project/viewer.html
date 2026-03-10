@@ -1562,7 +1562,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         else {
             switchEditor('c');
             setHighLevelLanguage('cpp');
-            document.getElementById('c-editor').value = "int arr[3] = {2, 4, 6};\nvector<int> v = {1, 3};\nv.push_back(5);\nstack<int> st;\nst.push(7);\nqueue<int> q;\nq.push(9);\nint total = arr[1] + v[2] + st.top() + q.front();";
+            document.getElementById('c-editor').value = "int a = 5;\nint b = 7;\nint c = a + b;";
         }
     }
 
@@ -2268,22 +2268,27 @@ to control program flow.
                 if(currentPreset === 'fib') {
     const n = Math.max(0, parseInt(presetVal, 10) || 0);
     const sequence = buildFibSequence(n);
+    const seriesText = sequence.length ? sequence.join(' ') : '[]';
 
     document.getElementById('status-bar').innerText =
-        `HALT: Fibonacci sequence generated for ${n} terms`;
+        `HALT: Fibonacci series up to ${n} terms = ${seriesText}`;
 
     document.getElementById('exp-text').innerHTML = `
 <b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
 <div style="margin-top:6px;">${finalRegsHtml}</div>
+<div style="margin-top:8px;"><b>Fibonacci series up to ${n} terms = ${seriesText}</b></div>
 ${dataSnapshotHtml}`;
 
 }  else if(currentPreset === 'fact') {
+    const n = Math.max(0, parseInt(presetVal, 10) || 0);
+    const factValue = vm.regs[0];
     document.getElementById('status-bar').innerText =
-        "HALT: Factorial of " + presetVal + " = " + vm.regs[0];
+        `HALT: Factorial of ${n} = ${factValue}`;
 
     document.getElementById('exp-text').innerHTML =
         `<b style='color:var(--green)'>PROGRAM FINISHED!</b><br>
         <div style="margin-top:6px;">${finalRegsHtml}</div>
+        <div style="margin-top:8px;"><b>Factorial of ${n} = ${factValue}</b></div>
         ${dataSnapshotHtml}`;
 } else {
     const langLabel = highLevelLanguageNames[highLevelLanguage] || 'High-Level';
