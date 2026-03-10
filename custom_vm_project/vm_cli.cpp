@@ -2220,6 +2220,7 @@ namespace {
 
     int handleViewerCommand(bool open) {
         const string viewerPath = "viewer.html";
+        const string hostedViewerUrl = "https://kashvi1811.github.io/Mini_Project_2026/custom_vm_project/viewer.html";
         ifstream probe(viewerPath);
         if (!probe.good()) {
             cerr << "viewer.html not found in current directory. Run command from custom_vm_project folder.\n";
@@ -2234,12 +2235,32 @@ namespace {
 #elif __APPLE__
             string cmd = "open \"" + viewerPath + "\"";
 #else
+            const char* codespacesEnv = getenv("CODESPACES");
+            const char* codespaceName = getenv("CODESPACE_NAME");
+            const char* forwardingDomain = getenv("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN");
+
+            const bool looksLikeCodespaces =
+                (codespacesEnv != nullptr && strlen(codespacesEnv) > 0) ||
+                (codespaceName != nullptr && strlen(codespaceName) > 0) ||
+                (forwardingDomain != nullptr && strlen(forwardingDomain) > 0);
+
+            const bool hasXdgOpen = commandExists("xdg-open");
+
+            if (looksLikeCodespaces || !hasXdgOpen) {
+                if (looksLikeCodespaces) {
+                    cout << "Codespaces detected. Open viewer in browser: " << hostedViewerUrl << "\n";
+                } else {
+                    cout << "Local browser launcher not available. Open viewer in browser: " << hostedViewerUrl << "\n";
+                }
+                return 0;
+            }
+
             string cmd = "xdg-open \"" + viewerPath + "\"";
 #endif
             int rc = system(cmd.c_str());
             if (rc != 0) {
-                cerr << "Failed to launch viewer in browser.\n";
-                return 1;
+                cout << "Failed to launch local browser. Open viewer in browser: " << hostedViewerUrl << "\n";
+                return 0;
             }
             cout << "Viewer opened in browser.\n";
         }
