@@ -213,6 +213,8 @@
         <div class="icon" id="dock-help" title="help">?</div>
         <div class="icon" id="dock-fact" title="factorial">F!</div>
         <div class="icon" id="dock-fib" title="fibonacci">Fn</div>
+        <div class="icon" id="dock-asm" title="asm sample">ASM</div>
+        <div class="icon" id="dock-trace" title="trace summary">TR</div>
         <div class="icon" id="dock-view" title="viewer">◫</div>
       </div>
 
@@ -245,8 +247,24 @@
     const output = document.getElementById('output');
     const cmdInput = document.getElementById('cmd');
     const MEMORY_SIZE = 1 << 16;
+    const MAX_STEPS = 100000;
     const commandHistory = [];
+    const virtualBins = new Map();
+    const SAMPLE_ASM_ALIASES = {
+      fact: 'sample_factorial.asm',
+      factorial: 'sample_factorial.asm',
+      fib: 'sample_fibonacci.asm',
+      fibonacci: 'sample_fibonacci.asm',
+      add: 'sample_addition.asm',
+      addition: 'sample_addition.asm'
+    };
+
     let historyIndex = -1;
+    let lastTrace = [];
+    let lastProgramWords = [];
+    let lastAsmPath = '';
+    let lastAsmSource = '';
+    let lastRunLabel = '';
 
     function writeLine(text = '', cls = '') {
       const line = document.createElement('div');
@@ -262,6 +280,10 @@
       return n;
     }
 
+    function toHex16(value) {
+      return `0x${(value & 0xFFFF).toString(16).toUpperCase().padStart(4, '0')}`;
+    }
+
     function freshVm() {
       return {
         memory: new Array(MEMORY_SIZE).fill(0),
@@ -274,9 +296,33 @@
     }
 
     function setFlags(vm, r) {
-      if (r === 0) { vm.z = 1; vm.n = 0; vm.p = 0; return; }
-      if ((r >> 15) & 1) { vm.z = 0; vm.n = 1; vm.p = 0; return; }
-      vm.z = 0; vm.n = 0; vm.p = 1;
+      if (r === 0) {
+        vm.z = 1;
+        vm.n = 0;
+        vm.p = 0;
+        return;
+      }
+      if ((r >> 15) & 1) {
+        vm.z = 0;
+        vm.n = 1;
+        vm.p = 0;
+        return;
+      }
+      vm.z = 0;
+      vm.n = 0;
+      vm.p = 1;
+    }
+
+    function loadProgramWords(vm, words) {
+      vm.memory.fill(0);
+      vm.regs.fill(0);
+      vm.pc = 0;
+      vm.z = 1;
+      vm.n = 0;
+      vm.p = 0;
+      for (let i = 0; i < words.length && i < MEMORY_SIZE; i++) {
+        vm.memory[i] = words[i] & 0xFFFF;
+      }
     }
 
     function loadFact(vm, n) {
@@ -313,11 +359,23 @@
       vm.memory[17] = 0;
     }
 
-    function runVm(vm, maxSteps = 100000) {
-      let steps = 0;
+    function runVm(vm, maxSteps = MAX_STEPS) {
+      const trace = [];
+      let step = 0;
       while (true) {
-        if (steps >= maxSteps) return { ok: false, error: 'Step limit reached.' };
-        const ins = vm.memory[vm.pc++];
+        if (step >= maxSteps) {
+          return {
+            ok: false,
+            error: `Execution stopped: max step limit reached (${maxSteps}).`,
+            trace,
+          };
+        }
+
+        const pcBefore = vm.pc & 0xFFFF;
+        const ins = vm.memory[pcBefore] & 0xFFFF;
+        vm.pc = (vm.pc + 1) & 0xFFFF;
+        trace.push({ step, pc: pcBefore, ins, regs: vm.regs.slice() });
+
         const op = (ins >> 12) & 0xF;
         const rd = (ins >> 9) & 7;
         const rs = (ins >> 6) & 7;
@@ -326,26 +384,57 @@
         if (op === 0) break;
 
         switch (op) {
-          case 1: vm.regs[rd] = (vm.regs[rd] + vm.regs[rs]) & 0xFFFF; setFlags(vm, vm.regs[rd]); break;
-          case 4: if (vm.regs[rd] === 0) vm.pc = (vm.pc + imm6) & 0xFFFF; break;
-          case 5: vm.pc = vm.regs[rd] & 0xFFFF; break;
-          case 6: vm.regs[rd] = imm6; setFlags(vm, vm.regs[rd]); break;
-          case 7: vm.regs[rd] = (vm.regs[rd] * vm.regs[rs]) & 0xFFFF; setFlags(vm, vm.regs[rd]); break;
-          case 8: vm.regs[rd] = (vm.regs[rd] - imm6) & 0xFFFF; setFlags(vm, vm.regs[rd]); break;
-          case 9: vm.memory[imm6] = vm.regs[rd] & 0xFFFF; break;
-          case 10: vm.regs[rd] = vm.memory[imm6] & 0xFFFF; setFlags(vm, vm.regs[rd]); break;
-          default: return { ok: false, error: `Unknown opcode ${op}` };
+          case 1:
+            vm.regs[rd] = (vm.regs[rd] + vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 2:
+            vm.regs[rd] = vm.regs[rd] & vm.regs[rs];
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 3:
+            vm.regs[rd] = (~vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 4:
+            if (vm.regs[rd] === 0) vm.pc = (vm.pc + imm6) & 0xFFFF;
+            break;
+          case 5:
+            vm.pc = vm.regs[rd] & 0xFFFF;
+            break;
+          case 6:
+            vm.regs[rd] = imm6;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 7:
+            vm.regs[rd] = (vm.regs[rd] * vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 8:
+            vm.regs[rd] = (vm.regs[rd] - imm6) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 9:
+            vm.memory[imm6] = vm.regs[rd] & 0xFFFF;
+            break;
+          case 10:
+            vm.regs[rd] = vm.memory[imm6] & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          default:
+            return { ok: false, error: `Unknown opcode ${op}`, trace };
         }
-        steps++;
+        step += 1;
       }
-      return { ok: true };
+      return { ok: true, trace };
     }
 
     function fibSequence(n) {
       n = Math.max(0, Math.min(63, n));
       const seq = [];
       if (n <= 0) return seq;
-      let a = 0, b = 1;
+      let a = 0;
+      let b = 1;
       seq.push(a);
       for (let i = 1; i < n; i++) {
         seq.push(b & 0xFFFF);
@@ -356,44 +445,268 @@
       return seq;
     }
 
+    function tokenizeInstruction(line) {
+      return line.replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean);
+    }
+
+    function stripAsmComments(rawLine) {
+      let line = rawLine;
+      const slashPos = line.indexOf('//');
+      const hashPos = line.indexOf('#');
+      let cutPos = -1;
+      if (slashPos !== -1) cutPos = slashPos;
+      if (hashPos !== -1) cutPos = cutPos === -1 ? hashPos : Math.min(cutPos, hashPos);
+      if (cutPos !== -1) line = line.slice(0, cutPos);
+      return line.trim();
+    }
+
+    function isValidAsmLabel(label) {
+      return /^[A-Za-z_][A-Za-z0-9_]*$/.test(label);
+    }
+
+    function parseRegister(token) {
+      const match = /^R([0-7])$/i.exec(token || '');
+      return match ? Number(match[1]) : null;
+    }
+
+    function parseImmediateToken(token) {
+      if (!/^-?\d+$/.test(token)) return null;
+      return Number(token);
+    }
+
+    function resolveImmediateToken(token, op, lineNo, currentAddress, labels) {
+      const parsed = parseImmediateToken(token);
+      if (parsed !== null) {
+        if (parsed < 0 || parsed > 63) {
+          return { ok: false, error: `Line ${lineNo}: immediate must be in range 0..63.` };
+        }
+        return { ok: true, imm: parsed };
+      }
+
+      if (!labels.has(token)) {
+        return { ok: false, error: `Line ${lineNo}: unknown immediate/label "${token}".` };
+      }
+
+      const targetAddress = labels.get(token);
+      if (op === 'JZ') {
+        const relativeOffset = targetAddress - (currentAddress + 1);
+        if (relativeOffset < 0 || relativeOffset > 63) {
+          return { ok: false, error: `Line ${lineNo}: JZ label "${token}" is out of forward range (0..63).` };
+        }
+        return { ok: true, imm: relativeOffset };
+      }
+
+      if (targetAddress < 0 || targetAddress > 63) {
+        return { ok: false, error: `Line ${lineNo}: label address out of range for 6-bit immediate.` };
+      }
+      return { ok: true, imm: targetAddress };
+    }
+
+    function encodeAsmLine(line, lineNo, currentAddress, labels) {
+      const p = tokenizeInstruction(line);
+      if (p.length === 0) return { ok: false, error: `Line ${lineNo}: empty instruction.` };
+
+      const op = p[0].toUpperCase();
+      let rd = 0;
+      let rs = 0;
+      let imm = 0;
+      let opcode = 0;
+
+      if (op === 'HALT') return { ok: true, word: 0 };
+
+      if (op === 'ADD' || op === 'MUL') {
+        if (p.length !== 3) return { ok: false, error: `Line ${lineNo}: ${op} expects "${op} Rn, Rm".` };
+        rd = parseRegister(p[1]);
+        rs = parseRegister(p[2]);
+        if (rd === null || rs === null) return { ok: false, error: `Line ${lineNo}: ${op} expects registers R0..R7.` };
+        opcode = op === 'ADD' ? 1 : 7;
+      } else if (op === 'JMP') {
+        if (p.length !== 2) return { ok: false, error: `Line ${lineNo}: JMP expects "JMP Rn".` };
+        rd = parseRegister(p[1]);
+        if (rd === null) return { ok: false, error: `Line ${lineNo}: JMP expects register R0..R7.` };
+        opcode = 5;
+      } else if (op === 'LOAD' || op === 'SUB' || op === 'JZ' || op === 'STORE' || op === 'LOADM') {
+        if (p.length !== 3) return { ok: false, error: `Line ${lineNo}: ${op} expects "${op} Rn, imm(0-63)".` };
+        rd = parseRegister(p[1]);
+        if (rd === null) return { ok: false, error: `Line ${lineNo}: ${op} expects register R0..R7.` };
+
+        const resolved = resolveImmediateToken(p[2], op, lineNo, currentAddress, labels);
+        if (!resolved.ok) return resolved;
+        imm = resolved.imm;
+
+        if (op === 'LOAD') opcode = 6;
+        else if (op === 'SUB') opcode = 8;
+        else if (op === 'JZ') opcode = 4;
+        else if (op === 'STORE') opcode = 9;
+        else opcode = 10;
+      } else {
+        return { ok: false, error: `Line ${lineNo}: unknown instruction "${op}".` };
+      }
+
+      const word = ((opcode & 0xF) << 12) | ((rd & 0x7) << 9) | ((rs & 0x7) << 6) | (imm & 0x3F);
+      return { ok: true, word };
+    }
+
+    function assembleSource(source) {
+      const lines = source.split(/\r?\n/);
+      const instructionLines = [];
+      const labels = new Map();
+      let address = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = stripAsmComments(lines[i]);
+        if (!line) continue;
+
+        while (true) {
+          const colonPos = line.indexOf(':');
+          if (colonPos === -1) break;
+
+          const label = line.slice(0, colonPos).trim();
+          if (!isValidAsmLabel(label)) {
+            return { ok: false, error: `Line ${i + 1}: invalid label name "${label}".` };
+          }
+          if (labels.has(label)) {
+            return { ok: false, error: `Line ${i + 1}: duplicate label "${label}".` };
+          }
+
+          labels.set(label, address);
+          line = line.slice(colonPos + 1).trim();
+          if (!line) break;
+        }
+
+        if (!line) continue;
+        if (address >= MEMORY_SIZE) return { ok: false, error: 'Program exceeds VM memory capacity.' };
+
+        instructionLines.push({ lineNo: i + 1, text: line, address });
+        address += 1;
+      }
+
+      const words = [];
+      for (const row of instructionLines) {
+        const encoded = encodeAsmLine(row.text, row.lineNo, row.address, labels);
+        if (!encoded.ok) return encoded;
+        words.push(encoded.word & 0xFFFF);
+      }
+
+      return { ok: true, words };
+    }
+
+    function opcodeName(opcode) {
+      const names = {
+        0: 'HALT', 1: 'ADD', 2: 'AND', 3: 'NOT', 4: 'JZ',
+        5: 'JMP', 6: 'LOAD', 7: 'MUL', 8: 'SUB', 9: 'STORE', 10: 'LOADM'
+      };
+      return names[opcode] || `OP${opcode}`;
+    }
+
     function printRegs(vm) {
       writeLine(`R0=${vm.regs[0]} R1=${vm.regs[1]} R2=${vm.regs[2]} R3=${vm.regs[3]}`, 'line-muted');
       writeLine(`R4=${vm.regs[4]} R5=${vm.regs[5]} R6=${vm.regs[6]} R7=${vm.regs[7]}  PC=${vm.pc}`, 'line-muted');
     }
 
-    function runFact(n) {
-      const vm = freshVm();
-      loadFact(vm, n);
+    function runWithVm(vm, runLabel, showFibSequenceFor = null) {
       const result = runVm(vm);
       if (!result.ok) {
         writeLine(`error: ${result.error}`);
         return;
       }
-      const clamped = Math.max(0, Math.min(63, n));
-      writeLine(`Factorial(${clamped}) = ${vm.regs[0]}`, 'line-green');
+
+      lastTrace = result.trace;
+      lastRunLabel = runLabel;
+
+      if (showFibSequenceFor !== null) {
+        const seq = fibSequence(showFibSequenceFor);
+        writeLine(`Fibonacci sequence (${showFibSequenceFor} terms): [${seq.join(', ')}]`, 'line-green');
+      }
+
+      writeLine(`Execution finished for ${runLabel}.`, 'line-green');
+      writeLine(`Steps logged: ${lastTrace.length}`, 'line-green');
       printRegs(vm);
     }
 
-    function runFib(n) {
+    function runProgramWords(words, runLabel) {
       const vm = freshVm();
-      loadFib(vm, n);
-      const result = runVm(vm);
-      if (!result.ok) {
-        writeLine(`error: ${result.error}`);
+      loadProgramWords(vm, words);
+      lastProgramWords = words.slice();
+      runWithVm(vm, runLabel);
+    }
+
+    function runFact(n) {
+      const clamped = Math.max(0, Math.min(17, n));
+      const vm = freshVm();
+      loadFact(vm, clamped);
+      lastProgramWords = vm.memory.slice(0, 8);
+      runWithVm(vm, `fact(${clamped})`);
+      if (lastTrace.length > 0) {
+        writeLine(`Factorial(${clamped}) = ${vm.regs[0]}`, 'line-green');
+      }
+    }
+
+    function runFib(n) {
+      const clamped = Math.max(0, Math.min(63, n));
+      const vm = freshVm();
+      loadFib(vm, clamped);
+      lastProgramWords = vm.memory.slice(0, 18);
+      runWithVm(vm, `fib(${clamped})`, clamped);
+      if (lastTrace.length > 0) {
+        writeLine(`Final term (R0): ${vm.regs[0]}`, 'line-green');
+      }
+    }
+
+    function summarizeLastTrace() {
+      if (lastTrace.length === 0) {
+        writeLine('No trace available yet. Run fact/fib/asm first.');
         return;
       }
-      const clamped = Math.max(0, Math.min(63, n));
-      const seq = fibSequence(clamped);
-      writeLine(`Fibonacci sequence (${clamped} terms): [${seq.join(', ')}]`, 'line-green');
-      writeLine(`Final term (R0): ${vm.regs[0]}`, 'line-green');
-      printRegs(vm);
+
+      const first = lastTrace[0];
+      const last = lastTrace[lastTrace.length - 1];
+      const opcodeCounts = new Array(16).fill(0);
+      for (const row of lastTrace) {
+        opcodeCounts[(row.ins >> 12) & 0xF] += 1;
+      }
+
+      const freq = opcodeCounts
+        .map((count, op) => ({ op, count }))
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count || a.op - b.op);
+
+      writeLine(`Trace summary (${lastRunLabel || 'last run'}):`, 'line-accent');
+      writeLine(`Total logged steps: ${lastTrace.length}`);
+      writeLine(`Step range: ${first.step} -> ${last.step}`);
+      writeLine(`First PC: ${first.pc}  Last PC: ${last.pc}`);
+      writeLine('Register deltas:');
+
+      let anyDelta = false;
+      for (let i = 0; i < 8; i++) {
+        if (first.regs[i] !== last.regs[i]) {
+          writeLine(`  R${i}: ${first.regs[i]} -> ${last.regs[i]}`);
+          anyDelta = true;
+        }
+      }
+      if (!anyDelta) writeLine('  (no register changes detected)');
+
+      writeLine('Opcode frequency:');
+      for (const item of freq) {
+        writeLine(`  ${opcodeName(item.op)} (op=${item.op}): ${item.count}`);
+      }
+      writeLine(`Last entry: step=${last.step}, pc=${last.pc}, ins=${last.ins}`);
     }
 
     function showHelp() {
       writeLine('Available commands:', 'line-accent');
-      writeLine('help, clear, banner, neofetch');
-      writeLine('whoami, pwd, ls, cat help');
-      writeLine('fact <n>, fib <n>, viewer, about');
+      writeLine('help, clear, banner, neofetch, about');
+      writeLine('whoami, pwd, ls, cat help, viewer');
+      writeLine('fact <n>, fib <n>');
+      writeLine('asm-list');
+      writeLine('asm-show <fact|fib|add|path.asm|--last>');
+      writeLine('asm <fact|fib|add|path.asm|--last>');
+      writeLine('asm-build <fact|fib|add|path.asm> [out.bin]');
+      writeLine('bins, run-bin <name.bin>, dump-bin <name.bin|--last>');
+      writeLine('trace-summary');
+      writeLine('');
+      writeLine('Note: Browser shell cannot read your local disk files directly.', 'line-muted');
+      writeLine('Use project sample ASM files or hosted relative paths.', 'line-muted');
     }
 
     function banner() {
@@ -403,26 +716,145 @@
       writeLine('██╔═██╗ ██╔══██║██║     ██║', 'line-accent');
       writeLine('██║  ██╗██║  ██║███████╗██║', 'line-accent');
       writeLine('╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝', 'line-accent');
-      writeLine('Custom VM Kali-Style App');
+      writeLine('Custom VM Kali-Style Browser CLI');
     }
 
     function neoFetch() {
       writeLine('kashvi@kali', 'line-accent');
-      writeLine('OS: Kali-like Custom VM UI');
+      writeLine('OS: Browser-hosted Kali-like shell');
       writeLine('Kernel: VM-Engine 16-bit ISA');
-      writeLine('Shell: custom_vm_shell');
-      writeLine('Packages: vm_cli, viewer, assembler, run-bin');
+      writeLine('Shell: custom_vm_web_shell');
+      writeLine('Packages: vm, assembler, virtual-bin, viewer');
       writeLine('Theme: Cyber Blue');
     }
 
     function about() {
-      writeLine('Custom VM Project Frontend', 'line-accent');
-      writeLine('- Kali-like desktop shell interface');
-      writeLine('- VM commands: fact/fib');
-      writeLine('- Educational CPU simulation project');
+      writeLine('Custom VM Browser CLI', 'line-accent');
+      writeLine('- GitHub Pages friendly terminal experience');
+      writeLine('- VM presets + ASM assemble/run in browser');
+      writeLine('- In-memory trace and virtual bin commands');
     }
 
-    function execCommand(input) {
+    function listVirtualBins() {
+      if (virtualBins.size === 0) {
+        writeLine('No virtual bins yet. Run: asm-build <sample> [out.bin]');
+        return;
+      }
+      writeLine('Virtual bins:', 'line-accent');
+      for (const [name, words] of virtualBins.entries()) {
+        writeLine(`  ${name} (${words.length} words)`);
+      }
+    }
+
+    function makeDefaultBinName(pathLike) {
+      const normalized = String(pathLike || 'program').split('/').pop().split('\\').pop();
+      const dot = normalized.lastIndexOf('.');
+      const stem = dot > 0 ? normalized.slice(0, dot) : normalized;
+      return `${stem || 'program'}.bin`;
+    }
+
+    async function resolveAsmSource(ref) {
+      if (ref === '--last') {
+        if (!lastAsmSource) {
+          return { ok: false, error: 'No previous ASM source available.' };
+        }
+        return { ok: true, source: lastAsmSource, sourcePath: lastAsmPath || '--last' };
+      }
+
+      const key = String(ref || '').toLowerCase();
+      const mapped = SAMPLE_ASM_ALIASES[key] || ref;
+      const candidates = [mapped, `./${mapped}`];
+
+      for (const candidate of candidates) {
+        try {
+          const resp = await fetch(candidate, { cache: 'no-store' });
+          if (!resp.ok) continue;
+          const source = await resp.text();
+          return { ok: true, source, sourcePath: candidate.replace(/^\.\//, '') };
+        } catch (err) {
+          // Try the next candidate path.
+        }
+      }
+
+      return {
+        ok: false,
+        error: `Unable to fetch ASM source: ${ref}. Use asm-list to see available samples.`
+      };
+    }
+
+    async function runAsmCommand(sourceRef) {
+      const loaded = await resolveAsmSource(sourceRef);
+      if (!loaded.ok) {
+        writeLine(`error: ${loaded.error}`);
+        return;
+      }
+
+      lastAsmPath = loaded.sourcePath;
+      lastAsmSource = loaded.source;
+
+      const assembled = assembleSource(loaded.source);
+      if (!assembled.ok) {
+        writeLine(`error: ${assembled.error}`);
+        return;
+      }
+
+      writeLine(`Assembled ${assembled.words.length} words from ${loaded.sourcePath}.`, 'line-accent');
+      runProgramWords(assembled.words, `asm:${loaded.sourcePath}`);
+    }
+
+    async function showAsmSourceCommand(sourceRef) {
+      const loaded = await resolveAsmSource(sourceRef);
+      if (!loaded.ok) {
+        writeLine(`error: ${loaded.error}`);
+        return;
+      }
+
+      lastAsmPath = loaded.sourcePath;
+      lastAsmSource = loaded.source;
+      writeLine(`ASM Source (${loaded.sourcePath}):`, 'line-accent');
+
+      const lines = loaded.source.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        writeLine(`${String(i + 1).padStart(3, ' ')} | ${lines[i]}`);
+      }
+    }
+
+    async function asmBuildCommand(sourceRef, outBinArg) {
+      const loaded = await resolveAsmSource(sourceRef);
+      if (!loaded.ok) {
+        writeLine(`error: ${loaded.error}`);
+        return;
+      }
+
+      lastAsmPath = loaded.sourcePath;
+      lastAsmSource = loaded.source;
+
+      const assembled = assembleSource(loaded.source);
+      if (!assembled.ok) {
+        writeLine(`error: ${assembled.error}`);
+        return;
+      }
+
+      const outBin = outBinArg || makeDefaultBinName(loaded.sourcePath);
+      virtualBins.set(outBin, assembled.words.slice());
+      lastProgramWords = assembled.words.slice();
+      writeLine(`Built ${outBin} (${assembled.words.length} words) in browser memory.`, 'line-green');
+    }
+
+    function dumpProgramWords(words, label) {
+      if (!words || words.length === 0) {
+        writeLine(`No instructions found in ${label}.`);
+        return;
+      }
+
+      writeLine(`Binary dump: ${label}`, 'line-accent');
+      writeLine(`Instruction words: ${words.length}`);
+      for (let i = 0; i < words.length; i++) {
+        writeLine(`  [${i}] = ${words[i]} (${toHex16(words[i])})`);
+      }
+    }
+
+    async function execCommand(input) {
       const raw = input.trim();
       if (!raw) return;
 
@@ -434,14 +866,24 @@
       const cmd = parts[0].toLowerCase();
 
       if (cmd === 'help') return showHelp();
-      if (cmd === 'clear') { output.innerHTML = ''; return; }
+      if (cmd === 'clear') {
+        output.innerHTML = '';
+        return;
+      }
       if (cmd === 'banner') return banner();
       if (cmd === 'about') return about();
       if (cmd === 'neofetch') return neoFetch();
-      if (cmd === 'whoami') { writeLine('kashvi'); return; }
-      if (cmd === 'pwd') { writeLine('/home/kashvi/custom_vm_project'); return; }
+      if (cmd === 'whoami') {
+        writeLine('kashvi');
+        return;
+      }
+      if (cmd === 'pwd') {
+        writeLine('/home/kashvi/custom_vm_project');
+        return;
+      }
       if (cmd === 'ls') {
-        writeLine('vm_cli.cpp  vm.cpp  viewer.html  kali_ui.html  sample_factorial.asm  sample_fibonacci.asm');
+        const binHint = virtualBins.size > 0 ? `  virtual_bins(${virtualBins.size})` : '';
+        writeLine(`vm_cli.cpp  vm.cpp  viewer.html  kali_ui.html  sample_factorial.asm  sample_fibonacci.asm  sample_addition.asm${binHint}`);
         return;
       }
       if (cmd === 'cat' && (parts[1] || '').toLowerCase() === 'help') {
@@ -451,14 +893,94 @@
 
       if (cmd === 'fact') {
         const n = parseIntSafe(parts[1]);
-        if (n === null) { writeLine('usage: fact <n>'); return; }
+        if (n === null) {
+          writeLine('usage: fact <n>');
+          return;
+        }
         return runFact(n);
       }
 
       if (cmd === 'fib') {
         const n = parseIntSafe(parts[1]);
-        if (n === null) { writeLine('usage: fib <n>'); return; }
+        if (n === null) {
+          writeLine('usage: fib <n>');
+          return;
+        }
         return runFib(n);
+      }
+
+      if (cmd === 'asm-list') {
+        writeLine('Built-in ASM aliases:', 'line-accent');
+        writeLine('  fact -> sample_factorial.asm');
+        writeLine('  fib  -> sample_fibonacci.asm');
+        writeLine('  add  -> sample_addition.asm');
+        return;
+      }
+
+      if (cmd === 'asm-show') {
+        if (!parts[1]) {
+          writeLine('usage: asm-show <fact|fib|add|path.asm|--last>');
+          return;
+        }
+        return showAsmSourceCommand(parts[1]);
+      }
+
+      if (cmd === 'asm') {
+        if (!parts[1]) {
+          writeLine('usage: asm <fact|fib|add|path.asm|--last>');
+          return;
+        }
+        return runAsmCommand(parts[1]);
+      }
+
+      if (cmd === 'asm-build') {
+        if (!parts[1]) {
+          writeLine('usage: asm-build <fact|fib|add|path.asm> [out.bin]');
+          return;
+        }
+        return asmBuildCommand(parts[1], parts[2]);
+      }
+
+      if (cmd === 'bins') {
+        listVirtualBins();
+        return;
+      }
+
+      if (cmd === 'run-bin') {
+        if (!parts[1]) {
+          writeLine('usage: run-bin <name.bin>');
+          return;
+        }
+        const bin = virtualBins.get(parts[1]);
+        if (!bin) {
+          writeLine(`error: virtual bin not found: ${parts[1]}`);
+          writeLine('Tip: asm-build <sample> [name.bin], then run-bin <name.bin>');
+          return;
+        }
+        return runProgramWords(bin, `bin:${parts[1]}`);
+      }
+
+      if (cmd === 'dump-bin') {
+        if (!parts[1]) {
+          writeLine('usage: dump-bin <name.bin|--last>');
+          return;
+        }
+        if (parts[1] === '--last') {
+          dumpProgramWords(lastProgramWords, 'last-program');
+          return;
+        }
+        const bin = virtualBins.get(parts[1]);
+        if (!bin) {
+          writeLine(`error: virtual bin not found: ${parts[1]}`);
+          return;
+        }
+        dumpProgramWords(bin, parts[1]);
+        return;
+      }
+
+      if (cmd === 'trace-summary') {
+        summarizeLastTrace();
+        return;
       }
 
       if (cmd === 'viewer') {
@@ -472,7 +994,7 @@
 
     cmdInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        execCommand(cmdInput.value);
+        void execCommand(cmdInput.value);
         cmdInput.value = '';
       } else if (e.key === 'ArrowUp') {
         if (historyIndex > 0) {
@@ -492,10 +1014,12 @@
       }
     });
 
-    document.getElementById('dock-help').onclick = () => execCommand('help');
-    document.getElementById('dock-fact').onclick = () => execCommand('fact 5');
-    document.getElementById('dock-fib').onclick = () => execCommand('fib 8');
-    document.getElementById('dock-view').onclick = () => execCommand('viewer');
+    document.getElementById('dock-help').onclick = () => { void execCommand('help'); };
+    document.getElementById('dock-fact').onclick = () => { void execCommand('fact 5'); };
+    document.getElementById('dock-fib').onclick = () => { void execCommand('fib 8'); };
+    document.getElementById('dock-asm').onclick = () => { void execCommand('asm fact'); };
+    document.getElementById('dock-trace').onclick = () => { void execCommand('trace-summary'); };
+    document.getElementById('dock-view').onclick = () => { void execCommand('viewer'); };
 
     setInterval(() => {
       const now = new Date();
@@ -515,10 +1039,10 @@
       if (getComputedStyle(appWindow).position !== 'absolute') {
         const rect = appWindow.getBoundingClientRect();
         appWindow.style.position = 'absolute';
-        appWindow.style.left = rect.left + 'px';
-        appWindow.style.top = rect.top + 'px';
-        appWindow.style.width = rect.width + 'px';
-        appWindow.style.height = rect.height + 'px';
+        appWindow.style.left = `${rect.left}px`;
+        appWindow.style.top = `${rect.top}px`;
+        appWindow.style.width = `${rect.width}px`;
+        appWindow.style.height = `${rect.height}px`;
       }
     }
 
@@ -537,8 +1061,8 @@
       if (!drag) return;
       const dx = e.clientX - dragX;
       const dy = e.clientY - dragY;
-      appWindow.style.left = (startLeft + dx) + 'px';
-      appWindow.style.top = (startTop + dy) + 'px';
+      appWindow.style.left = `${startLeft + dx}px`;
+      appWindow.style.top = `${startTop + dy}px`;
     });
 
     document.addEventListener('mouseup', () => {
@@ -549,7 +1073,7 @@
       writeLine('[ OK ] Initializing Custom VM kernel', 'line-boot');
       writeLine('[ OK ] Loading ISA table', 'line-boot');
       writeLine('[ OK ] Registering shell commands', 'line-boot');
-      writeLine('[ OK ] Starting kali_ui terminal', 'line-boot');
+      writeLine('[ OK ] Starting browser CLI terminal', 'line-boot');
       writeLine('');
     }
 

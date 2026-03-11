@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Custom VM CLI Menu (Web)</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #c7c7c7;
+      --muted: #9a9a9a;
+      --accent: #e2e2e2;
+      --line: #1c1c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .terminal {
+      width: 100%;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border-left: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+    }
+
+    .head {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #output {
+      overflow: auto;
+      padding: 16px 10px 10px 10px;
+      white-space: pre-wrap;
+      line-height: 1.34;
+      font-size: clamp(22px, 2vw, 33px);
+      letter-spacing: 0.2px;
+      font-weight: 600;
+    }
+
+    .line-muted { color: var(--muted); }
+    .line-accent { color: var(--accent); }
+
+    .input-wrap {
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      font-size: clamp(22px, 2vw, 33px);
+      font-weight: 600;
+    }
+
+    #prompt {
+      white-space: nowrap;
+    }
+
+    #cmd {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--fg);
+      font: inherit;
+      outline: none;
+      caret-color: var(--fg);
+      min-width: 0;
+    }
+
+    @media (max-width: 900px) {
+      #output,
+      .input-wrap {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="terminal">
+    <div class="head">
+      <span>Custom VM Menu (Browser Mode)</span>
+      <span>Share URL: /custom_vm_project/menu_cli.html</span>
+    </div>
+
+    <div id="output" aria-live="polite"></div>
+
+    <div class="input-wrap">
+      <span id="prompt">Select option:</span>
+      <input id="cmd" autocomplete="off" spellcheck="false" />
+    </div>
+  </main>
+
+  <script>
+    const output = document.getElementById('output');
+    const input = document.getElementById('cmd');
+    const promptEl = document.getElementById('prompt');
+
+    const MEMORY_SIZE = 1 << 16;
+    const MAX_STEPS = 100000;
+
+    const SAMPLE_ASM_ALIASES = {
+      fact: 'sample_factorial.asm',
+      factorial: 'sample_factorial.asm',
+      fib: 'sample_fibonacci.asm',
+      fibonacci: 'sample_fibonacci.asm',
+      add: 'sample_addition.asm',
+      addition: 'sample_addition.asm'
+    };
+
+    let state = { mode: 'menu' };
+    let lastTrace = [];
+    let lastRunLabel = '';
+    let commandClosed = false;
+    const defaultRunOptions = {
+      quiet: false,
+      verbose: false,
+      steps: false,
+      json: false,
+      trace: true,
+      maxSteps: MAX_STEPS,
+    };
+
+    function autoScrollToBottom() {
+      output.scrollTop = output.scrollHeight;
+      requestAnimationFrame(() => {
+        output.scrollTop = output.scrollHeight;
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+    }
+
+    function writeLine(text = '', cls = '') {
+      const div = document.createElement('div');
+      div.textContent = text;
+      if (cls) div.className = cls;
+      output.appendChild(div);
+      autoScrollToBottom();
+    }
+
+    function writeBlank() {
+      writeLine('');
+    }
+
+    function setPrompt(text) {
+      promptEl.textContent = text;
+      input.value = '';
+      input.focus();
+      autoScrollToBottom();
+    }
+
+    function getRunOptionsFromMenuChoice(choice) {
+      const options = { ...defaultRunOptions };
+      if (choice === '1') return { ok: true, options };
+      if (choice === '2') {
+        options.quiet = true;
+        return { ok: true, options };
+      }
+      if (choice === '3') {
+        options.verbose = true;
+        return { ok: true, options };
+      }
+      if (choice === '4') {
+        options.json = true;
+        return { ok: true, options };
+      }
+      if (choice === '0') return { ok: false, back: true };
+      return { ok: false, back: false };
+    }
+
+    function printOutputModeMenu() {
+      writeBlank();
+      writeLine('Output mode');
+      writeLine('1) Standard text');
+      writeLine('2) Quiet');
+      writeLine('3) Verbose');
+      writeLine('4) JSON');
+      writeLine('0) Back');
+      setPrompt('Select mode:');
+    }
+
+    function printTraceSummaryModeMenu() {
+      writeBlank();
+      writeLine('Trace summary mode');
+      writeLine('1) Standard text');
+      writeLine('2) JSON');
+      writeLine('0) Back');
+      setPrompt('Select mode:');
+    }
+
+    function printMenu() {
+      writeLine('Custom VM CLI v1.0');
+      writeBlank();
+      writeLine('=== VM CLI Menu ===');
+      writeLine('1) Factorial');
+      writeLine('2) Fibonacci');
+      writeLine('3) Run ASM file (loader)');
+      writeLine('4) Trace summary');
+      writeLine('5) Viewer path');
+      writeLine('0) Exit');
+      setPrompt('Select option:');
+      state = { mode: 'menu' };
+    }
+
+    function freshVm() {
+      return {
+        memory: new Array(MEMORY_SIZE).fill(0),
+        regs: new Array(8).fill(0),
+        pc: 0,
+        z: 1,
+        n: 0,
+        p: 0,
+      };
+    }
+
+    function setFlags(vm, r) {
+      if (r === 0) {
+        vm.z = 1;
+        vm.n = 0;
+        vm.p = 0;
+        return;
+      }
+      if ((r >> 15) & 1) {
+        vm.z = 0;
+        vm.n = 1;
+        vm.p = 0;
+        return;
+      }
+      vm.z = 0;
+      vm.n = 0;
+      vm.p = 1;
+    }
+
+    function loadFact(vm, n) {
+      n = Math.max(0, Math.min(17, n));
+      vm.memory[0] = (6 << 12) | (0 << 9) | 1;
+      vm.memory[1] = (6 << 12) | (1 << 9) | n;
+      vm.memory[2] = (6 << 12) | (2 << 9) | 3;
+      vm.memory[3] = (7 << 12) | (0 << 9) | (1 << 6);
+      vm.memory[4] = (8 << 12) | (1 << 9) | 1;
+      vm.memory[5] = (4 << 12) | (1 << 9) | 1;
+      vm.memory[6] = (5 << 12) | (2 << 9);
+      vm.memory[7] = 0;
+    }
+
+    function loadFib(vm, steps) {
+      steps = Math.max(0, Math.min(63, steps));
+      vm.memory[0] = (6 << 12) | (0 << 9) | 0;
+      vm.memory[1] = (6 << 12) | (1 << 9) | 1;
+      vm.memory[2] = (6 << 12) | (3 << 9) | steps;
+      vm.memory[3] = (6 << 12) | (4 << 9) | 7;
+      vm.memory[4] = (4 << 12) | (3 << 9) | 12;
+      vm.memory[5] = (8 << 12) | (3 << 9) | 1;
+      vm.memory[6] = (4 << 12) | (3 << 9) | 10;
+      vm.memory[7] = (6 << 12) | (2 << 9) | 0;
+      vm.memory[8] = (1 << 12) | (2 << 9) | (0 << 6);
+      vm.memory[9] = (1 << 12) | (2 << 9) | (1 << 6);
+      vm.memory[10] = (6 << 12) | (0 << 9) | 0;
+      vm.memory[11] = (1 << 12) | (0 << 9) | (1 << 6);
+      vm.memory[12] = (6 << 12) | (1 << 9) | 0;
+      vm.memory[13] = (1 << 12) | (1 << 9) | (2 << 6);
+      vm.memory[14] = (8 << 12) | (3 << 9) | 1;
+      vm.memory[15] = (4 << 12) | (3 << 9) | 1;
+      vm.memory[16] = (5 << 12) | (4 << 9);
+      vm.memory[17] = 0;
+    }
+
+    function buildFibSequence(n) {
+      const count = Math.max(0, Math.min(63, n));
+      const seq = [];
+      if (count === 0) return seq;
+
+      let a = 0;
+      let b = 1;
+      seq.push(a);
+      for (let i = 1; i < count; i++) {
+        seq.push(b & 0xFFFF);
+        const next = (a + b) & 0xFFFF;
+        a = b;
+        b = next;
+      }
+      return seq;
+    }
+
+    function runVm(vm, options = defaultRunOptions) {
+      const trace = [];
+      let step = 0;
+      const maxSteps = Number.isInteger(options.maxSteps) && options.maxSteps > 0
+        ? options.maxSteps
+        : MAX_STEPS;
+
+      while (true) {
+        if (step >= maxSteps) {
+          return {
+            ok: false,
+            error: `Execution stopped: max step limit reached (${maxSteps}).`,
+            trace,
+          };
+        }
+
+        const pcBefore = vm.pc & 0xFFFF;
+        const ins = vm.memory[pcBefore] & 0xFFFF;
+        vm.pc = (vm.pc + 1) & 0xFFFF;
+
+        trace.push({ step, pc: pcBefore, ins, regs: vm.regs.slice() });
+
+        const op = (ins >> 12) & 0xF;
+        const rd = (ins >> 9) & 7;
+        const rs = (ins >> 6) & 7;
+        const imm6 = ins & 0x3F;
+
+        if (options.steps) {
+          writeLine(`step=${step} pc=${pcBefore} ins=${ins} op=${op}`, 'line-muted');
+        }
+
+        if (op === 0) break;
+
+        switch (op) {
+          case 1:
+            vm.regs[rd] = (vm.regs[rd] + vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 2:
+            vm.regs[rd] = vm.regs[rd] & vm.regs[rs];
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 3:
+            vm.regs[rd] = (~vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 4:
+            if (vm.regs[rd] === 0) vm.pc = (vm.pc + imm6) & 0xFFFF;
+            break;
+          case 5:
+            vm.pc = vm.regs[rd] & 0xFFFF;
+            break;
+          case 6:
+            vm.regs[rd] = imm6;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 7:
+            vm.regs[rd] = (vm.regs[rd] * vm.regs[rs]) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 8:
+            vm.regs[rd] = (vm.regs[rd] - imm6) & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          case 9:
+            vm.memory[imm6] = vm.regs[rd] & 0xFFFF;
+            break;
+          case 10:
+            vm.regs[rd] = vm.memory[imm6] & 0xFFFF;
+            setFlags(vm, vm.regs[rd]);
+            break;
+          default:
+            return { ok: false, error: `Unknown opcode ${op}`, trace };
+        }
+
+        step += 1;
+      }
+
+      return { ok: true, trace };
+    }
+
+    function tokenizeInstruction(line) {
+      return line.replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean);
+    }
+
+    function stripAsmComments(rawLine) {
+      let line = rawLine;
+      const slashPos = line.indexOf('//');
+      const hashPos = line.indexOf('#');
+      let cutPos = -1;
+      if (slashPos !== -1) cutPos = slashPos;
+      if (hashPos !== -1) cutPos = cutPos === -1 ? hashPos : Math.min(cutPos, hashPos);
+      if (cutPos !== -1) line = line.slice(0, cutPos);
+      return line.trim();
+    }
+
+    function isValidAsmLabel(label) {
+      return /^[A-Za-z_][A-Za-z0-9_]*$/.test(label);
+    }
+
+    function parseRegister(token) {
+      const match = /^R([0-7])$/i.exec(token || '');
+      return match ? Number(match[1]) : null;
+    }
+
+    function parseImmediateToken(token) {
+      if (!/^-?\d+$/.test(token)) return null;
+      return Number(token);
+    }
+
+    function resolveImmediateToken(token, op, lineNo, currentAddress, labels) {
+      const parsed = parseImmediateToken(token);
+      if (parsed !== null) {
+        if (parsed < 0 || parsed > 63) {
+          return { ok: false, error: `Line ${lineNo}: immediate must be in range 0..63.` };
+        }
+        return { ok: true, imm: parsed };
+      }
+
+      if (!labels.has(token)) {
+        return { ok: false, error: `Line ${lineNo}: unknown immediate/label "${token}".` };
+      }
+
+      const targetAddress = labels.get(token);
+      if (op === 'JZ') {
+        const relativeOffset = targetAddress - (currentAddress + 1);
+        if (relativeOffset < 0 || relativeOffset > 63) {
+          return { ok: false, error: `Line ${lineNo}: JZ label "${token}" is out of forward range (0..63).` };
+        }
+        return { ok: true, imm: relativeOffset };
+      }
+
+      if (targetAddress < 0 || targetAddress > 63) {
+        return { ok: false, error: `Line ${lineNo}: label address out of range for 6-bit immediate.` };
+      }
+      return { ok: true, imm: targetAddress };
+    }
+
+    function encodeAsmLine(line, lineNo, currentAddress, labels) {
+      const p = tokenizeInstruction(line);
+      if (p.length === 0) return { ok: false, error: `Line ${lineNo}: empty instruction.` };
+
+      const op = p[0].toUpperCase();
+      let rd = 0;
+      let rs = 0;
+      let imm = 0;
+      let opcode = 0;
+
+      if (op === 'HALT') return { ok: true, word: 0 };
+
+      if (op === 'ADD' || op === 'MUL') {
+        if (p.length !== 3) return { ok: false, error: `Line ${lineNo}: ${op} expects "${op} Rn, Rm".` };
+        rd = parseRegister(p[1]);
+        rs = parseRegister(p[2]);
+        if (rd === null || rs === null) return { ok: false, error: `Line ${lineNo}: ${op} expects registers R0..R7.` };
+        opcode = op === 'ADD' ? 1 : 7;
+      } else if (op === 'JMP') {
+        if (p.length !== 2) return { ok: false, error: `Line ${lineNo}: JMP expects "JMP Rn".` };
+        rd = parseRegister(p[1]);
+        if (rd === null) return { ok: false, error: `Line ${lineNo}: JMP expects register R0..R7.` };
+        opcode = 5;
+      } else if (op === 'LOAD' || op === 'SUB' || op === 'JZ' || op === 'STORE' || op === 'LOADM') {
+        if (p.length !== 3) return { ok: false, error: `Line ${lineNo}: ${op} expects "${op} Rn, imm(0-63)".` };
+        rd = parseRegister(p[1]);
+        if (rd === null) return { ok: false, error: `Line ${lineNo}: ${op} expects register R0..R7.` };
+
+        const resolved = resolveImmediateToken(p[2], op, lineNo, currentAddress, labels);
+        if (!resolved.ok) return resolved;
+        imm = resolved.imm;
+
+        if (op === 'LOAD') opcode = 6;
+        else if (op === 'SUB') opcode = 8;
+        else if (op === 'JZ') opcode = 4;
+        else if (op === 'STORE') opcode = 9;
+        else opcode = 10;
+      } else {
+        return { ok: false, error: `Line ${lineNo}: unknown instruction "${op}".` };
+      }
+
+      const word = ((opcode & 0xF) << 12) | ((rd & 0x7) << 9) | ((rs & 0x7) << 6) | (imm & 0x3F);
+      return { ok: true, word };
+    }
+
+    function assembleSource(source) {
+      const lines = source.split(/\r?\n/);
+      const instructionLines = [];
+      const labels = new Map();
+      let address = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = stripAsmComments(lines[i]);
+        if (!line) continue;
+
+        while (true) {
+          const colonPos = line.indexOf(':');
+          if (colonPos === -1) break;
+
+          const label = line.slice(0, colonPos).trim();
+          if (!isValidAsmLabel(label)) {
+            return { ok: false, error: `Line ${i + 1}: invalid label name "${label}".` };
+          }
+          if (labels.has(label)) {
+            return { ok: false, error: `Line ${i + 1}: duplicate label "${label}".` };
+          }
+
+          labels.set(label, address);
+          line = line.slice(colonPos + 1).trim();
+          if (!line) break;
+        }
+
+        if (!line) continue;
+        if (address >= MEMORY_SIZE) return { ok: false, error: 'Program exceeds VM memory capacity.' };
+
+        instructionLines.push({ lineNo: i + 1, text: line, address });
+        address += 1;
+      }
+
+      const words = [];
+      for (const row of instructionLines) {
+        const encoded = encodeAsmLine(row.text, row.lineNo, row.address, labels);
+        if (!encoded.ok) return encoded;
+        words.push(encoded.word & 0xFFFF);
+      }
+
+      return { ok: true, words };
+    }
+
+    function loadProgramWords(vm, words) {
+      vm.memory.fill(0);
+      vm.regs.fill(0);
+      vm.pc = 0;
+      vm.z = 1;
+      vm.n = 0;
+      vm.p = 0;
+
+      for (let i = 0; i < words.length && i < MEMORY_SIZE; i++) {
+        vm.memory[i] = words[i] & 0xFFFF;
+      }
+    }
+
+    function printRegs(vm) {
+      writeLine(`Final Registers:`);
+      for (let i = 0; i < 8; i++) writeLine(`  R${i} = ${vm.regs[i]}`);
+      writeLine(`  PC = ${vm.pc}`);
+      writeLine(`  FLAGS(Z,N,P) = (${vm.z}, ${vm.n}, ${vm.p})`);
+    }
+
+    function finalizeRunTrace(result, label, options) {
+      if (options.trace) {
+        lastTrace = result.trace;
+      } else {
+        lastTrace = [];
+      }
+      lastRunLabel = label;
+    }
+
+    function runPreset(type, n, options) {
+      const vm = freshVm();
+      const fibSequence = (type === 'fib') ? buildFibSequence(n) : [];
+      if (type === 'fact') {
+        loadFact(vm, n);
+      } else {
+        loadFib(vm, n);
+      }
+
+      const result = runVm(vm, options);
+      if (!result.ok) {
+        writeLine(result.error);
+        return;
+      }
+
+      finalizeRunTrace(result, `${type}(${n})`, options);
+
+      if (options.json) {
+        const payload = {
+          schemaVersion: '1.0',
+          success: true,
+          command: type,
+          data: {
+            input: n,
+            resultR0: vm.regs[0],
+            registers: vm.regs,
+            pc: vm.pc,
+            flags: { z: vm.z, n: vm.n, p: vm.p },
+            trace: { enabled: options.trace, steps: result.trace.length },
+            options: { ...options },
+          },
+          error: null,
+        };
+        if (type === 'fib') {
+          payload.data.sequence = fibSequence;
+        }
+        writeLine(JSON.stringify(payload));
+        return;
+      }
+
+      if (options.quiet) {
+        if (type === 'fact') writeLine(`Factorial of ${n} = ${vm.regs[0]}`);
+        else writeLine(`Fibonacci upto ${n} terms is = ${fibSequence.length ? fibSequence.join(' ') : '(empty sequence)'}`);
+      } else {
+        if (type === 'fact') {
+          writeLine(`Factorial of ${n} = ${vm.regs[0]}`);
+        } else {
+          writeLine(`Fibonacci upto ${n} terms is = ${fibSequence.join(' ')}`);
+          writeLine(`Final term (R0) = ${vm.regs[0]}`);
+        }
+        printRegs(vm);
+      }
+
+      if (options.verbose) {
+        writeLine(`Logged steps: ${result.trace.length}`, 'line-muted');
+      }
+    }
+
+    async function runAsmByRef(ref, options) {
+      const key = String(ref || '').toLowerCase();
+      const mapped = SAMPLE_ASM_ALIASES[key] || ref;
+      const candidates = [mapped, `./${mapped}`];
+
+      let source = null;
+      let sourcePath = '';
+      for (const candidate of candidates) {
+        try {
+          const resp = await fetch(candidate, { cache: 'no-store' });
+          if (!resp.ok) continue;
+          source = await resp.text();
+          sourcePath = candidate.replace(/^\.\//, '');
+          break;
+        } catch (err) {
+          // try next
+        }
+      }
+
+      if (source === null) {
+        writeLine(`Unable to fetch ASM source: ${ref}`);
+        writeLine('Try: fact, fib, add, sample_factorial.asm, sample_fibonacci.asm, sample_addition.asm');
+        return;
+      }
+
+      const assembled = assembleSource(source);
+      if (!assembled.ok) {
+        writeLine(assembled.error);
+        return;
+      }
+
+      const vm = freshVm();
+      loadProgramWords(vm, assembled.words);
+      const result = runVm(vm, options);
+      if (!result.ok) {
+        writeLine(result.error);
+        return;
+      }
+
+      finalizeRunTrace(result, `asm:${sourcePath}`, options);
+
+      if (options.json) {
+        const payload = {
+          schemaVersion: '1.0',
+          success: true,
+          command: 'asm',
+          data: {
+            asmPath: sourcePath,
+            instructionCount: assembled.words.length,
+            resultR0: vm.regs[0],
+            registers: vm.regs,
+            pc: vm.pc,
+            flags: { z: vm.z, n: vm.n, p: vm.p },
+            trace: { enabled: options.trace, steps: result.trace.length },
+            options: { ...options },
+          },
+          error: null,
+        };
+        writeLine(JSON.stringify(payload));
+        return;
+      }
+
+      if (options.quiet) {
+        writeLine(`ASM run ok: ${sourcePath} -> R0=${vm.regs[0]}`);
+      } else {
+        writeLine(`ASM loaded: ${sourcePath}`);
+        writeLine(`Instruction words: ${assembled.words.length}`);
+        printRegs(vm);
+      }
+
+      if (options.verbose) {
+        writeLine(`Logged steps: ${result.trace.length}`, 'line-muted');
+      }
+    }
+
+    function summarizeTrace(jsonOutput) {
+      if (!lastTrace.length) {
+        writeLine('No trace found. Run Factorial/Fibonacci/ASM first.');
+        return;
+      }
+
+      const first = lastTrace[0];
+      const last = lastTrace[lastTrace.length - 1];
+      const opcodeCounts = new Array(16).fill(0);
+
+      for (const row of lastTrace) {
+        opcodeCounts[(row.ins >> 12) & 0xF] += 1;
+      }
+
+      if (jsonOutput) {
+        const freq = [];
+        for (let op = 0; op < opcodeCounts.length; op++) {
+          if (opcodeCounts[op] > 0) {
+            freq.push({ opcode: op, count: opcodeCounts[op] });
+          }
+        }
+        const payload = {
+          schemaVersion: '1.0',
+          success: true,
+          command: 'trace-summary',
+          data: {
+            runLabel: lastRunLabel || 'last run',
+            totalLoggedSteps: lastTrace.length,
+            stepRange: { from: first.step, to: last.step },
+            opcodeFrequency: freq,
+          },
+          error: null,
+        };
+        writeLine(JSON.stringify(payload));
+        return;
+      }
+
+      writeLine(`Trace summary (${lastRunLabel || 'last run'})`);
+      writeLine(`Total logged steps: ${lastTrace.length}`);
+      writeLine(`Step range: ${first.step} -> ${last.step}`);
+      writeLine('Opcode frequency:');
+      for (let op = 0; op < opcodeCounts.length; op++) {
+        if (opcodeCounts[op] > 0) writeLine(`  OP${op}: ${opcodeCounts[op]}`);
+      }
+    }
+
+    async function handleInput(raw) {
+      if (commandClosed) return;
+
+      const value = raw.trim();
+      writeLine(`${promptEl.textContent} ${value}`);
+
+      if (state.mode === 'menu') {
+        if (value === '1') {
+          state = { mode: 'fact' };
+          setPrompt('Enter n (0-17):');
+          return;
+        }
+        if (value === '2') {
+          state = { mode: 'fib' };
+          setPrompt('Enter n (0-63):');
+          return;
+        }
+        if (value === '3') {
+          writeLine('ASM options: fact | fib | add | sample_factorial.asm | sample_fibonacci.asm | sample_addition.asm');
+          state = { mode: 'asm' };
+          setPrompt('ASM file or alias:');
+          return;
+        }
+        if (value === '4') {
+          printTraceSummaryModeMenu();
+          state = { mode: 'trace-mode' };
+          return;
+        }
+        if (value === '5') {
+          writeLine('Viewer path: custom_vm_project/viewer.html');
+          writeLine('Open: /custom_vm_project/viewer.html');
+          writeLine('Menu URL: /custom_vm_project/menu_cli.html');
+          writeBlank();
+          printMenu();
+          return;
+        }
+        if (value === '0') {
+          writeLine('Session ended. Refresh page to restart.');
+          setPrompt('Closed:');
+          input.disabled = true;
+          commandClosed = true;
+          return;
+        }
+
+        writeLine('Invalid option. Try 0..5.');
+        writeBlank();
+        printMenu();
+        return;
+      }
+
+      if (state.mode === 'fact') {
+        const n = Number(value);
+        if (!Number.isInteger(n) || n < 0 || n > 17) {
+          writeLine('Invalid input. Factorial range is 0..17.');
+          setPrompt('Enter n (0-17):');
+        } else {
+          state = { mode: 'fact-output', n };
+          printOutputModeMenu();
+        }
+        return;
+      }
+
+      if (state.mode === 'fib') {
+        const n = Number(value);
+        if (!Number.isInteger(n) || n < 0 || n > 63) {
+          writeLine('Invalid input. Fibonacci range is 0..63.');
+          setPrompt('Enter n (0-63):');
+        } else {
+          state = { mode: 'fib-output', n };
+          printOutputModeMenu();
+        }
+        return;
+      }
+
+      if (state.mode === 'asm') {
+        if (!value) {
+          writeLine('ASM input cannot be empty.');
+          setPrompt('ASM file or alias:');
+        } else {
+          state = { mode: 'asm-output', ref: value };
+          printOutputModeMenu();
+        }
+        return;
+      }
+
+      if (state.mode === 'fact-output' || state.mode === 'fib-output' || state.mode === 'asm-output') {
+        const parsed = getRunOptionsFromMenuChoice(value);
+        if (parsed.back) {
+          writeBlank();
+          printMenu();
+          return;
+        }
+        if (!parsed.ok) {
+          writeLine('Unknown mode. Try again.');
+          printOutputModeMenu();
+          return;
+        }
+
+        if (state.mode === 'fact-output') {
+          runPreset('fact', state.n, parsed.options);
+        } else if (state.mode === 'fib-output') {
+          runPreset('fib', state.n, parsed.options);
+        } else {
+          await runAsmByRef(state.ref, parsed.options);
+        }
+
+        writeBlank();
+        printMenu();
+        return;
+      }
+
+      if (state.mode === 'trace-mode') {
+        if (value === '0') {
+          writeBlank();
+          printMenu();
+          return;
+        }
+        if (value === '1') {
+          summarizeTrace(false);
+          writeBlank();
+          printMenu();
+          return;
+        }
+        if (value === '2') {
+          summarizeTrace(true);
+          writeBlank();
+          printMenu();
+          return;
+        }
+        writeLine('Unknown mode. Try again.');
+        printTraceSummaryModeMenu();
+      }
+    }
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        const raw = input.value;
+        input.value = '';
+        void handleInput(raw);
+      }
+    });
+
+    printMenu();
+  </script>
+</body>
+</html>

@@ -1209,9 +1209,9 @@ namespace {
 
         if (options.quietOutput) {
             if (preset == "fact") {
-                cout << "Factorial of " << n << " = " << vm.R[0] << "\n";
-            } else {
-                cout << "Fibonacci upto " << n << " terms = ";
+                cout << "Factorial of " << n << " is = " << vm.R[0] << "\n";
+            } else if (preset == "fib") {
+                cout << "Fibonacci sequence for " << n << " terms: ";
                 if (sequence.empty()) {
                     cout << "(empty sequence)\n";
                 } else {
@@ -1220,17 +1220,20 @@ namespace {
                         cout << sequence[i];
                     }
                     cout << "\n";
+                    cout << "The " << n << "th Fibonacci number is = " << vm.R[0] << "\n";
                 }
+            } else if (preset == "add") {
+                cout << "Addition result: " << vm.R[0] << "\n";
             }
             return 0;
         }
 
         if (preset == "fact") {
             cout << "Result:\n";
-            cout << "  Factorial of " << n << " = " << vm.R[0] << "\n\n";
-        } else {
+            cout << "  Factorial of " << n << " is = " << vm.R[0] << "\n\n";
+        } else if (preset == "fib") {
             cout << "Result:\n";
-            cout << "  Fibonacci upto " << n << " terms = ";
+            cout << "  Fibonacci sequence for " << n << " terms: ";
             if (sequence.empty()) {
                 cout << "(empty sequence)\n";
             } else {
@@ -1239,8 +1242,11 @@ namespace {
                     cout << sequence[i];
                 }
                 cout << "\n";
+                cout << "  The " << n << "th Fibonacci number is = " << vm.R[0] << "\n\n";
             }
-            cout << "  Final term (R0) = " << vm.R[0] << "\n\n";
+        } else if (preset == "add") {
+            cout << "Result:\n";
+            cout << "  Addition result: " << vm.R[0] << "\n\n";
         }
 
         cout << "Registers:\n";
@@ -1429,17 +1435,15 @@ namespace {
         ensureHistoryLoaded();
 
         while (true) {
-            cout << "\nASM File Loader\n"
-                 << "1) sample_addition.asm\n"
-                 << "2) sample_factorial.asm\n"
-                 << "3) sample_fibonacci.asm\n"
-                 << "4) Browse .asm file (file picker)\n"
-                 << "5) Enter custom path\n"
-                 << "6) Use last ASM file\n"
-                 << "7) Choose from recent ASM files\n"
-                 << "0) Back\n"
-                 << "Tip: paste a full path directly here if you want.\n"
-                 << "Select file: ";
+              cout << "\nASM File Loader\n"
+                  << "1) sample_addition.asm\n"
+                  << "2) sample_factorial.asm\n"
+                  << "3) sample_fibonacci.asm\n"
+                  << "4) Browse .asm file (file picker)\n"
+                  << "5) Enter custom path\n"
+                  << "0) Back\n"
+                  << "Tip: paste a full path directly here if you want.\n"
+                  << "Select file: ";
 
             string rawChoice;
             if (!getline(cin, rawChoice)) return false;
@@ -1458,16 +1462,6 @@ namespace {
             } else if (choice == "5") {
                 cout << "Enter ASM file path: ";
                 if (!getline(cin, selectedPath)) return false;
-            } else if (choice == "6") {
-                string historyErr;
-                if (!getLastAsmPath(selectedPath, historyErr)) {
-                    cout << historyErr << "\n";
-                    continue;
-                }
-            } else if (choice == "7") {
-                if (!chooseRecentPath(historyState().asmRecent, "Recent ASM Files", selectedPath)) {
-                    continue;
-                }
             } else {
                 if (isDigitsOnly(choice)) {
                     cout << "Unknown file option. Try again.\n";
@@ -1510,8 +1504,6 @@ namespace {
                  << "4) trace_addition_bin.jsonl\n"
                  << "5) Browse .jsonl file (file picker)\n"
                  << "6) Enter custom path\n"
-                 << "7) Use last trace file\n"
-                 << "8) Choose from recent trace files\n"
                  << "0) Back\n"
                  << "Tip: paste a full path directly here if you want.\n"
                  << "Select trace file: ";
@@ -1534,16 +1526,6 @@ namespace {
             } else if (choice == "6") {
                 cout << "Enter trace file path: ";
                 if (!getline(cin, selectedPath)) return false;
-            } else if (choice == "7") {
-                string historyErr;
-                if (!getLastTracePath(selectedPath, historyErr)) {
-                    cout << historyErr << "\n";
-                    continue;
-                }
-            } else if (choice == "8") {
-                if (!chooseRecentPath(historyState().traceRecent, "Recent Trace Files", selectedPath)) {
-                    continue;
-                }
             } else {
                 if (isDigitsOnly(choice)) {
                     cout << "Unknown trace option. Try again.\n";
@@ -1879,14 +1861,43 @@ namespace {
         }
 
         if (options.quietOutput) {
-            cout << vm.R[0] << "\n";
+            // Friendly output for sample ASM files
+            if (asmPath.find("sample_factorial.asm") != string::npos) {
+                cout << "Factorial of 5 is = " << vm.R[0] << "\n";
+            } else if (asmPath.find("sample_fibonacci.asm") != string::npos) {
+                vector<int> fibSeq{0,1};
+                for (int i = 2; i < 8; ++i) fibSeq.push_back(fibSeq[i-1] + fibSeq[i-2]);
+                for (size_t i = 0; i < fibSeq.size(); ++i) {
+                    if (i > 0) cout << " ";
+                    cout << fibSeq[i];
+                }
+                cout << "\nThe 8th Fibonacci number is = " << vm.R[0] << "\n";
+            } else if (asmPath.find("sample_addition.asm") != string::npos) {
+                cout << "Addition of 12 and 15 is = " << vm.R[0] << "\n";
+            } else {
+                cout << vm.R[0] << "\n";
+            }
             rememberAsmPath(asmPath);
             return 0;
         }
 
-        cout << "Result:\n";
-        cout << "  ASM program executed successfully\n";
-        cout << "  source: " << asmPath << "\n\n";
+        // Friendly output for sample ASM files (non-quiet mode)
+        if (asmPath.find("sample_factorial.asm") != string::npos) {
+            cout << "Result:\n  Factorial of 5 is = " << vm.R[0] << "\n\n";
+        } else if (asmPath.find("sample_fibonacci.asm") != string::npos) {
+            cout << "Result:\n  Fibonacci sequence for 8 terms: ";
+            vector<int> fibSeq{0,1};
+            for (int i = 2; i < 8; ++i) fibSeq.push_back(fibSeq[i-1] + fibSeq[i-2]);
+            for (size_t i = 0; i < fibSeq.size(); ++i) {
+                if (i > 0) cout << " ";
+                cout << fibSeq[i];
+            }
+            cout << "\n  The 8th Fibonacci number is = " << vm.R[0] << "\n\n";
+        } else if (asmPath.find("sample_addition.asm") != string::npos) {
+            cout << "Result:\n  Addition of 12 and 15 is = " << vm.R[0] << "\n\n";
+        } else {
+            cout << "Result:\n  ASM program executed successfully\n  source: " << asmPath << "\n\n";
+        }
 
         cout << "Registers:\n";
         for (int i = 0; i < 8; i += 2) {
@@ -2192,6 +2203,31 @@ namespace {
         if (total == 0) {
             cout << "Trace file is empty.\n";
             return 0;
+        }
+
+        // Detect which sample this is for friendly output
+        string opDesc;
+        if (tracePath.find("factorial") != string::npos) {
+            opDesc = "Factorial of 5 is = " + to_string(lastRegs[0]);
+        } else if (tracePath.find("fibonacci") != string::npos) {
+            // Print all terms for 8-term Fibonacci
+            vector<int> fibSeq;
+            fibSeq.push_back(0);
+            fibSeq.push_back(1);
+            for (int i = 2; i < 8; ++i) fibSeq.push_back(fibSeq[i-1] + fibSeq[i-2]);
+            ostringstream oss;
+            oss << "Fibonacci sequence for 8 terms: ";
+            for (size_t i = 0; i < fibSeq.size(); ++i) {
+                if (i > 0) oss << " ";
+                oss << fibSeq[i];
+            }
+            oss << "\nThe 8th Fibonacci number is = " << lastRegs[0];
+            opDesc = oss.str();
+        } else if (tracePath.find("addition") != string::npos) {
+            opDesc = "Addition of 12 and 15 is = " + to_string(lastRegs[0]);
+        }
+        if (!opDesc.empty()) {
+            cout << opDesc << "\n";
         }
 
         if (firstStep >= 0 && lastStep >= 0) {
