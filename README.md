@@ -139,6 +139,33 @@ g++ vm_cli.cpp -std=c++17 -O2 -o vm_cli.exe
 - Click **Compile & Flash**.
 - Use **Next Step** (manual) or **Auto Run**.
 
+### 2b) 🖥️ Open Browser CLI (No Setup)
+
+- Open `custom_vm_project/kali_ui.html` in your browser.
+- Run `help` to list commands.
+- Try:
+  - `fact 5`
+  - `fib 8`
+  - `asm-list`
+  - `asm fact`
+  - `asm-build fib fib.bin`
+  - `run-bin fib.bin`
+  - `trace-summary`
+
+On GitHub Pages, this is directly accessible at:
+
+- `https://<your-username>.github.io/<repo-name>/custom_vm_project/kali_ui.html`
+
+### 2c) 📺 Open Classic Menu CLI (Screenshot-style)
+
+- Open `custom_vm_project/menu_cli.html` in your browser.
+- This page is designed to look and behave like the native VM CLI menu screen.
+- Choose menu options `1..5` directly in terminal-style input.
+
+On GitHub Pages, this is directly accessible at:
+
+- `https://<your-username>.github.io/<repo-name>/custom_vm_project/menu_cli.html`
+
 ### 3) 🐧 WSL Support
 
 - WSL-specific scripts and commands are in `custom_vm_project/wsl/`
@@ -200,6 +227,63 @@ This subset is intentionally small to keep the instruction mapping clear and edu
 ---
 
 ## 📊 Trace Output
+
+## 🌍 Publish for Everyone (GitHub Pages)
+
+This repo includes an auto-deploy workflow in `.github/workflows/` (currently `jekyll-gh-pages.yml`).
+
+### One-time setup
+
+1. Push your code to GitHub on the `main` branch.
+2. In GitHub: **Settings → Pages**
+3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+4. Wait for the workflow **Deploy GitHub Pages** to finish.
+
+### Public links
+
+- Landing page: `https://<your-username>.github.io/<repo-name>/`
+- Browser CLI: `https://<your-username>.github.io/<repo-name>/custom_vm_project/kali_ui.html`
+- Classic Menu CLI: `https://<your-username>.github.io/<repo-name>/custom_vm_project/menu_cli.html`
+- Viewer: `https://<your-username>.github.io/<repo-name>/custom_vm_project/viewer.html`
+
+## 📦 Best Way to Share Native CLI (No Clone/Build)
+
+This repo now includes a release workflow at `.github/workflows/release-cli.yml`.
+
+What it does:
+
+- On every pushed tag like `v1.0.0`, GitHub Actions compiles `vm_cli.cpp` for:
+  - Windows
+  - Linux
+  - macOS
+- It auto-creates/updates a GitHub Release for that tag.
+- It auto-attaches downloadable binaries.
+
+### Publish a new version
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Share one stable link
+
+Use:
+
+- `https://github.com/<your-username>/<repo-name>/releases/latest`
+
+Users can open that link, download their OS binary, and run directly (no clone/build/setup).
+
+### What users can do (no clone, no setup)
+
+On the Browser CLI page, they can run:
+
+- `help`
+- `fact 5`
+- `fib 8`
+- `asm-list`
+- `asm fact`
+- `trace-summary`
 
 Running `vm.cpp` generates `trace.jsonl` with per-step machine state:
 
