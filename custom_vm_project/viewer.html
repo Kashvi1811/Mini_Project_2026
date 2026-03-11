@@ -471,6 +471,11 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         python: 'Python'
     };
 
+    const presetRanges = {
+        fact: { min: 0, max: 17, label: 'Factorial N' },
+        fib: { min: 0, max: 63, label: 'Fibonacci N' }
+    };
+
     const regNames = ["Accumulator (R0)", "Loop Counter (R1)", "Return Address (R2)", "General R3", "General R4", "General R5", "General R6", "General R7"];
 
     function clearPresetSelection() {
@@ -1470,17 +1475,49 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
         return true;
     }
 
+    function promptPresetNumber(presetKey, defaultValue) {
+        const cfg = presetRanges[presetKey];
+        if (!cfg) return null;
+
+        let suggestedValue = String(defaultValue);
+
+        while (true) {
+            const input = prompt(
+                `Enter ${cfg.label} (${cfg.min}-${cfg.max}):`,
+                suggestedValue
+            );
+            if (input === null) return null;
+
+            const trimmed = input.trim();
+            if (!/^\d+$/.test(trimmed)) {
+                alert(`Invalid input for ${cfg.label}. Please enter an integer between ${cfg.min} and ${cfg.max}.`);
+                continue;
+            }
+
+            const value = parseInt(trimmed, 10);
+            if (value < cfg.min || value > cfg.max) {
+                alert(`Out of range for ${cfg.label}. Supported range is ${cfg.min}-${cfg.max}.`);
+                continue;
+            }
+
+            return value;
+        }
+    }
+
     function loadPreset(type) {
-        currentPreset = type;
         if(type === 'fact') {
-            presetVal = prompt("What is the value till you want to run (Factorial N)?", "5");
-            if(presetVal === null) return;
+            const value = promptPresetNumber('fact', 5);
+            if (value === null) return;
+            currentPreset = type;
+            presetVal = value;
             switchEditor('asm');
             document.getElementById('asm-editor').value = `LOAD R0, 1\nLOAD R1, ${presetVal}\nLOAD R2, 3\nMUL R0, R1\nSUB R1, 1\nJZ R1, 2\nJMP R2\nHALT`;
         } 
         else if(type === 'fib') {
-            presetVal = prompt("What is the value till you want to run (Fibonacci N)?", "4");
-            if(presetVal === null) return;
+            const value = promptPresetNumber('fib', 4);
+            if (value === null) return;
+            currentPreset = type;
+            presetVal = value;
             switchEditor('asm');
 
             // Robust Fibonacci assembly:
@@ -1490,7 +1527,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
             // R4 = loop start index (we set to 6)
             // After looping (n-1) times, R1 will contain F(n)
             // Program constructed so indexes match the logic below.
-            const n = parseInt(presetVal, 10) || 0;
+            const n = presetVal;
             const lines = [
                 "LOAD R0, 0",        // 0
                 "LOAD R1, 1",        // 1
@@ -1517,6 +1554,7 @@ Instruction Register (IR) – 16-bit Instruction Breakdown
             document.getElementById('asm-editor').value = lines.join("\n");
         }
         else {
+            currentPreset = type;
             switchEditor('c');
             setHighLevelLanguage('cpp');
             document.getElementById('c-editor').value = "int a = 5;\nint b = 7;\nint c = a + b;";
