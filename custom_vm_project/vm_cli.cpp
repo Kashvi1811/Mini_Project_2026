@@ -1211,29 +1211,36 @@ namespace {
             if (preset == "fact") {
                 cout << "Factorial of " << n << " = " << vm.R[0] << "\n";
             } else {
-                cout << "Fibonacci final term for n=" << n << " = " << vm.R[0] << "\n";
+                cout << "Fibonacci upto " << n << " terms = ";
+                if (sequence.empty()) {
+                    cout << "(empty sequence)\n";
+                } else {
+                    for (size_t i = 0; i < sequence.size(); i++) {
+                        if (i > 0) cout << " ";
+                        cout << sequence[i];
+                    }
+                    cout << "\n";
+                }
             }
             return 0;
         }
 
         if (preset == "fact") {
             cout << "Result:\n";
-            cout << "  Factorial(" << n << ") = " << vm.R[0] << "\n\n";
+            cout << "  Factorial of " << n << " = " << vm.R[0] << "\n\n";
         } else {
             cout << "Result:\n";
-            cout << "  Fibonacci(" << n << " terms)\n";
-            cout << "  Sequence: ";
+            cout << "  Fibonacci upto " << n << " terms = ";
             if (sequence.empty()) {
-                cout << "[]\n";
+                cout << "(empty sequence)\n";
             } else {
-                cout << "[";
                 for (size_t i = 0; i < sequence.size(); i++) {
+                    if (i > 0) cout << " ";
                     cout << sequence[i];
-                    if (i + 1 < sequence.size()) cout << ", ";
                 }
-                cout << "]\n";
+                cout << "\n";
             }
-            cout << "  Final term (R0): " << vm.R[0] << "\n\n";
+            cout << "  Final term (R0) = " << vm.R[0] << "\n\n";
         }
 
         cout << "Registers:\n";
