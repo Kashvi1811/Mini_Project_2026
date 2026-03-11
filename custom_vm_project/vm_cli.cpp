@@ -2267,8 +2267,16 @@ namespace {
         if (open) {
 #ifdef _WIN32
             std::string cmd = "start \"\" \"" + hostedViewerUrl + "\"";
+            int rc = system(cmd.c_str());
+            if (rc != 0) {
+                std::cout << "Failed to launch browser. Please open manually: " << hostedViewerUrl << std::endl;
+            }
 #elif __APPLE__
             std::string cmd = "open '" + hostedViewerUrl + "'";
+            int rc = system(cmd.c_str());
+            if (rc != 0) {
+                std::cout << "Failed to launch browser. Please open manually: " << hostedViewerUrl << std::endl;
+            }
 #else
             if (commandExists("xdg-open")) {
                 std::string cmd = "xdg-open '" + hostedViewerUrl + "'";
@@ -2279,12 +2287,7 @@ namespace {
             } else {
                 std::cout << "No browser launcher found. Please open manually: " << hostedViewerUrl << std::endl;
             }
-            return 0;
 #endif
-            int rc = system(cmd.c_str());
-            if (rc != 0) {
-                std::cout << "Failed to launch browser. Please open manually: " << hostedViewerUrl << std::endl;
-            }
         }
         return 0;
     }
