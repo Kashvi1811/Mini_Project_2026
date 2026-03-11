@@ -31,28 +31,43 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build Windows binary
+
+      - name: Copy sample ASM and trace files (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item custom_vm_project\sample_*.asm .
+          Copy-Item custom_vm_project\trace*.jsonl .
+
+      - name: Build Windows binary and zip with samples
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           cl /std:c++17 /EHsc /O2 /nologo custom_vm_project\vm_cli.cpp /Fe:vm_cli.exe
-          Compress-Archive -Path vm_cli.exe -DestinationPath "${{ matrix.artifact_name }}" -Force
+          Compress-Archive -Path vm_cli.exe,sample_*.asm,trace*.jsonl -DestinationPath "${{ matrix.artifact_name }}" -Force
 
-      - name: Build Linux binary
+      - name: Copy sample ASM and trace files (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cp custom_vm_project/sample_*.asm .
+          cp custom_vm_project/trace*.jsonl .
+
+      - name: Build Linux binary and tar with samples
         if: runner.os == 'Linux'
         shell: bash
         run: |
           g++ -std=c++17 -O2 custom_vm_project/vm_cli.cpp -o vm_cli
           chmod +x vm_cli
-          tar -czf "${{ matrix.artifact_name }}" vm_cli
+          tar -czf "${{ matrix.artifact_name }}" vm_cli sample_*.asm trace*.jsonl
 
-      - name: Build macOS binary
+      - name: Build macOS binary and tar with samples
         if: runner.os == 'macOS'
         shell: bash
         run: |
           clang++ -std=c++17 -O2 custom_vm_project/vm_cli.cpp -o vm_cli
           chmod +x vm_cli
-          tar -czf "${{ matrix.artifact_name }}" vm_cli
+          tar -czf "${{ matrix.artifact_name }}" vm_cli sample_*.asm trace*.jsonl
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
