@@ -520,12 +520,15 @@ namespace {
             return true;
         }
 
-        if (op == "ADD" || op == "MUL") {
+        if (op == "ADD" || op == "MUL" || op == "AND" || op == "NOT") {
             if (p.size() != 3 || !parseRegister(p[1], rd) || !parseRegister(p[2], rs)) {
                 err = "Line " + to_string(lineNumber) + ": " + op + " expects \"" + op + " Rn, Rm\".";
                 return false;
             }
-            opcode = (op == "ADD") ? 1 : 7;
+            if (op == "ADD") opcode = 1;
+            else if (op == "AND") opcode = 2;
+            else if (op == "NOT") opcode = 3;
+            else opcode = 7; // MUL
         } else if (op == "JMP") {
             if (p.size() != 2 || !parseRegister(p[1], rd)) {
                 err = "Line " + to_string(lineNumber) + ": JMP expects \"JMP Rn\".";
@@ -1356,27 +1359,31 @@ namespace {
         return system(checkCmd.c_str()) == 0;
         }
 
-        bool readLineFromCommand(const string& command, string& outLine) {
-        outLine.clear();
-    #ifdef _WIN32
-        FILE* pipe = _popen(command.c_str(), "r");
-    #else
-        FILE* pipe = popen(command.c_str(), "r");
-    #endif
-        if (!pipe) return false;
+                bool readLineFromCommand(const string& command, string& outLine) {
+                outLine.clear();
+                // Fallback implementation: run the command and capture its first line
+                // by redirecting output to a temporary file. This avoids relying on
+                // platform-specific popen/_popen symbols which may not be declared
+                // in some toolchains.
+                const string tmpFile = ".vm_cli_cmd_out.tmp";
+                string fullCmd = command + " > \"" + tmpFile + "\" 2>&1";
+                // Use system() to execute the command; capture may still succeed even
+                // if the exit status is non-zero, so we read the file regardless.
+                (void)system(fullCmd.c_str());
 
-        char buffer[4096] = {0};
-        if (fgets(buffer, static_cast<int>(sizeof(buffer)), pipe) != nullptr) {
-            outLine = trim(string(buffer));
-        }
-
-    #ifdef _WIN32
-        _pclose(pipe);
-    #else
-        pclose(pipe);
-    #endif
-        return !outLine.empty();
-        }
+                ifstream in(tmpFile);
+                if (!in) return false;
+                string line;
+                bool ok = false;
+                if (getline(in, line)) {
+                    outLine = trim(line);
+                    ok = !outLine.empty();
+                }
+                in.close();
+                // Best-effort cleanup; ignore errors.
+                remove(tmpFile.c_str());
+                return ok;
+                }
 
         bool chooseFileWithDialog(const string& title, const string& pattern, string& outPath) {
     #ifdef _WIN32
