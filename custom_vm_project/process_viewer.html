@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Process State Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f7ff;
+      --bg2:#eef4ff;
+      --card:rgba(255,255,255,.75);
+      --card2:rgba(255,255,255,.9);
+      --border:rgba(99,102,241,.12);
+      --text:#0f172a;
+      --muted:#64748b;
+      --primary:#6366f1;
+      --primary2:#8b5cf6;
+      --accent:#06b6d4;
+      --success:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow:0 20px 60px rgba(15,23,42,.10);
+      --shadow2:0 12px 30px rgba(99,102,241,.12);
+      --radius:28px;
+    }
+
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    body{
+      font-family:'Inter',sans-serif;
+      color:var(--text);
+      min-height:100vh;
+      background:
+        radial-gradient(circle at top left, rgba(99,102,241,.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(6,182,212,.18), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(139,92,246,.14), transparent 26%),
+        linear-gradient(180deg, #fbfcff 0%, #f3f6ff 100%);
+      overflow-x:hidden;
+    }
+
+    .blob{
+      position:fixed;
+      border-radius:50%;
+      filter:blur(40px);
+      opacity:.45;
+      pointer-events:none;
+      z-index:0;
+    }
+
+    .blob.one{width:240px;height:240px;left:-70px;top:60px;background:rgba(99,102,241,.18);}
+    .blob.two{width:260px;height:260px;right:-90px;top:120px;background:rgba(6,182,212,.16);}
+    .blob.three{width:300px;height:300px;left:25%;bottom:-140px;background:rgba(139,92,246,.12);}
+
+    .app{
+      position:relative;
+      z-index:1;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+      padding:20px;
+    }
+
+    .topbar{
+      background:var(--card);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow2);
+      border-radius:24px;
+      padding:18px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:280px;
+    }
+
+    .brand-mark{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      background:linear-gradient(135deg,var(--primary),var(--accent));
+      box-shadow:0 12px 24px rgba(99,102,241,.25);
+      display:grid;
+      place-items:center;
+      color:white;
+      font-size:22px;
+      font-weight:800;
+    }
+
+    .brand h1{
+      font-size:1.15rem;
+      font-weight:900;
+      letter-spacing:-.03em;
+      line-height:1.1;
+    }
+
+    .brand p{
+      font-size:.88rem;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    .chips{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .chip{
+      background:rgba(255,255,255,.82);
+      border:1px solid rgba(99,102,241,.12);
+      color:#334155;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:.82rem;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      box-shadow:0 8px 20px rgba(15,23,42,.05);
+    }
+
+    .chip b{
+      color:var(--primary);
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1.5fr .95fr;
+      gap:18px;
+      align-items:stretch;
+    }
+
+    .summary-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .summary-card{
+      background:var(--card2);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow2);
+      border-radius:22px;
+      padding:18px;
+      min-height:108px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .summary-card span{
+      color:var(--muted);
+      font-size:.78rem;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .summary-card strong{
+      font-size:1.65rem;
+      letter-spacing:-.04em;
+      line-height:1;
+    }
+
+    .summary-card em{
+      font-style:normal;
+      color:var(--muted);
+      font-size:.86rem;
+    }
+
+    .panel{
+      background:var(--card);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
+      padding:20px;
+    }
+
+    .viz-panel{
+      min-height:660px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .panel-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .panel-title h2{
+      font-size:1.25rem;
+      font-weight:900;
+      letter-spacing:-.03em;
+    }
+
+    .panel-title p{
+      color:var(--muted);
+      font-size:.92rem;
+      margin-top:4px;
+    }
+
+    .state-pill{
+      padding:10px 14px;
+      border-radius:999px;
+      background:linear-gradient(135deg, rgba(99,102,241,.12), rgba(6,182,212,.12));
+      color:#1e293b;
+      font-weight:800;
+      font-size:.84rem;
+      border:1px solid rgba(99,102,241,.18);
+    }
+
+    .svg-wrap{
+      flex:1;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.82));
+      border:1px solid rgba(99,102,241,.10);
+      border-radius:24px;
+      padding:12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .svg-wrap::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(99,102,241,.08), transparent 35%),
+        radial-gradient(circle at 75% 20%, rgba(6,182,212,.08), transparent 28%);
+      pointer-events:none;
+    }
+
+    svg{
+      width:100%;
+      max-width:980px;
+      height:auto;
+      display:block;
+      overflow:visible;
+    }
+
+    .state-circle{
+      fill:#fff;
+      stroke:#dbe4ff;
+      stroke-width:2;
+      filter:url(#softShadow);
+      transition:all .25s ease;
+    }
+
+    .state-circle.active{
+      fill:url(#activeFill);
+      stroke:#7c3aed;
+      stroke-width:4;
+      filter:url(#glow);
+    }
+
+    .state-ring{
+      fill:none;
+      stroke:#e9efff;
+      stroke-width:14;
+      stroke-linecap:round;
+      opacity:.85;
+    }
+
+    .state-ring.active{
+      stroke:url(#ringGrad);
+      stroke-dasharray:260;
+      animation:dash 2.8s linear infinite;
+    }
+
+    @keyframes dash{
+      to{stroke-dashoffset:-520;}
+    }
+
+    .state-label{
+      fill:#0f172a;
+      font-size:19px;
+      font-weight:900;
+      text-anchor:middle;
+      letter-spacing:.02em;
+    }
+
+    .state-sub{
+      fill:#64748b;
+      font-size:10px;
+      font-weight:700;
+      text-anchor:middle;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+
+    .emoji{
+      font-size:22px;
+      text-anchor:middle;
+    }
+
+    .path{
+      fill:none;
+      stroke:#cbd5e1;
+      stroke-width:2.5;
+      stroke-linecap:round;
+      opacity:.9;
+    }
+
+    .path.active{
+      stroke:url(#lineGrad);
+      stroke-width:4.8;
+      filter:url(#softGlow);
+    }
+
+    .tag{
+      fill:#0f172a;
+      opacity:.92;
+    }
+
+    .tag-text{
+      fill:white;
+      font-size:11px;
+      font-weight:800;
+      text-anchor:middle;
+    }
+
+    .right-panel{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      min-height:660px;
+    }
+
+    .detail-card{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      justify-content:space-between;
+    }
+
+    .current-box{
+      background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(245,248,255,.82));
+      border:1px solid rgba(99,102,241,.12);
+      border-radius:24px;
+      padding:20px;
+      box-shadow:0 18px 40px rgba(15,23,42,.07);
+    }
+
+    .current-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .big-state{
+      font-size:1.95rem;
+      font-weight:900;
+      letter-spacing:-.05em;
+      line-height:1;
+    }
+
+    .subline{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:.96rem;
+      line-height:1.5;
+    }
+
+    .metric-row{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .metric{
+      background:#fff;
+      border:1px solid rgba(99,102,241,.10);
+      border-radius:18px;
+      padding:14px;
+    }
+
+    .metric small{
+      display:block;
+      color:var(--muted);
+      font-size:.73rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .metric strong{
+      font-size:1rem;
+      letter-spacing:-.02em;
+    }
+
+    .event-card{
+      background:linear-gradient(135deg, rgba(99,102,241,.10), rgba(6,182,212,.09));
+      border:1px solid rgba(99,102,241,.14);
+      border-radius:24px;
+      padding:18px;
+    }
+
+    .event-card h3{
+      font-size:1.05rem;
+      font-weight:900;
+      margin-bottom:8px;
+    }
+
+    .event-card p{
+      color:#334155;
+      line-height:1.6;
+      font-size:.95rem;
+    }
+
+    .log-card{
+      background:#fff;
+      border:1px solid rgba(99,102,241,.10);
+      border-radius:24px;
+      padding:16px;
+      min-height:200px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .log-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+
+    .log-head h4{
+      font-size:.98rem;
+      font-weight:900;
+    }
+
+    .log-head span{
+      color:var(--muted);
+      font-size:.82rem;
+      font-weight:700;
+    }
+
+    .logs{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:.86rem;
+      color:#334155;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:140px;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .logs div{
+      background:#f8fbff;
+      border:1px solid #e6eeff;
+      border-radius:14px;
+      padding:10px 12px;
+    }
+
+    .controls{
+      background:var(--card);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow2);
+      border-radius:24px;
+      padding:16px 18px;
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .progress-area{
+      flex:1;
+      min-width:260px;
+    }
+
+    .progress-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .progress-top strong{
+      font-size:.95rem;
+      font-weight:900;
+    }
+
+    .progress-top span{
+      color:var(--muted);
+      font-size:.9rem;
+      font-weight:700;
+    }
+
+    .bar{
+      height:12px;
+      background:#e7ecfb;
+      border-radius:999px;
+      overflow:hidden;
+      position:relative;
+      box-shadow:inset 0 1px 2px rgba(15,23,42,.05);
+    }
+
+    .bar-fill{
+      height:100%;
+      width:0%;
+      border-radius:inherit;
+      background:linear-gradient(90deg, var(--primary), var(--accent));
+      transition:width .35s ease;
+      box-shadow:0 8px 18px rgba(99,102,241,.28);
+    }
+
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    button{
+      border:none;
+      cursor:pointer;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:800;
+      font-family:inherit;
+      transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+      letter-spacing:-.01em;
+    }
+
+    button:hover{
+      transform:translateY(-2px);
+    }
+
+    button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .btn-primary{
+      color:white;
+      background:linear-gradient(135deg,var(--primary),var(--primary2));
+      box-shadow:0 12px 24px rgba(99,102,241,.22);
+    }
+
+    .btn-soft{
+      background:white;
+      color:#1e293b;
+      border:1px solid rgba(99,102,241,.14);
+      box-shadow:0 10px 20px rgba(15,23,42,.05);
+    }
+
+    .legend{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:-2px;
+    }
+
+    .legend-item{
+      background:rgba(255,255,255,.82);
+      border:1px solid rgba(99,102,241,.10);
+      border-radius:999px;
+      padding:10px 14px;
+      font-size:.82rem;
+      color:#334155;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:var(--primary);
+      box-shadow:0 0 0 4px rgba(99,102,241,.12);
+    }
+
+    .dot.green{background:var(--success); box-shadow:0 0 0 4px rgba(34,197,94,.12);}
+    .dot.blue{background:var(--accent); box-shadow:0 0 0 4px rgba(6,182,212,.12);}
+    .dot.orange{background:var(--warn); box-shadow:0 0 0 4px rgba(245,158,11,.12);}
+
+    @media (max-width:1100px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+      .summary-grid{
+        grid-template-columns:repeat(2,1fr);
+      }
+      .viz-panel,.right-panel{
+        min-height:auto;
+      }
+    }
+
+    @media (max-width:768px){
+      .app{
+        padding:14px;
+      }
+      .summary-grid{
+        grid-template-columns:1fr;
+      }
+      .metric-row{
+        grid-template-columns:1fr;
+      }
+      .topbar,.controls{
+        padding:16px;
+      }
+      .panel{
+        padding:16px;
+      }
+      .brand{
+        min-width:auto;
+      }
+      .btns{
+        width:100%;
+      }
+      button{
+        flex:1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob one"></div>
+  <div class="blob two"></div>
+  <div class="blob three"></div>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">⚡</div>
+        <div>
+          <h1>Process State Visualizer</h1>
+          <p>High-level lifecycle view for your custom VM project</p>
+        </div>
+      </div>
+      <div class="chips">
+        <div class="chip">PID <b id="pidChip">0x01</b></div>
+        <div class="chip">CPU <b id="cpuChip">0ms</b></div>
+        <div class="chip">Mode <b id="modeChip">AUTO OFF</b></div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span>Current State</span>
+        <strong id="summaryState">NEW</strong>
+        <em id="summaryHint">Process created</em>
+      </div>
+      <div class="summary-card">
+        <span>Step</span>
+        <strong id="summaryStep">0 / 9</strong>
+        <em>Lifecycle progress</em>
+      </div>
+      <div class="summary-card">
+        <span>Event</span>
+        <strong id="summaryEvent">Create</strong>
+        <em>Kernel transition</em>
+      </div>
+      <div class="summary-card">
+        <span>Runtime</span>
+        <strong id="summaryTime">0</strong>
+        <em>Executed burst time</em>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="panel viz-panel">
+        <div class="panel-title">
+          <div>
+            <h2>Process Flow</h2>
+            <p>Clean lifecycle view with highlighted state, transition, and event</p>
+          </div>
+          <div class="state-pill" id="mainStatePill">STATE · NEW</div>
+        </div>
+
+        <div class="svg-wrap">
+          <svg id="stateSVG" viewBox="0 0 1180 620" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="activeFill" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#eef2ff"/>
+                <stop offset="100%" stop-color="#dbeafe"/>
+              </linearGradient>
+
+              <linearGradient id="lineGrad" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="50%" stop-color="#06b6d4"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient>
+
+              <linearGradient id="ringGrad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="50%" stop-color="#06b6d4"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient>
+
+              <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#64748b" flood-opacity=".15"/>
+              </filter>
+
+              <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+                <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#6366f1" flood-opacity=".25"/>
+                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#38bdf8" flood-opacity=".10"/>
+              </filter>
+
+              <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+                <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#6366f1" flood-opacity=".20"/>
+              </filter>
+            </defs>
+
+            <path id="NEW_READY" d="M255 310 C340 220, 380 170, 485 170" class="path"/>
+            <path id="READY_RUNNING" d="M555 165 C675 155, 735 210, 815 280" class="path"/>
+            <path id="RUNNING_WAITING" d="M800 340 C740 420, 650 455, 560 465" class="path"/>
+            <path id="WAITING_READY" d="M495 450 C390 400, 385 340, 470 250" class="path"/>
+            <path id="RUNNING_TERMINATED" d="M860 310 C930 300, 995 300, 1065 300" class="path"/>
+
+            <circle id="NEW_RING" cx="180" cy="340" r="72" class="state-ring"/>
+            <circle id="NEW_NODE" cx="180" cy="340" r="56" class="state-circle"/>
+            <text x="180" y="331" class="emoji">🆕</text>
+            <text x="180" y="358" class="state-label">NEW</text>
+            <text x="180" y="382" class="state-sub">created</text>
+
+            <circle id="READY_RING" cx="520" cy="170" r="72" class="state-ring"/>
+            <circle id="READY_NODE" cx="520" cy="170" r="56" class="state-circle"/>
+            <text x="520" y="161" class="emoji">⏳</text>
+            <text x="520" y="188" class="state-label">READY</text>
+            <text x="520" y="212" class="state-sub">queued</text>
+
+            <circle id="RUNNING_RING" cx="860" cy="300" r="72" class="state-ring"/>
+            <circle id="RUNNING_NODE" cx="860" cy="300" r="56" class="state-circle"/>
+            <text x="860" y="291" class="emoji">⚡</text>
+            <text x="860" y="318" class="state-label">RUNNING</text>
+            <text x="860" y="342" class="state-sub">executing</text>
+
+            <circle id="WAITING_RING" cx="520" cy="470" r="72" class="state-ring"/>
+            <circle id="WAITING_NODE" cx="520" cy="470" r="56" class="state-circle"/>
+            <text x="520" y="461" class="emoji">⏸</text>
+            <text x="520" y="488" class="state-label">WAITING</text>
+            <text x="520" y="512" class="state-sub">blocked</text>
+
+            <circle id="TERMINATED_RING" cx="1080" cy="300" r="72" class="state-ring"/>
+            <circle id="TERMINATED_NODE" cx="1080" cy="300" r="56" class="state-circle"/>
+            <text x="1080" y="291" class="emoji">🏁</text>
+            <text x="1080" y="318" class="state-label">END</text>
+            <text x="1080" y="342" class="state-sub">finished</text>
+
+            <g id="tagGroup">
+              <rect id="tagRect" x="460" y="82" rx="18" ry="18" width="200" height="38" class="tag"/>
+              <text id="tagText" x="560" y="106" class="tag-text">PID: 0x01 · BURST: 0ms</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="dot"></span> Active state</div>
+          <div class="legend-item"><span class="dot blue"></span> Transition path</div>
+          <div class="legend-item"><span class="dot green"></span> Process running</div>
+          <div class="legend-item"><span class="dot orange"></span> Waiting state</div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="panel detail-card">
+          <div class="current-box">
+            <div class="current-top">
+              <div>
+                <div class="big-state" id="detailState">NEW</div>
+                <div class="subline" id="detailLine">A process is created and enters the system.</div>
+              </div>
+              <div class="state-pill" id="transitionPill">STEP 0</div>
+            </div>
+
+            <div class="metric-row">
+              <div class="metric">
+                <small>Process ID</small>
+                <strong id="detailPid">0x01</strong>
+              </div>
+              <div class="metric">
+                <small>CPU Burst</small>
+                <strong id="detailCpu">0ms</strong>
+              </div>
+              <div class="metric">
+                <small>Timestamp</small>
+                <strong id="detailTime">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="event-card">
+            <h3 id="eventTitle">Process created</h3>
+            <p id="eventDesc">The process enters the system and waits for scheduling.</p>
+          </div>
+
+          <div class="log-card">
+            <div class="log-head">
+              <h4>Live Kernel Trace</h4>
+              <span>latest events</span>
+            </div>
+            <div class="logs" id="logs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="progress-area">
+        <div class="progress-top">
+          <strong>Execution Progress</strong>
+          <span id="progressText">0% completed</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+      </div>
+      <div class="btns">
+        <button class="btn-soft" id="prevBtn">Prev</button>
+        <button class="btn-primary" id="nextBtn">Next</button>
+        <button class="btn-soft" id="resetBtn">Reset</button>
+        <button class="btn-primary" id="autoBtn">Auto Play</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const states = {
+      NEW: {
+        hint: "Process created",
+        line: "A process is created and enters the system.",
+        color: "#6366f1"
+      },
+      READY: {
+        hint: "Queued for CPU",
+        line: "The process is ready and waiting for the scheduler.",
+        color: "#06b6d4"
+      },
+      RUNNING: {
+        hint: "CPU allocated",
+        line: "The process is currently executing on the CPU.",
+        color: "#22c55e"
+      },
+      WAITING: {
+        hint: "Blocked on I/O",
+        line: "The process is waiting for I/O or another event.",
+        color: "#f59e0b"
+      },
+      TERMINATED: {
+        hint: "Process finished",
+        line: "The process has completed execution and exited.",
+        color: "#ef4444"
+      }
+    };
+
+    const traceData = [
+      { pid: 1, from: "NEW", to: "READY", timestamp: 0, event: "Process created · added to ready queue", burst: 0, title: "Create", desc: "A new process enters the system." },
+      { pid: 1, from: "READY", to: "RUNNING", timestamp: 1, event: "Scheduler dispatch · CPU allocated", burst: 12, title: "Dispatch", desc: "The scheduler selects the process for execution." },
+      { pid: 1, from: "RUNNING", to: "WAITING", timestamp: 2, event: "I/O request · blocked on disk read", burst: 0, title: "I/O wait", desc: "The process pauses while waiting for input/output." },
+      { pid: 1, from: "WAITING", to: "READY", timestamp: 3, event: "I/O interrupt · ready for CPU", burst: 0, title: "Wake up", desc: "I/O completes and the process returns to the ready queue." },
+      { pid: 1, from: "READY", to: "RUNNING", timestamp: 4, event: "Context switch · resumed execution", burst: 8, title: "Resume", desc: "The process gets CPU time again." },
+      { pid: 1, from: "RUNNING", to: "WAITING", timestamp: 5, event: "Page fault · waiting for memory", burst: 0, title: "Page fault", desc: "The process waits for memory pages to be loaded." },
+      { pid: 1, from: "WAITING", to: "READY", timestamp: 6, event: "Memory ready · reschedulable", burst: 0, title: "Memory ready", desc: "Memory becomes available and the process can run again." },
+      { pid: 1, from: "READY", to: "RUNNING", timestamp: 7, event: "CPU time slice acquired", burst: 6, title: "Time slice", desc: "The process resumes execution with a fresh CPU slice." },
+      { pid: 1, from: "RUNNING", to: "TERMINATED", timestamp: 8, event: "exit() · process terminated", burst: 0, title: "Terminate", desc: "The process completes and exits cleanly." }
+    ];
+
+    const nodeMap = {
+      NEW: "NEW_NODE",
+      READY: "READY_NODE",
+      RUNNING: "RUNNING_NODE",
+      WAITING: "WAITING_NODE",
+      TERMINATED: "TERMINATED_NODE"
+    };
+
+    const ringMap = {
+      NEW: "NEW_RING",
+      READY: "READY_RING",
+      RUNNING: "RUNNING_RING",
+      WAITING: "WAITING_RING",
+      TERMINATED: "TERMINATED_RING"
+    };
+
+    const stepLabelMap = {
+      NEW: "0x01",
+      READY: "0x01",
+      RUNNING: "0x01",
+      WAITING: "0x01",
+      TERMINATED: "0x01"
+    };
+
+    let currentStep = 0;
+    let autoTimer = null;
+    let isAuto = false;
+    let totalBurst = 0;
+
+    const stateSVG = document.getElementById("stateSVG");
+    const logs = document.getElementById("logs");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const autoBtn = document.getElementById("autoBtn");
+
+    const pidChip = document.getElementById("pidChip");
+    const cpuChip = document.getElementById("cpuChip");
+    const modeChip = document.getElementById("modeChip");
+
+    const summaryState = document.getElementById("summaryState");
+    const summaryHint = document.getElementById("summaryHint");
+    const summaryStep = document.getElementById("summaryStep");
+    const summaryEvent = document.getElementById("summaryEvent");
+    const summaryTime = document.getElementById("summaryTime");
+
+    const detailState = document.getElementById("detailState");
+    const detailLine = document.getElementById("detailLine");
+    const detailPid = document.getElementById("detailPid");
+    const detailCpu = document.getElementById("detailCpu");
+    const detailTime = document.getElementById("detailTime");
+
+    const eventTitle = document.getElementById("eventTitle");
+    const eventDesc = document.getElementById("eventDesc");
+    const progressText = document.getElementById("progressText");
+    const barFill = document.getElementById("barFill");
+    const mainStatePill = document.getElementById("mainStatePill");
+    const transitionPill = document.getElementById("transitionPill");
+    const tagText = document.getElementById("tagText");
+
+    function clearActive(){
+      Object.values(nodeMap).forEach(id => document.getElementById(id).classList.remove("active"));
+      Object.values(ringMap).forEach(id => document.getElementById(id).classList.remove("active"));
+      document.querySelectorAll(".path").forEach(p => p.classList.remove("active"));
+    }
+
+    function addLog(text){
+      const item = document.createElement("div");
+      item.textContent = `> ${text}`;
+      logs.prepend(item);
+    }
+
+    function animateDot(pathId){
+      const path = document.getElementById(pathId);
+      if(!path) return;
+
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("r", "6");
+      dot.setAttribute("fill", "url(#lineGrad)");
+      dot.setAttribute("filter", "url(#softGlow)");
+      stateSVG.appendChild(dot);
+
+      const len = path.getTotalLength();
+      let pos = 0;
+
+      function move(){
+        pos += 3;
+        if(pos > len){
+          dot.remove();
+          return;
+        }
+        const pt = path.getPointAtLength(pos);
+        dot.setAttribute("cx", pt.x);
+        dot.setAttribute("cy", pt.y);
+        requestAnimationFrame(move);
+      }
+
+      move();
+    }
+
+    function updateUI(){
+      clearActive();
+
+      const current = currentStep === 0 ? { to: "NEW", pid: 1, burst: 0, timestamp: 0, event: "Process created", title: "Create", desc: "A new process enters the system.", from: null } : traceData[currentStep - 1];
+      const activeState = currentStep === 0 ? "NEW" : current.to;
+
+      document.getElementById(nodeMap[activeState]).classList.add("active");
+      document.getElementById(ringMap[activeState]).classList.add("active");
+
+      if(currentStep > 0){
+        const pathId = `${current.from}_${current.to}`;
+        const path = document.getElementById(pathId);
+        if(path){
+          path.classList.add("active");
+          animateDot(pathId);
+        }
+      }
+
+      const stateInfo = states[activeState];
+      const pid = current.pid || 1;
+      const burst = currentStep === 0 ? 0 : traceData.slice(0, currentStep).reduce((a,b) => a + (b.burst || 0), 0);
+      totalBurst = burst;
+
+      pidChip.textContent = `0x0${pid}`;
+      cpuChip.textContent = `${burst}ms`;
+
+      summaryState.textContent = activeState;
+      summaryHint.textContent = stateInfo.hint;
+      summaryStep.textContent = `${currentStep} / ${traceData.length}`;
+      summaryEvent.textContent = currentStep === 0 ? "Create" : current.title;
+      summaryTime.textContent = currentStep === 0 ? "0" : String(current.timestamp);
+
+      detailState.textContent = activeState;
+      detailLine.textContent = stateInfo.line;
+      detailPid.textContent = `0x0${pid}`;
+      detailCpu.textContent = `${burst}ms`;
+      detailTime.textContent = currentStep === 0 ? "0" : String(current.timestamp);
+
+      eventTitle.textContent = currentStep === 0 ? "Process created" : current.title;
+      eventDesc.textContent = currentStep === 0 ? "The process enters the system and waits for scheduling." : current.desc;
+
+      progressText.textContent = `${Math.round((currentStep / traceData.length) * 100)}% completed`;
+      barFill.style.width = `${(currentStep / traceData.length) * 100}%`;
+
+      mainStatePill.textContent = `STATE · ${activeState}`;
+      transitionPill.textContent = `STEP ${currentStep} / ${traceData.length}`;
+      tagText.textContent = `PID: 0x0${pid} · BURST: ${burst}ms`;
+
+      prevBtn.disabled = currentStep === 0;
+      nextBtn.disabled = currentStep === traceData.length;
+
+      if(currentStep > 0){
+        addLog(`${current.event} | t=${current.timestamp}`);
+      }
+
+      if(currentStep === traceData.length && isAuto){
+        stopAuto();
+      }
+    }
+
+    function nextStep(){
+      if(currentStep < traceData.length){
+        currentStep++;
+        updateUI();
+      }
+    }
+
+    function prevStep(){
+      if(currentStep > 0){
+        currentStep--;
+        updateUI();
+      }
+    }
+
+    function resetAll(){
+      stopAuto();
+      currentStep = 0;
+      logs.innerHTML = "";
+      updateUI();
+    }
+
+    function startAuto(){
+      if(isAuto) return;
+      if(currentStep === traceData.length) currentStep = 0;
+      isAuto = true;
+      modeChip.textContent = "AUTO ON";
+      autoBtn.textContent = "Pause Auto";
+      autoTimer = setInterval(() => {
+        if(currentStep < traceData.length){
+          currentStep++;
+          updateUI();
+        }else{
+          stopAuto();
+        }
+      }, 1200);
+      updateUI();
+    }
+
+    function stopAuto(){
+      if(autoTimer) clearInterval(autoTimer);
+      autoTimer = null;
+      isAuto = false;
+      modeChip.textContent = "AUTO OFF";
+      autoBtn.textContent = "Auto Play";
+    }
+
+    function toggleAuto(){
+      if(isAuto) stopAuto();
+      else startAuto();
+    }
+
+    nextBtn.addEventListener("click", nextStep);
+    prevBtn.addEventListener("click", prevStep);
+    resetBtn.addEventListener("click", resetAll);
+    autoBtn.addEventListener("click", toggleAuto);
+
+    window.addEventListener("keydown", (e) => {
+      if(e.key === "ArrowRight"){ nextStep(); }
+      if(e.key === "ArrowLeft"){ prevStep(); }
+      if(e.key === "Home"){ resetAll(); }
+      if(e.key === " "){
+        e.preventDefault();
+        toggleAuto();
+      }
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
