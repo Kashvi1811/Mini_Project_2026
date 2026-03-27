@@ -676,6 +676,13 @@
         <div class="chip">CPU <b id="cpuChip">0ms</b></div>
         <div class="chip">Mode <b id="modeChip">AUTO OFF</b></div>
       </div>
+
+      <!-- ADD THIS INSIDE .topbar (after chips div) -->
+<select id="scenarioSelect" style="padding:10px;border-radius:10px;font-weight:700;">
+  <option value="chrome">Opening Chrome</option>
+  <option value="video">Watching YouTube</option>
+  <option value="download">Downloading File</option>
+</select>
     </div>
 
     <div class="summary-grid">
@@ -824,9 +831,11 @@
           </div>
 
           <div class="event-card">
-            <h3 id="eventTitle">Process created</h3>
-            <p id="eventDesc">The process enters the system and waits for scheduling.</p>
-          </div>
+  <h3 id="lessonTitle">Step 0 — Process Created</h3>
+  <p id="lessonWhat"><b>What:</b> Process enters system.</p>
+  <p id="lessonWhy"><b>Why:</b> OS needs to manage execution.</p>
+  <p id="lessonConcept"><b>Concept:</b> Process Creation</p>
+</div>
 
           <div class="log-card">
             <div class="log-head">
@@ -855,275 +864,143 @@
       </div>
     </div>
   </div>
+<script>
+const scenarios = {
+  chrome: [
+    {from:"NEW",to:"READY",what:"Chrome launched",why:"User clicked icon",concept:"Process Creation"},
+    {from:"READY",to:"RUNNING",what:"Chrome starts",why:"CPU assigned",concept:"CPU Scheduling"},
+    {from:"RUNNING",to:"WAITING",what:"Loads data",why:"Needs disk read",concept:"I/O"},
+    {from:"WAITING",to:"READY",what:"Data loaded",why:"I/O finished",concept:"Interrupt"},
+    {from:"READY",to:"RUNNING",what:"Rendering UI",why:"CPU available",concept:"Execution"},
+    {from:"RUNNING",to:"TERMINATED",what:"Idle",why:"Task done",concept:"Termination"}
+  ],
 
-  <script>
-    const states = {
-      NEW: {
-        hint: "Process created",
-        line: "A process is created and enters the system.",
-        color: "#6366f1"
-      },
-      READY: {
-        hint: "Queued for CPU",
-        line: "The process is ready and waiting for the scheduler.",
-        color: "#06b6d4"
-      },
-      RUNNING: {
-        hint: "CPU allocated",
-        line: "The process is currently executing on the CPU.",
-        color: "#22c55e"
-      },
-      WAITING: {
-        hint: "Blocked on I/O",
-        line: "The process is waiting for I/O or another event.",
-        color: "#f59e0b"
-      },
-      TERMINATED: {
-        hint: "Process finished",
-        line: "The process has completed execution and exited.",
-        color: "#ef4444"
-      }
-    };
+  video: [
+    {from:"NEW",to:"READY",what:"Video opened",why:"User clicks play",concept:"Creation"},
+    {from:"READY",to:"RUNNING",what:"Start playback",why:"CPU allocates",concept:"Scheduling"},
+    {from:"RUNNING",to:"WAITING",what:"Buffering",why:"Network delay",concept:"I/O Wait"},
+    {from:"WAITING",to:"READY",what:"Buffer ready",why:"Data received",concept:"Interrupt"},
+    {from:"READY",to:"RUNNING",what:"Resume video",why:"CPU available",concept:"Execution"},
+    {from:"RUNNING",to:"TERMINATED",what:"Video ends",why:"Playback finished",concept:"Termination"}
+  ],
 
-    const traceData = [
-      { pid: 1, from: "NEW", to: "READY", timestamp: 0, event: "Process created · added to ready queue", burst: 0, title: "Create", desc: "A new process enters the system." },
-      { pid: 1, from: "READY", to: "RUNNING", timestamp: 1, event: "Scheduler dispatch · CPU allocated", burst: 12, title: "Dispatch", desc: "The scheduler selects the process for execution." },
-      { pid: 1, from: "RUNNING", to: "WAITING", timestamp: 2, event: "I/O request · blocked on disk read", burst: 0, title: "I/O wait", desc: "The process pauses while waiting for input/output." },
-      { pid: 1, from: "WAITING", to: "READY", timestamp: 3, event: "I/O interrupt · ready for CPU", burst: 0, title: "Wake up", desc: "I/O completes and the process returns to the ready queue." },
-      { pid: 1, from: "READY", to: "RUNNING", timestamp: 4, event: "Context switch · resumed execution", burst: 8, title: "Resume", desc: "The process gets CPU time again." },
-      { pid: 1, from: "RUNNING", to: "WAITING", timestamp: 5, event: "Page fault · waiting for memory", burst: 0, title: "Page fault", desc: "The process waits for memory pages to be loaded." },
-      { pid: 1, from: "WAITING", to: "READY", timestamp: 6, event: "Memory ready · reschedulable", burst: 0, title: "Memory ready", desc: "Memory becomes available and the process can run again." },
-      { pid: 1, from: "READY", to: "RUNNING", timestamp: 7, event: "CPU time slice acquired", burst: 6, title: "Time slice", desc: "The process resumes execution with a fresh CPU slice." },
-      { pid: 1, from: "RUNNING", to: "TERMINATED", timestamp: 8, event: "exit() · process terminated", burst: 0, title: "Terminate", desc: "The process completes and exits cleanly." }
-    ];
+  download: [
+    {from:"NEW",to:"READY",what:"Download started",why:"User clicks download",concept:"Creation"},
+    {from:"READY",to:"RUNNING",what:"Connecting",why:"CPU assigns",concept:"Scheduling"},
+    {from:"RUNNING",to:"WAITING",what:"Downloading",why:"Waiting network",concept:"I/O"},
+    {from:"WAITING",to:"READY",what:"Packet received",why:"Network responds",concept:"Interrupt"},
+    {from:"READY",to:"RUNNING",what:"Writing file",why:"CPU resumes",concept:"Execution"},
+    {from:"RUNNING",to:"TERMINATED",what:"Download complete",why:"File saved",concept:"Termination"}
+  ]
+};
 
-    const nodeMap = {
-      NEW: "NEW_NODE",
-      READY: "READY_NODE",
-      RUNNING: "RUNNING_NODE",
-      WAITING: "WAITING_NODE",
-      TERMINATED: "TERMINATED_NODE"
-    };
+let currentScenario = "chrome";
+let traceData = scenarios[currentScenario];
 
-    const ringMap = {
-      NEW: "NEW_RING",
-      READY: "READY_RING",
-      RUNNING: "RUNNING_RING",
-      WAITING: "WAITING_RING",
-      TERMINATED: "TERMINATED_RING"
-    };
+const states = ["NEW","READY","RUNNING","WAITING","TERMINATED"];
+let step = 0;
 
-    const stepLabelMap = {
-      NEW: "0x01",
-      READY: "0x01",
-      RUNNING: "0x01",
-      WAITING: "0x01",
-      TERMINATED: "0x01"
-    };
+function getState(){
+  if(step === 0) return "NEW";
+  return traceData[step-1].to;
+}
 
-    let currentStep = 0;
-    let autoTimer = null;
-    let isAuto = false;
-    let totalBurst = 0;
+function clearActive(){
+  states.forEach(s=>{
+    document.getElementById(s+"_NODE").classList.remove("active");
+    document.getElementById(s+"_RING").classList.remove("active");
+  });
+  document.querySelectorAll(".path").forEach(p=>p.classList.remove("active"));
+}
 
-    const stateSVG = document.getElementById("stateSVG");
-    const logs = document.getElementById("logs");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const autoBtn = document.getElementById("autoBtn");
+function highlight(){
+  const s = getState();
+  document.getElementById(s+"_NODE").classList.add("active");
+  document.getElementById(s+"_RING").classList.add("active");
 
-    const pidChip = document.getElementById("pidChip");
-    const cpuChip = document.getElementById("cpuChip");
-    const modeChip = document.getElementById("modeChip");
+  if(step>0){
+    const tr = traceData[step-1];
+    const id = tr.from+"_"+tr.to;
+    const p = document.getElementById(id);
+    if(p) p.classList.add("active");
+  }
+}
 
-    const summaryState = document.getElementById("summaryState");
-    const summaryHint = document.getElementById("summaryHint");
-    const summaryStep = document.getElementById("summaryStep");
-    const summaryEvent = document.getElementById("summaryEvent");
-    const summaryTime = document.getElementById("summaryTime");
+function updateLesson(){
+  if(step === 0){
+    document.getElementById("lessonTitle").textContent =
+      "Step 0 — Process Created";
 
-    const detailState = document.getElementById("detailState");
-    const detailLine = document.getElementById("detailLine");
-    const detailPid = document.getElementById("detailPid");
-    const detailCpu = document.getElementById("detailCpu");
-    const detailTime = document.getElementById("detailTime");
+    document.getElementById("lessonWhat").innerHTML =
+      "<b>What:</b> Process is created";
 
-    const eventTitle = document.getElementById("eventTitle");
-    const eventDesc = document.getElementById("eventDesc");
-    const progressText = document.getElementById("progressText");
-    const barFill = document.getElementById("barFill");
-    const mainStatePill = document.getElementById("mainStatePill");
-    const transitionPill = document.getElementById("transitionPill");
-    const tagText = document.getElementById("tagText");
+    document.getElementById("lessonWhy").innerHTML =
+      "<b>Why:</b> User action triggers OS";
 
-    function clearActive(){
-      Object.values(nodeMap).forEach(id => document.getElementById(id).classList.remove("active"));
-      Object.values(ringMap).forEach(id => document.getElementById(id).classList.remove("active"));
-      document.querySelectorAll(".path").forEach(p => p.classList.remove("active"));
-    }
+    document.getElementById("lessonConcept").innerHTML =
+      "<b>Concept:</b> Process Creation";
 
-    function addLog(text){
-      const item = document.createElement("div");
-      item.textContent = `> ${text}`;
-      logs.prepend(item);
-    }
+    return;
+  }
 
-    function animateDot(pathId){
-      const path = document.getElementById(pathId);
-      if(!path) return;
+  const e = traceData[step-1];
 
-      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dot.setAttribute("r", "6");
-      dot.setAttribute("fill", "url(#lineGrad)");
-      dot.setAttribute("filter", "url(#softGlow)");
-      stateSVG.appendChild(dot);
+  document.getElementById("lessonTitle").textContent =
+    `Step ${step} — ${e.from} → ${e.to}`;
 
-      const len = path.getTotalLength();
-      let pos = 0;
+  document.getElementById("lessonWhat").innerHTML =
+    `<b>What:</b> ${e.what}`;
 
-      function move(){
-        pos += 3;
-        if(pos > len){
-          dot.remove();
-          return;
-        }
-        const pt = path.getPointAtLength(pos);
-        dot.setAttribute("cx", pt.x);
-        dot.setAttribute("cy", pt.y);
-        requestAnimationFrame(move);
-      }
+  document.getElementById("lessonWhy").innerHTML =
+    `<b>Why:</b> ${e.why}`;
 
-      move();
-    }
+  document.getElementById("lessonConcept").innerHTML =
+    `<b>Concept:</b> ${e.concept}`;
+}
 
-    function updateUI(){
-      clearActive();
+function updateUI(){
+  clearActive();
+  highlight();
+  updateLesson();
 
-      const current = currentStep === 0 ? { to: "NEW", pid: 1, burst: 0, timestamp: 0, event: "Process created", title: "Create", desc: "A new process enters the system.", from: null } : traceData[currentStep - 1];
-      const activeState = currentStep === 0 ? "NEW" : current.to;
+  document.getElementById("summaryState").textContent = getState();
+  document.getElementById("summaryStep").textContent =
+    step+" / "+traceData.length;
 
-      document.getElementById(nodeMap[activeState]).classList.add("active");
-      document.getElementById(ringMap[activeState]).classList.add("active");
+  document.getElementById("barFill").style.width =
+    (step/traceData.length*100)+"%";
+}
 
-      if(currentStep > 0){
-        const pathId = `${current.from}_${current.to}`;
-        const path = document.getElementById(pathId);
-        if(path){
-          path.classList.add("active");
-          animateDot(pathId);
-        }
-      }
-
-      const stateInfo = states[activeState];
-      const pid = current.pid || 1;
-      const burst = currentStep === 0 ? 0 : traceData.slice(0, currentStep).reduce((a,b) => a + (b.burst || 0), 0);
-      totalBurst = burst;
-
-      pidChip.textContent = `0x0${pid}`;
-      cpuChip.textContent = `${burst}ms`;
-
-      summaryState.textContent = activeState;
-      summaryHint.textContent = stateInfo.hint;
-      summaryStep.textContent = `${currentStep} / ${traceData.length}`;
-      summaryEvent.textContent = currentStep === 0 ? "Create" : current.title;
-      summaryTime.textContent = currentStep === 0 ? "0" : String(current.timestamp);
-
-      detailState.textContent = activeState;
-      detailLine.textContent = stateInfo.line;
-      detailPid.textContent = `0x0${pid}`;
-      detailCpu.textContent = `${burst}ms`;
-      detailTime.textContent = currentStep === 0 ? "0" : String(current.timestamp);
-
-      eventTitle.textContent = currentStep === 0 ? "Process created" : current.title;
-      eventDesc.textContent = currentStep === 0 ? "The process enters the system and waits for scheduling." : current.desc;
-
-      progressText.textContent = `${Math.round((currentStep / traceData.length) * 100)}% completed`;
-      barFill.style.width = `${(currentStep / traceData.length) * 100}%`;
-
-      mainStatePill.textContent = `STATE · ${activeState}`;
-      transitionPill.textContent = `STEP ${currentStep} / ${traceData.length}`;
-      tagText.textContent = `PID: 0x0${pid} · BURST: ${burst}ms`;
-
-      prevBtn.disabled = currentStep === 0;
-      nextBtn.disabled = currentStep === traceData.length;
-
-      if(currentStep > 0){
-        addLog(`${current.event} | t=${current.timestamp}`);
-      }
-
-      if(currentStep === traceData.length && isAuto){
-        stopAuto();
-      }
-    }
-
-    function nextStep(){
-      if(currentStep < traceData.length){
-        currentStep++;
-        updateUI();
-      }
-    }
-
-    function prevStep(){
-      if(currentStep > 0){
-        currentStep--;
-        updateUI();
-      }
-    }
-
-    function resetAll(){
-      stopAuto();
-      currentStep = 0;
-      logs.innerHTML = "";
-      updateUI();
-    }
-
-    function startAuto(){
-      if(isAuto) return;
-      if(currentStep === traceData.length) currentStep = 0;
-      isAuto = true;
-      modeChip.textContent = "AUTO ON";
-      autoBtn.textContent = "Pause Auto";
-      autoTimer = setInterval(() => {
-        if(currentStep < traceData.length){
-          currentStep++;
-          updateUI();
-        }else{
-          stopAuto();
-        }
-      }, 1200);
-      updateUI();
-    }
-
-    function stopAuto(){
-      if(autoTimer) clearInterval(autoTimer);
-      autoTimer = null;
-      isAuto = false;
-      modeChip.textContent = "AUTO OFF";
-      autoBtn.textContent = "Auto Play";
-    }
-
-    function toggleAuto(){
-      if(isAuto) stopAuto();
-      else startAuto();
-    }
-
-    nextBtn.addEventListener("click", nextStep);
-    prevBtn.addEventListener("click", prevStep);
-    resetBtn.addEventListener("click", resetAll);
-    autoBtn.addEventListener("click", toggleAuto);
-
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "ArrowRight"){ nextStep(); }
-      if(e.key === "ArrowLeft"){ prevStep(); }
-      if(e.key === "Home"){ resetAll(); }
-      if(e.key === " "){
-        e.preventDefault();
-        toggleAuto();
-      }
-    });
-
+function next(){
+  if(step < traceData.length){
+    step++;
     updateUI();
-  </script>
+  }
+}
+
+function prev(){
+  if(step > 0){
+    step--;
+    updateUI();
+  }
+}
+
+function reset(){
+  step = 0;
+  updateUI();
+}
+
+document.getElementById("nextBtn").onclick = next;
+document.getElementById("prevBtn").onclick = prev;
+document.getElementById("resetBtn").onclick = reset;
+
+document.getElementById("scenarioSelect").onchange = (e)=>{
+  currentScenario = e.target.value;
+  traceData = scenarios[currentScenario];
+  reset();
+};
+
+updateUI();
+</script>
 </body>
 </html>
