@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Process State Visualizer</title>
+  <title>VM Process State Visualizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
   <style>
     :root{
       --bg:#f5f7ff;
       --bg2:#eef4ff;
-      --card:rgba(255,255,255,.75);
-      --card2:rgba(255,255,255,.9);
-      --border:rgba(99,102,241,.12);
+      --card:rgba(255,255,255,.85);
+      --card2:rgba(255,255,255,.97);
+      --border:rgba(99,102,241,.13);
       --text:#0f172a;
       --muted:#64748b;
       --primary:#6366f1;
@@ -25,6 +26,8 @@
       --shadow:0 20px 60px rgba(15,23,42,.10);
       --shadow2:0 12px 30px rgba(99,102,241,.12);
       --radius:28px;
+      --brand:#1e293b;
+      --brand-glow:0 0 32px 8px #6366f1cc;
     }
 
     *{
@@ -90,16 +93,21 @@
     }
 
     .brand-mark{
-      width:48px;
-      height:48px;
+      width:54px;
+      height:54px;
       border-radius:16px;
       background:linear-gradient(135deg,var(--primary),var(--accent));
-      box-shadow:0 12px 24px rgba(99,102,241,.25);
+      box-shadow:var(--brand-glow);
       display:grid;
       place-items:center;
       color:white;
-      font-size:22px;
-      font-weight:800;
+      font-size:30px;
+      font-weight:900;
+      position:relative;
+    }
+    .brand-mark i{
+      font-size:28px;
+      filter:drop-shadow(0 0 6px #fff8);
     }
 
     .brand h1{
@@ -686,12 +694,37 @@
   <div class="app">
     <div class="topbar">
       <div class="brand">
-        <div class="brand-mark">⚡</div>
+        <div class="brand-mark"><i class="fa-solid fa-microchip"></i></div>
         <div>
-          <h1>Process State Visualizer</h1>
-          <p>High-level lifecycle view for your custom VM project</p>
+          <h1>VM Process State Visualizer</h1>
+          <p>Interactive lifecycle explorer for your <b>Custom VM Project</b></p>
         </div>
       </div>
+<!-- Onboarding Modal (moved outside .brand) -->
+<div id="onboardModal" style="display:none;position:fixed;z-index:1000;inset:0;background:rgba(30,41,59,0.82);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
+  <div style="background:var(--card2);border-radius:32px;box-shadow:0 8px 40px #6366f1aa;padding:38px 32px;max-width:420px;text-align:center;">
+    <div style="font-size:2.2rem;margin-bottom:12px;"><i class="fa-solid fa-microchip"></i></div>
+    <h2 style="font-weight:900;font-size:1.35rem;margin-bottom:10px;">Welcome to the VM Process State Visualizer!</h2>
+    <p style="color:var(--muted);font-size:1.05rem;margin-bottom:18px;">Explore how processes move through states in your custom VM. Use <b>Next</b>, <b>Prev</b>, or <b>Auto Play</b> to step through the lifecycle. Click <b>Help</b> anytime for a quick guide.</p>
+    <button class="btn-primary" style="margin-top:10px;" onclick="closeOnboard()">Start Exploring</button>
+  </div>
+</div>
+<!-- Help Modal (moved outside .brand) -->
+<div id="helpModal" style="display:none;position:fixed;z-index:1000;inset:0;background:rgba(30,41,59,0.82);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
+  <div style="background:var(--card2);border-radius:32px;box-shadow:0 8px 40px #6366f1aa;padding:38px 32px;max-width:480px;text-align:left;">
+    <div style="font-size:2.2rem;margin-bottom:12px;text-align:center;"><i class="fa-solid fa-circle-question"></i></div>
+    <h2 style="font-weight:900;font-size:1.25rem;margin-bottom:10px;">About Process States</h2>
+    <ul style="color:var(--muted);font-size:1.05rem;line-height:1.7;margin-bottom:18px;padding-left:18px;">
+      <li><b>NEW</b>: Process is created and enters the system.</li>
+      <li><b>READY</b>: Waiting for CPU allocation.</li>
+      <li><b>RUNNING</b>: Currently executing on CPU.</li>
+      <li><b>WAITING</b>: Blocked, waiting for I/O or event.</li>
+      <li><b>TERMINATED</b>: Finished execution and removed from system.</li>
+    </ul>
+    <p style="color:var(--primary);font-size:.98rem;margin-bottom:10px;">Each transition is triggered by real OS events (e.g., I/O, scheduling, completion).</p>
+    <button class="btn-primary" onclick="closeHelp()">Close</button>
+  </div>
+</div>
 
       <div class="top-controls">
         <select id="scenarioSelect">
@@ -880,15 +913,35 @@
         <div class="bar"><div class="bar-fill" id="barFill"></div></div>
       </div>
       <div class="btns">
-        <button class="btn-soft" id="prevBtn">Prev</button>
-        <button class="btn-primary" id="nextBtn">Next</button>
-        <button class="btn-soft" id="resetBtn">Reset</button>
-        <button class="btn-primary" id="autoBtn">Auto Play</button>
+        <button class="btn-soft" id="prevBtn"><i class="fa-solid fa-arrow-left"></i> Prev</button>
+        <button class="btn-primary" id="nextBtn">Next <i class="fa-solid fa-arrow-right"></i></button>
+        <button class="btn-soft" id="resetBtn"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+        <button class="btn-primary" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Play</button>
+        <button class="btn-soft" id="helpBtn"><i class="fa-solid fa-circle-question"></i> Help</button>
       </div>
     </div>
   </div>
 
 <script>
+// Onboarding modal logic
+function showOnboard(){
+  document.getElementById("onboardModal").style.display = "flex";
+}
+function closeOnboard(){
+  document.getElementById("onboardModal").style.display = "none";
+  localStorage.setItem("vm_onboarded","1");
+}
+if(!localStorage.getItem("vm_onboarded")) setTimeout(showOnboard, 400);
+
+// Help modal logic
+function showHelp(){
+  document.getElementById("helpModal").style.display = "flex";
+}
+function closeHelp(){
+  document.getElementById("helpModal").style.display = "none";
+}
+document.getElementById("helpBtn").onclick = showHelp;
+
 const scenarios = {
   chrome: [
     {from:"NEW",to:"READY",what:"Chrome launched",why:"User clicked icon"},
@@ -916,6 +969,7 @@ const scenarios = {
   ]
 };
 
+
 let currentScenario = "chrome";
 let traceData = scenarios[currentScenario];
 let step = 0;
@@ -928,6 +982,7 @@ function getState(){
   return traceData[step-1].to;
 }
 
+
 function clearActive(){
   states.forEach(s=>{
     document.getElementById(s+"_NODE").classList.remove("active");
@@ -935,6 +990,7 @@ function clearActive(){
   });
   document.querySelectorAll(".path").forEach(p=>p.classList.remove("active"));
 }
+
 
 function highlight(){
   const s = getState();
@@ -945,9 +1001,17 @@ function highlight(){
     const tr = traceData[step-1];
     const id = tr.from+"_"+tr.to;
     const p = document.getElementById(id);
-    if(p) p.classList.add("active");
+    if(p) {
+      p.classList.add("active");
+      // Animate path
+      p.style.strokeDasharray = "260";
+      p.style.strokeDashoffset = "260";
+      p.style.transition = "stroke-dashoffset 0.7s cubic-bezier(.7,.2,.2,1)";
+      setTimeout(()=>{p.style.strokeDashoffset = "0";}, 30);
+    }
   }
 }
+
 
 function updateLesson(){
   if(step === 0){
@@ -958,10 +1022,10 @@ function updateLesson(){
   const e = traceData[step-1];
 
   const analogy = {
-    READY:"Like waiting in queue",
-    RUNNING:"Your turn on CPU",
-    WAITING:"Waiting for internet",
-    TERMINATED:"Task finished"
+    READY:"Like waiting in queue (waiting for CPU)",
+    RUNNING:"Your turn on CPU (executing)",
+    WAITING:"Waiting for I/O/network",
+    TERMINATED:"Task finished (process exits)"
   };
 
   lesson(e.from+" → "+e.to, e.what, e.why, analogy[e.to]);
@@ -974,6 +1038,7 @@ function lesson(title, what, why, analogy){
   document.getElementById("lessonConcept").innerHTML = "<b>Analogy:</b> "+analogy;
 }
 
+
 function updateUI(){
   clearActive();
   highlight();
@@ -985,11 +1050,11 @@ function updateUI(){
   document.getElementById("transitionPill").textContent = "STEP " + step;
 
   const explanation = {
-    NEW:"Program starts",
-    READY:"Waiting for CPU",
-    RUNNING:"Using CPU",
-    WAITING:"Waiting for I/O",
-    TERMINATED:"Finished"
+    NEW:"A process is created and enters the system.",
+    READY:"Process is ready and waiting for CPU allocation.",
+    RUNNING:"Process is currently executing on the CPU.",
+    WAITING:"Process is blocked, waiting for I/O or event.",
+    TERMINATED:"Process has finished and is removed from the system."
   };
 
   document.getElementById("detailLine").textContent = explanation[state];
@@ -1002,6 +1067,9 @@ function updateUI(){
   let progress = (step / traceData.length) * 100;
   document.getElementById("barFill").style.width = progress + "%";
   document.getElementById("progressText").textContent = Math.floor(progress) + "% completed";
+
+  // Animate progress bar
+  document.getElementById("barFill").style.transition = "width 0.5s cubic-bezier(.7,.2,.2,1)";
 }
 
 function next(){
@@ -1039,7 +1107,7 @@ let interval;
 
 document.getElementById("autoBtn").onclick = ()=>{
   auto = !auto;
-
+  document.getElementById("autoBtn").innerHTML = auto ? '<i class="fa-solid fa-pause"></i> Pause' : '<i class="fa-solid fa-forward"></i> Auto Play';
   if(auto){
     interval = setInterval(()=>{
       if(step < traceData.length){
@@ -1047,12 +1115,21 @@ document.getElementById("autoBtn").onclick = ()=>{
       } else {
         clearInterval(interval);
         auto = false;
+        document.getElementById("autoBtn").innerHTML = '<i class="fa-solid fa-forward"></i> Auto Play';
       }
     }, 1200);
   } else {
     clearInterval(interval);
   }
 };
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e){
+  if(document.getElementById("onboardModal").style.display=="flex" || document.getElementById("helpModal").style.display=="flex") return;
+  if(e.key==="ArrowRight") next();
+  if(e.key==="ArrowLeft") prev();
+  if(e.key==="r" || e.key==="R") reset();
+});
 
 updateUI();
 </script>
