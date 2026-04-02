@@ -23,6 +23,9 @@
       --amber:#f7b500;
       --red:#ff4d7d;
       --gray:#8ea4ca;
+      --heading-strong:#dbe5ff;
+      --heading-mid:#c8d6ff;
+      --heading-soft:#b8c7f7;
       --shadow:0 10px 35px rgba(0,0,0,.35);
       --radius:14px;
     }
@@ -67,7 +70,17 @@
       color:white;
     }
 
-    .brand h1{font-size:2rem;line-height:1;font-weight:800;letter-spacing:-.02em;}
+    .brand h1{
+      font-size:2rem;
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-.02em;
+      background:linear-gradient(90deg,#66a8ff 0%, #d977ff 58%, #ff78c9 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      -webkit-text-fill-color:transparent;
+    }
     .brand p{font-size:.86rem;color:var(--muted);margin-top:4px;}
 
     .scenario-wrap{
@@ -130,7 +143,7 @@
       gap:14px;
     }
 
-    .guide h3{font-size:1.1rem;font-weight:800;margin-bottom:10px;}
+    .guide h3{font-size:1.1rem;font-weight:800;margin-bottom:10px;color:var(--heading-mid);}
     .guide-list{display:flex;flex-direction:column;gap:10px;}
     .guide-item{display:flex;gap:8px;align-items:flex-start;}
     .guide-step{
@@ -150,7 +163,7 @@
       padding:10px;
     }
 
-    .legend-box h4{font-size:.84rem;margin-bottom:8px;}
+    .legend-box h4{font-size:.84rem;margin-bottom:8px;color:var(--heading-mid);}
     .legend{display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:#d5ddff;}
     .dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:6px;}
 
@@ -182,6 +195,7 @@
     .btn-blue{background:linear-gradient(135deg,#2481ff,#1db6ff);}
     .btn-green{background:linear-gradient(135deg,#10b981,#22d3aa);}
     .btn-soft{background:#1b285e;border:1px solid #7f8ce055;color:#c7d6ff;}
+    .btn-import{background:linear-gradient(135deg,#4d5fff,#9b59ff);}
 
     .speed-btn{
       background:#111d4ecc;
@@ -208,7 +222,38 @@
       padding:14px;
     }
 
-    .panel h3{font-size:1.5rem;font-weight:800;margin-bottom:12px;}
+    .panel h3{
+      font-size:1.5rem;
+      font-weight:800;
+      margin-bottom:12px;
+      position:relative;
+      padding-bottom:6px;
+      background:linear-gradient(90deg,#b9d0ff 0%, #c8d8ff 45%, #e2c6ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      -webkit-text-fill-color:transparent;
+      text-shadow:0 0 18px rgba(124,142,255,.22);
+    }
+
+    .panel h3::after{
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:0;
+      width:118px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg,#6fb7ff,#9fa2ff,#d08fff);
+      opacity:.9;
+    }
+
+    .panel h3 i,
+    .activity-head h3 i{
+      color:#b7cbff;
+      -webkit-text-fill-color:#b7cbff;
+      margin-right:4px;
+    }
 
     .lanes{
       display:grid;
@@ -359,6 +404,12 @@
       margin:0;
       font-size:1.9rem;
       letter-spacing:-.02em;
+      background:linear-gradient(90deg,#c6daff 0%, #d8d4ff 50%, #eec7ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      -webkit-text-fill-color:transparent;
+      text-shadow:0 0 20px rgba(124,142,255,.24);
     }
 
     .clear-log-btn{
@@ -568,7 +619,9 @@
         <button class="btn-blue" id="newBtn"><i class="fa-solid fa-plus"></i> New Process</button>
         <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
         <button class="btn-green" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Run</button>
+        <button class="btn-import" id="importTraceBtn"><i class="fa-solid fa-file-import"></i> Import Trace</button>
         <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
+        <input type="file" id="traceFileInput" accept=".jsonl,.txt,.json" style="display:none;" />
       </div>
       <div class="speed-row">
         <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
@@ -690,6 +743,7 @@
   let speed = "normal";
   let logItems = [];
   let nextBadgeMs = 2;
+  let traceMeta = null;
 
   function formatLogTime(date){
     return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).toLowerCase();
@@ -732,6 +786,200 @@
     return chipGradients[(numeric - 1) % chipGradients.length];
   }
 
+  function opcodeToName(opcode){
+    const names = {
+      0: "HALT",
+      1: "ADD",
+      2: "AND",
+      3: "NOT",
+      4: "JZ",
+      5: "JMP",
+      6: "LOAD",
+      7: "MUL",
+      8: "SUB",
+      9: "LOADM",
+      10: "STOREM"
+    };
+
+    return names[opcode] || ("OP" + opcode);
+  }
+
+  function parseTraceJsonl(text){
+    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
+    const rows = [];
+
+    lines.forEach((line, index) => {
+      let obj;
+      try {
+        obj = JSON.parse(line);
+      } catch (_error) {
+        throw new Error("Invalid JSON on line " + (index + 1));
+      }
+
+      if(typeof obj.step !== "number" || typeof obj.pc !== "number" || typeof obj.ins !== "number"){
+        throw new Error("Missing step/pc/ins on line " + (index + 1));
+      }
+
+      rows.push({
+        step: obj.step,
+        pc: obj.pc,
+        ins: obj.ins,
+        regs: Array.isArray(obj.regs) ? obj.regs : []
+      });
+    });
+
+    if(rows.length === 0) throw new Error("Trace file is empty");
+
+    rows.sort((a, b) => a.step - b.step);
+    return rows;
+  }
+
+  function getPostRunTransitions(opcode, opName, vm){
+    if(opcode === 0){
+      return [{
+        from: "RUNNING",
+        to: "TERMINATED",
+        what: "HALT reached",
+        why: "Program ended after " + opName,
+        vm
+      }];
+    }
+
+    if(opcode === 9 || opcode === 10){
+      return [
+        {
+          from: "RUNNING",
+          to: "WAITING",
+          what: opName + " waiting",
+          why: "Memory access temporarily blocks execution",
+          vm
+        },
+        {
+          from: "WAITING",
+          to: "READY",
+          what: "Memory response",
+          why: "Data transfer completed",
+          vm
+        }
+      ];
+    }
+
+    if(opcode === 4 || opcode === 5){
+      return [{
+        from: "RUNNING",
+        to: "READY",
+        what: opName + " complete",
+        why: "Control flow updated and scheduler re-queues process",
+        vm
+      }];
+    }
+
+    return [{
+      from: "RUNNING",
+      to: "READY",
+      what: opName + " complete",
+      why: "Instruction committed",
+      vm
+    }];
+  }
+
+  function buildTraceScenario(traceRows){
+    const transitions = [{
+      from: "NEW",
+      to: "READY",
+      what: "Trace loaded",
+      why: "Process initialized from VM trace"
+    }];
+
+    traceRows.forEach((row) => {
+      const opcode = (row.ins >> 12) & 0xF;
+      const opName = opcodeToName(opcode);
+      const vm = {
+        step: row.step,
+        pc: row.pc,
+        ins: row.ins,
+        opcode,
+        opName
+      };
+
+      transitions.push({
+        from: "READY",
+        to: "RUNNING",
+        what: "Execute " + opName,
+        why: "VM step " + row.step + " at PC " + row.pc,
+        vm
+      });
+
+      getPostRunTransitions(opcode, opName, vm).forEach((entry) => transitions.push(entry));
+    });
+
+    if(transitions[transitions.length - 1].to !== "TERMINATED"){
+      transitions.push({
+        from: "READY",
+        to: "RUNNING",
+        what: "Finalize trace",
+        why: "Replay reached end of file"
+      });
+      transitions.push({
+        from: "RUNNING",
+        to: "TERMINATED",
+        what: "Trace complete",
+        why: "No more VM steps to execute"
+      });
+    }
+
+    return transitions;
+  }
+
+  function importTraceRows(rows, fileName){
+    stopAuto();
+    clearAll();
+
+    const pid = makePid();
+    const traceEvents = buildTraceScenario(rows);
+    const proc = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      pid,
+      scenario: "trace",
+      trace: traceEvents,
+      step: 0,
+      state: "NEW",
+      cpu: 0,
+      badgeMs: Math.max(2, Math.min(98, rows.length)),
+      chipGradient: getChipGradient(pid),
+      traceRows: rows,
+      lastVm: null,
+      traceSource: fileName
+    };
+
+    traceMeta = {
+      fileName,
+      steps: rows.length,
+      firstPc: rows[0].pc,
+      lastPc: rows[rows.length - 1].pc
+    };
+
+    nextBadgeMs = proc.badgeMs + 2;
+    processes.push(proc);
+    activeProcessId = proc.id;
+
+    addLog({
+      pid: "SYS",
+      color: "#7f91b7",
+      to: "Trace",
+      desc: "Loaded " + rows.length + " VM steps from " + fileName + " (PC " + rows[0].pc + " -> " + rows[rows.length - 1].pc + ")"
+    });
+    addLog({
+      pid: proc.pid,
+      color: getPidColor(proc.pid),
+      to: "New",
+      desc: "Imported VM trace and prepared for replay"
+    });
+
+    advanceProcess(proc);
+    updateUI();
+  }
+
   function createProcess(){
     const pid = makePid();
 
@@ -767,18 +1015,24 @@
     const event = proc.trace[proc.step];
     proc.step += 1;
     proc.state = event.to;
+    if(event.vm) proc.lastVm = event.vm;
 
     if(event.to === "RUNNING"){
       proc.cpu += 5;
     }
 
     transitionCount += 1;
+    let detail = event.why;
+    if(event.vm){
+      detail = "VM step " + event.vm.step + " | PC " + event.vm.pc + " | " + event.vm.opName + " (" + event.vm.ins + ") | " + event.why;
+    }
+
     addLog({
       pid: proc.pid,
       color: getPidColor(proc.pid),
       from: event.from.charAt(0) + event.from.slice(1).toLowerCase(),
       to: event.to.charAt(0) + event.to.slice(1).toLowerCase(),
-      desc: event.why
+      desc: detail
     });
 
     if(proc.state === "TERMINATED"){
@@ -804,6 +1058,7 @@
   function clearAll(){
     processes = [];
     logItems = [];
+    traceMeta = null;
     transitionCount = 0;
     activeProcessId = null;
     nextPid = 1;
@@ -934,10 +1189,17 @@
 
     const stateClass = statePillClass[proc.state];
     const reason = proc.step === 0 ? "Process is created and waiting to transition." : proc.trace[proc.step - 1].why;
+    const traceLine = (proc.scenario === "trace" && proc.lastVm)
+      ? "<br>Trace: <b>step " + proc.lastVm.step + "</b> | PC " + proc.lastVm.pc + " | " + proc.lastVm.opName + " (" + proc.lastVm.ins + ")"
+      : "";
+    const sourceLine = (proc.scenario === "trace" && proc.traceSource)
+      ? "<br>Source: " + proc.traceSource
+      : "";
+
     info.innerHTML =
       "Active: <b>" + proc.pid + "</b> " +
       '<span class="pill ' + stateClass + '">' + proc.state + "</span><br>" +
-      "Reason: " + reason;
+      "Reason: " + reason + traceLine + sourceLine;
   }
 
   function updateStats(){
@@ -967,6 +1229,36 @@
   document.getElementById("stepBtn").onclick = stepForward;
   document.getElementById("autoBtn").onclick = toggleAuto;
   document.getElementById("clearBtn").onclick = clearAll;
+
+  document.getElementById("importTraceBtn").onclick = () => {
+    document.getElementById("traceFileInput").click();
+  };
+
+  document.getElementById("traceFileInput").onchange = (event) => {
+    const file = event.target.files && event.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        const rows = parseTraceJsonl(text);
+        importTraceRows(rows, file.name);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to read trace";
+        addLog({
+          pid: "SYS",
+          color: "#ff6a8b",
+          to: "Import Error",
+          desc: message
+        });
+        updateUI();
+      }
+      event.target.value = "";
+    };
+
+    reader.readAsText(file);
+  };
 
   document.getElementById("scenarioSelect").onchange = (e) => {
     currentScenario = e.target.value;
