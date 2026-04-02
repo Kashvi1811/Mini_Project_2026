@@ -6,28 +6,28 @@
   <title>VM Process State Visualizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
   <style>
     :root{
-      --bg:#f5f7ff;
-      --bg2:#eef4ff;
-      --card:rgba(255,255,255,.85);
-      --card2:rgba(255,255,255,.97);
-      --border:rgba(99,102,241,.13);
-      --text:#0f172a;
-      --muted:#64748b;
-      --primary:#6366f1;
-      --primary2:#8b5cf6;
-      --accent:#06b6d4;
-      --success:#22c55e;
-      --warn:#f59e0b;
-      --danger:#ef4444;
-      --shadow:0 20px 60px rgba(15,23,42,.10);
-      --shadow2:0 12px 30px rgba(99,102,241,.12);
-      --radius:28px;
-      --brand:#1e293b;
-      --brand-glow:0 0 32px 8px #6366f1cc;
+      --bg:#f7fbff;
+      --bg2:#eef6ff;
+      --card:rgba(255,255,255,.95);
+      --card2:rgba(255,255,255,.99);
+      --border:rgba(37,99,235,.14);
+      --text:#172033;
+      --muted:#5b6b84;
+      --primary:#2563eb;
+      --primary2:#0ea5e9;
+      --accent:#0ea5e9;
+      --success:#16a34a;
+      --warn:#d97706;
+      --danger:#dc2626;
+      --shadow:0 12px 30px rgba(15,23,42,.08);
+      --shadow2:0 10px 24px rgba(37,99,235,.1);
+      --radius:22px;
+      --brand:#172033;
+      --brand-glow:0 0 0 6px rgba(14,165,233,.1);
     }
 
     *{
@@ -37,29 +37,25 @@
     }
 
     body{
-      font-family:'Inter',sans-serif;
+      font-family:'Nunito Sans',sans-serif;
       color:var(--text);
       min-height:100vh;
-      background:
-        radial-gradient(circle at top left, rgba(99,102,241,.18), transparent 30%),
-        radial-gradient(circle at top right, rgba(6,182,212,.18), transparent 28%),
-        radial-gradient(circle at bottom left, rgba(139,92,246,.14), transparent 26%),
-        linear-gradient(180deg, #fbfcff 0%, #f3f6ff 100%);
+      background:linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
       overflow-x:hidden;
     }
 
     .blob{
-      position:fixed;
-      border-radius:50%;
-      filter:blur(40px);
-      opacity:.45;
-      pointer-events:none;
-      z-index:0;
+      display:none;
     }
 
-    .blob.one{width:240px;height:240px;left:-70px;top:60px;background:rgba(99,102,241,.18);}
-    .blob.two{width:260px;height:260px;right:-90px;top:120px;background:rgba(6,182,212,.16);}
-    .blob.three{width:300px;height:300px;left:25%;bottom:-140px;background:rgba(139,92,246,.12);}
+    .blob.one{width:250px;height:250px;left:-72px;top:56px;background:rgba(249,115,22,.24);}
+    .blob.two{width:280px;height:280px;right:-92px;top:108px;background:rgba(20,184,166,.24);animation-delay:2s;}
+    .blob.three{width:320px;height:320px;left:26%;bottom:-152px;background:rgba(14,116,144,.20);animation-delay:4s;}
+
+    @keyframes floatBlob{
+      0%,100%{transform:translateY(0px) translateX(0px);}
+      50%{transform:translateY(-14px) translateX(8px);}
+    }
 
     .app{
       position:relative;
@@ -69,11 +65,17 @@
       flex-direction:column;
       gap:20px;
       padding:20px;
+      animation:none;
+    }
+
+    @keyframes rise{
+      from{opacity:0;transform:translateY(12px);}
+      to{opacity:1;transform:translateY(0);}
     }
 
     .topbar{
       background:var(--card);
-      backdrop-filter:blur(18px);
+      backdrop-filter:blur(14px);
       border:1px solid var(--border);
       box-shadow:var(--shadow2);
       border-radius:24px;
@@ -85,6 +87,29 @@
       flex-wrap:wrap;
     }
 
+    .quick-guide{
+      background:var(--card2);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow2);
+      border-radius:18px;
+      padding:14px 16px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .guide-item{
+      background:#f8fbff;
+      border:1px solid #dbeafe;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:.9rem;
+      color:#334155;
+      line-height:1.45;
+    }
+
+    .guide-item b{color:#1d4ed8;}
+
     .brand{
       display:flex;
       align-items:center;
@@ -93,11 +118,11 @@
     }
 
     .brand-mark{
-      width:54px;
-      height:54px;
+      width:56px;
+      height:56px;
       border-radius:16px;
-      background:linear-gradient(135deg,var(--primary),var(--accent));
-      box-shadow:var(--brand-glow);
+      background:linear-gradient(140deg,var(--accent),var(--primary2));
+      box-shadow:var(--brand-glow), 0 12px 24px rgba(15,23,42,.14);
       display:grid;
       place-items:center;
       color:white;
@@ -105,20 +130,28 @@
       font-weight:900;
       position:relative;
     }
+
     .brand-mark i{
       font-size:28px;
-      filter:drop-shadow(0 0 6px #fff8);
+      filter:drop-shadow(0 0 8px #fff6);
+    }
+
+    .brand h1,
+    .panel-title h2,
+    .big-state,
+    .summary-card strong{
+      font-family:'Space Grotesk',sans-serif;
     }
 
     .brand h1{
-      font-size:1.15rem;
-      font-weight:900;
-      letter-spacing:-.03em;
+      font-size:1.18rem;
+      font-weight:700;
+      letter-spacing:-.02em;
       line-height:1.1;
     }
 
     .brand p{
-      font-size:.88rem;
+      font-size:.9rem;
       color:var(--muted);
       margin-top:4px;
     }
@@ -132,14 +165,14 @@
     }
 
     select{
-      border:1px solid rgba(99,102,241,.16);
-      background:#fff;
-      color:#0f172a;
+      border:1px solid rgba(14,116,144,.24);
+      background:#ffffff;
+      color:#172033;
       padding:11px 14px;
       border-radius:14px;
       font-family:inherit;
-      font-weight:700;
-      box-shadow:0 8px 18px rgba(15,23,42,.05);
+      font-weight:800;
+      box-shadow:0 10px 18px rgba(15,23,42,.06);
       outline:none;
     }
 
@@ -151,22 +184,20 @@
     }
 
     .chip{
-      background:rgba(255,255,255,.82);
-      border:1px solid rgba(99,102,241,.12);
+      background:rgba(255,255,255,.9);
+      border:1px solid rgba(14,116,144,.16);
       color:#334155;
-      padding:10px 14px;
+      padding:9px 13px;
       border-radius:999px;
       font-size:.82rem;
       font-weight:700;
       display:flex;
       align-items:center;
       gap:8px;
-      box-shadow:0 8px 20px rgba(15,23,42,.05);
+      box-shadow:0 8px 20px rgba(15,23,42,.06);
     }
 
-    .chip b{
-      color:var(--primary);
-    }
+    .chip b{color:var(--primary);}
 
     .hero{
       display:grid;
@@ -192,31 +223,34 @@
       display:flex;
       flex-direction:column;
       justify-content:space-between;
+      transition:transform .2s ease;
     }
+
+    .summary-card:hover{transform:translateY(-2px);}
 
     .summary-card span{
       color:var(--muted);
-      font-size:.78rem;
-      font-weight:700;
-      letter-spacing:.08em;
+      font-size:.76rem;
+      font-weight:800;
+      letter-spacing:.09em;
       text-transform:uppercase;
     }
 
     .summary-card strong{
-      font-size:1.65rem;
-      letter-spacing:-.04em;
+      font-size:1.62rem;
+      letter-spacing:-.03em;
       line-height:1;
     }
 
     .summary-card em{
       font-style:normal;
       color:var(--muted);
-      font-size:.86rem;
+      font-size:.87rem;
     }
 
     .panel{
       background:var(--card);
-      backdrop-filter:blur(18px);
+      backdrop-filter:blur(14px);
       border:1px solid var(--border);
       box-shadow:var(--shadow);
       border-radius:var(--radius);
@@ -239,35 +273,41 @@
     }
 
     .panel-title h2{
-      font-size:1.25rem;
-      font-weight:900;
-      letter-spacing:-.03em;
+      font-size:1.3rem;
+      font-weight:700;
+      letter-spacing:-.02em;
     }
 
     .panel-title p{
       color:var(--muted);
-      font-size:.92rem;
+      font-size:.94rem;
       margin-top:4px;
     }
 
     .state-pill{
       padding:10px 14px;
       border-radius:999px;
-      background:linear-gradient(135deg, rgba(99,102,241,.12), rgba(6,182,212,.12));
+      background:linear-gradient(140deg, rgba(37,99,235,.1), rgba(14,165,233,.1));
       color:#1e293b;
       font-weight:800;
-      font-size:.84rem;
-      border:1px solid rgba(99,102,241,.18);
+      font-size:.83rem;
+      border:1px solid rgba(37,99,235,.2);
+      letter-spacing:.02em;
     }
+
+    .state-pill.tone-NEW{background:rgba(59,130,246,.13);border-color:rgba(59,130,246,.25);}
+    .state-pill.tone-READY{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.28);}
+    .state-pill.tone-RUNNING{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.28);}
+    .state-pill.tone-WAITING{background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.28);}
+    .state-pill.tone-TERMINATED{background:rgba(100,116,139,.14);border-color:rgba(100,116,139,.26);}
 
     .svg-wrap{
       flex:1;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.82));
-      border:1px solid rgba(99,102,241,.10);
+      background:linear-gradient(180deg, rgba(255,255,255,.74), rgba(250,254,255,.92));
+      border:1px solid rgba(14,116,144,.12);
       border-radius:24px;
       padding:12px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.95);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -280,8 +320,8 @@
       position:absolute;
       inset:0;
       background:
-        radial-gradient(circle at 30% 30%, rgba(99,102,241,.08), transparent 35%),
-        radial-gradient(circle at 75% 20%, rgba(6,182,212,.08), transparent 28%);
+        radial-gradient(circle at 26% 28%, rgba(249,115,22,.08), transparent 34%),
+        radial-gradient(circle at 74% 20%, rgba(20,184,166,.1), transparent 30%);
       pointer-events:none;
     }
 
@@ -295,7 +335,7 @@
 
     .state-circle{
       fill:#fff;
-      stroke:#dbe4ff;
+      stroke:#d8e8ee;
       stroke-width:2;
       filter:url(#softShadow);
       transition:all .25s ease;
@@ -303,14 +343,14 @@
 
     .state-circle.active{
       fill:url(#activeFill);
-      stroke:#7c3aed;
+      stroke:#0e7490;
       stroke-width:4;
       filter:url(#glow);
     }
 
     .state-ring{
       fill:none;
-      stroke:#e9efff;
+      stroke:#ddebf3;
       stroke-width:14;
       stroke-linecap:round;
       opacity:.85;
@@ -322,12 +362,10 @@
       animation:dash 2.8s linear infinite;
     }
 
-    @keyframes dash{
-      to{stroke-dashoffset:-520;}
-    }
+    @keyframes dash{to{stroke-dashoffset:-520;}}
 
     .state-label{
-      fill:#0f172a;
+      fill:#102132;
       font-size:19px;
       font-weight:900;
       text-anchor:middle;
@@ -335,22 +373,19 @@
     }
 
     .state-sub{
-      fill:#64748b;
+      fill:#607289;
       font-size:10px;
-      font-weight:700;
+      font-weight:800;
       text-anchor:middle;
       letter-spacing:.12em;
       text-transform:uppercase;
     }
 
-    .emoji{
-      font-size:22px;
-      text-anchor:middle;
-    }
+    .emoji{font-size:22px;text-anchor:middle;}
 
     .path{
       fill:none;
-      stroke:#cbd5e1;
+      stroke:#bdd0db;
       stroke-width:2.5;
       stroke-linecap:round;
       opacity:.9;
@@ -362,16 +397,14 @@
       filter:url(#softGlow);
     }
 
-    .tag{
-      fill:#0f172a;
-      opacity:.92;
-    }
+    .tag{fill:#172033;opacity:.95;}
 
     .tag-text{
       fill:white;
       font-size:11px;
       font-weight:800;
       text-anchor:middle;
+      letter-spacing:.04em;
     }
 
     .right-panel{
@@ -390,11 +423,11 @@
     }
 
     .current-box{
-      background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(245,248,255,.82));
-      border:1px solid rgba(99,102,241,.12);
+      background:linear-gradient(145deg, rgba(255,255,255,.94), rgba(239,252,255,.84));
+      border:1px solid rgba(14,116,144,.12);
       border-radius:24px;
       padding:20px;
-      box-shadow:0 18px 40px rgba(15,23,42,.07);
+      box-shadow:0 18px 42px rgba(15,23,42,.08);
     }
 
     .current-top{
@@ -407,8 +440,8 @@
 
     .big-state{
       font-size:1.95rem;
-      font-weight:900;
-      letter-spacing:-.05em;
+      font-weight:700;
+      letter-spacing:-.03em;
       line-height:1;
     }
 
@@ -427,8 +460,8 @@
     }
 
     .metric{
-      background:#fff;
-      border:1px solid rgba(99,102,241,.10);
+      background:#ffffff;
+      border:1px solid rgba(14,116,144,.12);
       border-radius:18px;
       padding:14px;
     }
@@ -443,34 +476,27 @@
       margin-bottom:8px;
     }
 
-    .metric strong{
-      font-size:1rem;
-      letter-spacing:-.02em;
-    }
+    .metric strong{font-size:1rem;letter-spacing:-.02em;}
 
     .event-card{
-      background:linear-gradient(135deg, rgba(99,102,241,.10), rgba(6,182,212,.09));
-      border:1px solid rgba(99,102,241,.14);
+      background:linear-gradient(140deg, rgba(37,99,235,.09), rgba(14,165,233,.09));
+      border:1px solid rgba(14,116,144,.16);
       border-radius:24px;
       padding:18px;
     }
 
-    .event-card h3{
-      font-size:1.05rem;
-      font-weight:900;
-      margin-bottom:8px;
-    }
+    .event-card h3{font-size:1.05rem;font-weight:900;margin-bottom:8px;}
 
     .event-card p{
-      color:#334155;
-      line-height:1.6;
+      color:#2f3f56;
+      line-height:1.55;
       font-size:.95rem;
       margin-top:6px;
     }
 
     .log-card{
       background:#fff;
-      border:1px solid rgba(99,102,241,.10);
+      border:1px solid rgba(14,116,144,.12);
       border-radius:24px;
       padding:16px;
       min-height:200px;
@@ -486,39 +512,31 @@
       gap:10px;
     }
 
-    .log-head h4{
-      font-size:.98rem;
-      font-weight:900;
-    }
-
-    .log-head span{
-      color:var(--muted);
-      font-size:.82rem;
-      font-weight:700;
-    }
+    .log-head h4{font-size:.98rem;font-weight:900;}
+    .log-head span{color:var(--muted);font-size:.82rem;font-weight:700;}
 
     .logs{
       font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-      font-size:.86rem;
-      color:#334155;
+      font-size:.84rem;
+      color:#32465f;
       display:flex;
       flex-direction:column;
       gap:8px;
-      max-height:140px;
+      max-height:150px;
       overflow:auto;
       padding-right:4px;
     }
 
     .logs div{
-      background:#f8fbff;
-      border:1px solid #e6eeff;
-      border-radius:14px;
+      background:#f6fcff;
+      border:1px solid #d8ecf5;
+      border-radius:12px;
       padding:10px 12px;
     }
 
     .controls{
       background:var(--card);
-      backdrop-filter:blur(18px);
+      backdrop-filter:blur(14px);
       border:1px solid var(--border);
       box-shadow:var(--shadow2);
       border-radius:24px;
@@ -530,10 +548,7 @@
       align-items:center;
     }
 
-    .progress-area{
-      flex:1;
-      min-width:260px;
-    }
+    .progress-area{flex:1;min-width:260px;}
 
     .progress-top{
       display:flex;
@@ -544,20 +559,12 @@
       flex-wrap:wrap;
     }
 
-    .progress-top strong{
-      font-size:.95rem;
-      font-weight:900;
-    }
-
-    .progress-top span{
-      color:var(--muted);
-      font-size:.9rem;
-      font-weight:700;
-    }
+    .progress-top strong{font-size:.95rem;font-weight:900;}
+    .progress-top span{color:var(--muted);font-size:.9rem;font-weight:700;}
 
     .bar{
       height:12px;
-      background:#e7ecfb;
+      background:#deedf4;
       border-radius:999px;
       overflow:hidden;
       position:relative;
@@ -568,121 +575,57 @@
       height:100%;
       width:0%;
       border-radius:inherit;
-      background:linear-gradient(90deg, var(--primary), var(--accent));
+      background:linear-gradient(90deg, var(--primary), var(--primary2), var(--accent));
       transition:width .35s ease;
-      box-shadow:0 8px 18px rgba(99,102,241,.28);
+      box-shadow:0 8px 18px rgba(20,184,166,.3);
     }
 
-    .btns{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
+    .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 
     button{
       border:none;
       cursor:pointer;
       border-radius:999px;
       padding:12px 18px;
-      font-weight:800;
+      font-weight:900;
       font-family:inherit;
       transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
       letter-spacing:-.01em;
     }
 
-    button:hover{
-      transform:translateY(-2px);
-    }
+    button:hover{transform:translateY(-2px);}
 
-    button:disabled{
-      opacity:.45;
-      cursor:not-allowed;
-      transform:none;
-    }
+    button:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 
     .btn-primary{
       color:white;
-      background:linear-gradient(135deg,var(--primary),var(--primary2));
-      box-shadow:0 12px 24px rgba(99,102,241,.22);
+      background:linear-gradient(140deg,var(--primary),var(--primary2));
+      box-shadow:0 12px 24px rgba(14,116,144,.24);
     }
 
     .btn-soft{
       background:white;
       color:#1e293b;
-      border:1px solid rgba(99,102,241,.14);
+      border:1px solid rgba(14,116,144,.18);
       box-shadow:0 10px 20px rgba(15,23,42,.05);
     }
 
-    .legend{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:-2px;
-    }
-
-    .legend-item{
-      background:rgba(255,255,255,.82);
-      border:1px solid rgba(99,102,241,.10);
-      border-radius:999px;
-      padding:10px 14px;
-      font-size:.82rem;
-      color:#334155;
-      font-weight:700;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .dot{
-      width:10px;
-      height:10px;
-      border-radius:999px;
-      background:var(--primary);
-      box-shadow:0 0 0 4px rgba(99,102,241,.12);
-    }
-
-    .dot.green{background:var(--success); box-shadow:0 0 0 4px rgba(34,197,94,.12);}
-    .dot.blue{background:var(--accent); box-shadow:0 0 0 4px rgba(6,182,212,.12);}
-    .dot.orange{background:var(--warn); box-shadow:0 0 0 4px rgba(245,158,11,.12);}
-
     @media (max-width:1100px){
-      .hero{
-        grid-template-columns:1fr;
-      }
-      .summary-grid{
-        grid-template-columns:repeat(2,1fr);
-      }
-      .viz-panel,.right-panel{
-        min-height:auto;
-      }
+      .hero{grid-template-columns:1fr;}
+      .summary-grid{grid-template-columns:repeat(2,1fr);}
+      .viz-panel,.right-panel{min-height:auto;}
+      .quick-guide{grid-template-columns:1fr;}
     }
 
     @media (max-width:768px){
-      .app{
-        padding:14px;
-      }
-      .summary-grid{
-        grid-template-columns:1fr;
-      }
-      .metric-row{
-        grid-template-columns:1fr;
-      }
-      .topbar,.controls{
-        padding:16px;
-      }
-      .panel{
-        padding:16px;
-      }
-      .brand{
-        min-width:auto;
-      }
-      .btns{
-        width:100%;
-      }
-      button{
-        flex:1;
-      }
+      .app{padding:14px;}
+      .summary-grid{grid-template-columns:1fr;}
+      .metric-row{grid-template-columns:1fr;}
+      .topbar,.controls{padding:16px;}
+      .panel{padding:16px;}
+      .brand{min-width:auto;}
+      .btns{width:100%;}
+      button{flex:1;}
     }
   </style>
 </head>
@@ -702,7 +645,7 @@
       </div>
 <!-- Onboarding Modal (moved outside .brand) -->
 <div id="onboardModal" style="display:none;position:fixed;z-index:1000;inset:0;background:rgba(30,41,59,0.82);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
-  <div style="background:var(--card2);border-radius:32px;box-shadow:0 8px 40px #6366f1aa;padding:38px 32px;max-width:420px;text-align:center;">
+  <div style="background:var(--card2);border-radius:24px;box-shadow:0 8px 30px rgba(15,23,42,.16);padding:32px 26px;max-width:420px;text-align:center;">
     <div style="font-size:2.2rem;margin-bottom:12px;"><i class="fa-solid fa-microchip"></i></div>
     <h2 style="font-weight:900;font-size:1.35rem;margin-bottom:10px;">Welcome to the VM Process State Visualizer!</h2>
     <p style="color:var(--muted);font-size:1.05rem;margin-bottom:18px;">Explore how processes move through states in your custom VM. Use <b>Next</b>, <b>Prev</b>, or <b>Auto Play</b> to step through the lifecycle. Click <b>Help</b> anytime for a quick guide.</p>
@@ -711,7 +654,7 @@
 </div>
 <!-- Help Modal (moved outside .brand) -->
 <div id="helpModal" style="display:none;position:fixed;z-index:1000;inset:0;background:rgba(30,41,59,0.82);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
-  <div style="background:var(--card2);border-radius:32px;box-shadow:0 8px 40px #6366f1aa;padding:38px 32px;max-width:480px;text-align:left;">
+  <div style="background:var(--card2);border-radius:24px;box-shadow:0 8px 30px rgba(15,23,42,.16);padding:32px 26px;max-width:480px;text-align:left;">
     <div style="font-size:2.2rem;margin-bottom:12px;text-align:center;"><i class="fa-solid fa-circle-question"></i></div>
     <h2 style="font-weight:900;font-size:1.25rem;margin-bottom:10px;">About Process States</h2>
     <ul style="color:var(--muted);font-size:1.05rem;line-height:1.7;margin-bottom:18px;padding-left:18px;">
@@ -738,6 +681,12 @@
           <div class="chip">Mode <b id="modeChip">MANUAL</b></div>
         </div>
       </div>
+    </div>
+
+    <div class="quick-guide">
+      <div class="guide-item"><b>1. Pick scenario:</b> Select Chrome, YouTube, or Download to load a practical flow.</div>
+      <div class="guide-item"><b>2. Press Next:</b> Move one step and watch Current State plus Reason update.</div>
+      <div class="guide-item"><b>3. Read Timeline:</b> Latest line tells exactly what changed in simple words.</div>
     </div>
 
     <div class="summary-grid">
@@ -777,20 +726,20 @@
           <svg id="stateSVG" viewBox="0 0 1180 620" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="activeFill" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stop-color="#eef2ff"/>
+                <stop offset="0%" stop-color="#eff6ff"/>
                 <stop offset="100%" stop-color="#dbeafe"/>
               </linearGradient>
 
               <linearGradient id="lineGrad" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0%" stop-color="#6366f1"/>
-                <stop offset="50%" stop-color="#06b6d4"/>
-                <stop offset="100%" stop-color="#8b5cf6"/>
+                <stop offset="0%" stop-color="#2563eb"/>
+                <stop offset="50%" stop-color="#0ea5e9"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
               </linearGradient>
 
               <linearGradient id="ringGrad" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stop-color="#6366f1"/>
-                <stop offset="50%" stop-color="#06b6d4"/>
-                <stop offset="100%" stop-color="#8b5cf6"/>
+                <stop offset="0%" stop-color="#2563eb"/>
+                <stop offset="50%" stop-color="#0ea5e9"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
               </linearGradient>
 
               <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
@@ -849,13 +798,6 @@
             </g>
           </svg>
         </div>
-
-        <div class="legend">
-          <div class="legend-item"><span class="dot"></span> Active state</div>
-          <div class="legend-item"><span class="dot blue"></span> Transition path</div>
-          <div class="legend-item"><span class="dot green"></span> Process running</div>
-          <div class="legend-item"><span class="dot orange"></span> Waiting state</div>
-        </div>
       </div>
 
       <div class="right-panel">
@@ -895,8 +837,8 @@
 
           <div class="log-card">
             <div class="log-head">
-              <h4>Live Kernel Trace</h4>
-              <span>latest events</span>
+              <h4>Simple Timeline</h4>
+              <span>latest first</span>
             </div>
             <div class="logs" id="logs"></div>
           </div>
@@ -923,153 +865,226 @@
   </div>
 
 <script>
-// Onboarding modal logic
 function showOnboard(){
   document.getElementById("onboardModal").style.display = "flex";
 }
+
 function closeOnboard(){
   document.getElementById("onboardModal").style.display = "none";
   localStorage.setItem("vm_onboarded","1");
 }
-if(!localStorage.getItem("vm_onboarded")) setTimeout(showOnboard, 400);
 
-// Help modal logic
+if(!localStorage.getItem("vm_onboarded")) setTimeout(showOnboard, 350);
+
 function showHelp(){
   document.getElementById("helpModal").style.display = "flex";
 }
+
 function closeHelp(){
   document.getElementById("helpModal").style.display = "none";
 }
+
 document.getElementById("helpBtn").onclick = showHelp;
 
 const scenarios = {
   chrome: [
     {from:"NEW",to:"READY",what:"Chrome launched",why:"User clicked icon"},
     {from:"READY",to:"RUNNING",what:"Chrome starts",why:"CPU assigned"},
-    {from:"RUNNING",to:"WAITING",what:"Loading data",why:"Needs disk"},
-    {from:"WAITING",to:"READY",what:"Data loaded",why:"I/O finished"},
-    {from:"READY",to:"RUNNING",what:"Rendering UI",why:"CPU free"},
-    {from:"RUNNING",to:"TERMINATED",what:"Closed app",why:"Task done"}
+    {from:"RUNNING",to:"WAITING",what:"Loading page assets",why:"Needs disk and network I/O"},
+    {from:"WAITING",to:"READY",what:"Data loaded",why:"I/O completed"},
+    {from:"READY",to:"RUNNING",what:"Rendering tabs",why:"CPU becomes available"},
+    {from:"RUNNING",to:"TERMINATED",what:"Application closed",why:"Execution finished"}
   ],
   video: [
-    {from:"NEW",to:"READY",what:"Video opened",why:"User clicks play"},
-    {from:"READY",to:"RUNNING",what:"Start playback",why:"CPU allocates"},
-    {from:"RUNNING",to:"WAITING",what:"Buffering",why:"Network delay"},
-    {from:"WAITING",to:"READY",what:"Buffer ready",why:"Data received"},
-    {from:"READY",to:"RUNNING",what:"Resume video",why:"CPU free"},
-    {from:"RUNNING",to:"TERMINATED",what:"Video ends",why:"Finished"}
+    {from:"NEW",to:"READY",what:"YouTube opened",why:"User clicked play"},
+    {from:"READY",to:"RUNNING",what:"Playback starts",why:"Scheduler gives CPU"},
+    {from:"RUNNING",to:"WAITING",what:"Video buffering",why:"Waiting for incoming packets"},
+    {from:"WAITING",to:"READY",what:"Buffer filled",why:"Data received from network"},
+    {from:"READY",to:"RUNNING",what:"Playback resumes",why:"CPU is free again"},
+    {from:"RUNNING",to:"TERMINATED",what:"Video session ends",why:"Task completes"}
   ],
   download: [
-    {from:"NEW",to:"READY",what:"Download start",why:"User clicks"},
-    {from:"READY",to:"RUNNING",what:"Connecting",why:"CPU assigns"},
-    {from:"RUNNING",to:"WAITING",what:"Downloading",why:"Waiting net"},
-    {from:"WAITING",to:"READY",what:"Packet received",why:"Network responds"},
-    {from:"READY",to:"RUNNING",what:"Writing file",why:"CPU resumes"},
-    {from:"RUNNING",to:"TERMINATED",what:"Download complete",why:"Saved"}
+    {from:"NEW",to:"READY",what:"Download requested",why:"User clicked download"},
+    {from:"READY",to:"RUNNING",what:"Connection setup",why:"CPU assigned to process"},
+    {from:"RUNNING",to:"WAITING",what:"Receiving file chunks",why:"Process waits on network I/O"},
+    {from:"WAITING",to:"READY",what:"Chunk arrived",why:"I/O event completed"},
+    {from:"READY",to:"RUNNING",what:"Writing file to disk",why:"Scheduler runs process again"},
+    {from:"RUNNING",to:"TERMINATED",what:"Download finished",why:"File saved successfully"}
   ]
 };
 
+const scenarioMeta = {
+  chrome:{title:"Opening Chrome", subtitle:"Follow each step: created, waiting for CPU, running, waiting for data, then finished.", pid:"0x21"},
+  video:{title:"Watching YouTube", subtitle:"Notice how playback keeps switching between RUNNING and WAITING for network data.", pid:"0x3A"},
+  download:{title:"Downloading File", subtitle:"The process waits for packets, runs again, and repeats until the file is saved.", pid:"0x47"}
+};
+
+const explanation = {
+  NEW:"A process is created and registered by the operating system.",
+  READY:"The process is prepared and waiting in the CPU scheduler queue.",
+  RUNNING:"The process is actively executing instructions on the CPU.",
+  WAITING:"The process is blocked until an I/O or external event completes.",
+  TERMINATED:"The process has completed and is removed from active scheduling."
+};
+
+const analogy = {
+  NEW:"Process just got created.",
+  READY:"Process is in queue waiting for CPU.",
+  RUNNING:"Process is using CPU right now.",
+  WAITING:"Process is paused for I/O (disk/network).",
+  TERMINATED:"Process is finished."
+};
+
+const states = ["NEW","READY","RUNNING","WAITING","TERMINATED"];
 
 let currentScenario = "chrome";
 let traceData = scenarios[currentScenario];
 let step = 0;
-let cpuTime = 0;
-
-const states = ["NEW","READY","RUNNING","WAITING","TERMINATED"];
+let auto = false;
+let interval;
+let logs = [];
 
 function getState(){
   if(step === 0) return "NEW";
   return traceData[step-1].to;
 }
 
-
-function clearActive(){
-  states.forEach(s=>{
-    document.getElementById(s+"_NODE").classList.remove("active");
-    document.getElementById(s+"_RING").classList.remove("active");
-  });
-  document.querySelectorAll(".path").forEach(p=>p.classList.remove("active"));
+function getCpuTime(){
+  let runningHits = 0;
+  for(let i = 0; i < step; i++){
+    if(traceData[i].to === "RUNNING") runningHits++;
+  }
+  return runningHits * 5;
 }
 
+function clearActive(){
+  states.forEach((state) => {
+    document.getElementById(state + "_NODE").classList.remove("active");
+    document.getElementById(state + "_RING").classList.remove("active");
+  });
+
+  document.querySelectorAll(".path").forEach((path) => {
+    path.classList.remove("active");
+    path.style.strokeDasharray = "";
+    path.style.strokeDashoffset = "";
+    path.style.transition = "";
+  });
+}
 
 function highlight(){
-  const s = getState();
-  document.getElementById(s+"_NODE").classList.add("active");
-  document.getElementById(s+"_RING").classList.add("active");
+  const state = getState();
 
-  if(step>0){
-    const tr = traceData[step-1];
-    const id = tr.from+"_"+tr.to;
-    const p = document.getElementById(id);
-    if(p) {
-      p.classList.add("active");
-      // Animate path
-      p.style.strokeDasharray = "260";
-      p.style.strokeDashoffset = "260";
-      p.style.transition = "stroke-dashoffset 0.7s cubic-bezier(.7,.2,.2,1)";
-      setTimeout(()=>{p.style.strokeDashoffset = "0";}, 30);
+  document.getElementById(state + "_NODE").classList.add("active");
+  document.getElementById(state + "_RING").classList.add("active");
+
+  if(step > 0){
+    const tr = traceData[step - 1];
+    const pathId = tr.from + "_" + tr.to;
+    const path = document.getElementById(pathId);
+    if(path){
+      path.classList.add("active");
+      path.style.strokeDasharray = "260";
+      path.style.strokeDashoffset = "260";
+      path.style.transition = "stroke-dashoffset .65s cubic-bezier(.7,.2,.2,1)";
+      setTimeout(() => { path.style.strokeDashoffset = "0"; }, 28);
     }
   }
 }
 
+function setScenarioMeta(){
+  const info = scenarioMeta[currentScenario];
+  document.getElementById("sceneTitle").textContent = info.title;
+  document.getElementById("sceneSub").textContent = info.subtitle;
+  document.getElementById("pidChip").textContent = info.pid;
+  document.getElementById("detailPid").textContent = info.pid;
+}
 
-function updateLesson(){
+function lesson(title, what, why, concept){
+  document.getElementById("lessonTitle").textContent = "Step " + step + " - " + title;
+  document.getElementById("lessonWhat").innerHTML = "<b>What:</b> " + what;
+  document.getElementById("lessonWhy").innerHTML = "<b>Why:</b> " + why;
+  document.getElementById("lessonConcept").innerHTML = "<b>Now:</b> " + concept;
+}
+
+function updateLesson(state){
   if(step === 0){
-    lesson("Process Created","You open an app","OS creates process","Like opening WhatsApp");
+    lesson("Process Created", "A new process enters the system", "The OS starts tracking this task", "Nothing is running yet.");
+    document.getElementById("lessonNotice").innerHTML = "<b>Easy meaning:</b> " + analogy.NEW;
     return;
   }
 
-  const e = traceData[step-1];
-
-  const analogy = {
-    READY:"Like waiting in queue (waiting for CPU)",
-    RUNNING:"Your turn on CPU (executing)",
-    WAITING:"Waiting for I/O/network",
-    TERMINATED:"Task finished (process exits)"
-  };
-
-  lesson(e.from+" → "+e.to, e.what, e.why, analogy[e.to]);
+  const e = traceData[step - 1];
+  lesson(e.from + " -> " + e.to, e.what, e.why, "State changed to " + e.to + ".");
+  document.getElementById("lessonNotice").innerHTML = "<b>Easy meaning:</b> " + analogy[state];
 }
 
-function lesson(title, what, why, analogy){
-  document.getElementById("lessonTitle").textContent = "Step "+step+" — "+title;
-  document.getElementById("lessonWhat").innerHTML = "<b>What:</b> "+what;
-  document.getElementById("lessonWhy").innerHTML = "<b>Why:</b> "+why;
-  document.getElementById("lessonConcept").innerHTML = "<b>Analogy:</b> "+analogy;
+function pushLog(){
+  const state = getState();
+  const prefix = "Step " + step;
+  const message = step === 0
+    ? prefix + ": Process created (NEW)"
+    : prefix + ": " + traceData[step - 1].from + " -> " + traceData[step - 1].to + " | " + traceData[step - 1].what;
+
+  if(logs[logs.length - 1] !== message){
+    logs.push(message + " | Current: " + state);
+  }
+
+  if(logs.length > 5) logs = logs.slice(logs.length - 5);
 }
 
+function renderLogs(){
+  const box = document.getElementById("logs");
+  box.innerHTML = "";
+  logs.slice().reverse().forEach((line) => {
+    const row = document.createElement("div");
+    row.textContent = line;
+    box.appendChild(row);
+  });
+}
+
+function updateButtons(){
+  document.getElementById("prevBtn").disabled = step === 0;
+  document.getElementById("nextBtn").disabled = step === traceData.length;
+}
 
 function updateUI(){
   clearActive();
   highlight();
-  updateLesson();
 
   const state = getState();
+  const cpuTime = getCpuTime();
+  const progress = (step / traceData.length) * 100;
+  const eventText = step === 0 ? "Create" : traceData[step - 1].what;
+  const hintText = step === 0 ? "Process created" : "Reason: " + traceData[step - 1].why;
 
   document.getElementById("detailState").textContent = state;
-  document.getElementById("transitionPill").textContent = "STEP " + step;
-
-  const explanation = {
-    NEW:"A process is created and enters the system.",
-    READY:"Process is ready and waiting for CPU allocation.",
-    RUNNING:"Process is currently executing on the CPU.",
-    WAITING:"Process is blocked, waiting for I/O or event.",
-    TERMINATED:"Process has finished and is removed from the system."
-  };
-
   document.getElementById("detailLine").textContent = explanation[state];
-
-  if(state === "RUNNING") cpuTime += 5;
-
+  document.getElementById("transitionPill").textContent = "STEP " + step;
   document.getElementById("detailCpu").textContent = cpuTime + " ms";
   document.getElementById("detailTime").textContent = step;
 
-  let progress = (step / traceData.length) * 100;
+  document.getElementById("summaryState").textContent = state;
+  document.getElementById("summaryHint").textContent = hintText;
+  document.getElementById("summaryStep").textContent = step + " / " + traceData.length;
+  document.getElementById("summaryEvent").textContent = eventText;
+  document.getElementById("summaryTime").textContent = cpuTime + " ms";
+
+  const statePill = document.getElementById("mainStatePill");
+  const transitionPill = document.getElementById("transitionPill");
+  statePill.textContent = "CURRENT STATE: " + state;
+  statePill.className = "state-pill tone-" + state;
+  transitionPill.className = "state-pill tone-" + state;
+  document.getElementById("tagText").textContent = "PID: " + scenarioMeta[currentScenario].pid + " | CPU Time: " + cpuTime + "ms";
+  document.getElementById("cpuChip").textContent = cpuTime + "ms";
+  document.getElementById("modeChip").textContent = auto ? "AUTO" : "MANUAL";
+
   document.getElementById("barFill").style.width = progress + "%";
   document.getElementById("progressText").textContent = Math.floor(progress) + "% completed";
 
-  // Animate progress bar
-  document.getElementById("barFill").style.transition = "width 0.5s cubic-bezier(.7,.2,.2,1)";
+  updateLesson(state);
+  pushLog();
+  renderLogs();
+  updateButtons();
 }
 
 function next(){
@@ -1088,49 +1103,76 @@ function prev(){
 
 function reset(){
   step = 0;
-  cpuTime = 0;
+  logs = [];
   updateUI();
 }
 
-document.getElementById("nextBtn").onclick = next;
-document.getElementById("prevBtn").onclick = prev;
-document.getElementById("resetBtn").onclick = reset;
-
-document.getElementById("scenarioSelect").onchange = (e)=>{
-  currentScenario = e.target.value;
-  traceData = scenarios[currentScenario];
-  reset();
-};
-
-let auto = false;
-let interval;
-
-document.getElementById("autoBtn").onclick = ()=>{
+function toggleAuto(){
   auto = !auto;
-  document.getElementById("autoBtn").innerHTML = auto ? '<i class="fa-solid fa-pause"></i> Pause' : '<i class="fa-solid fa-forward"></i> Auto Play';
+  document.getElementById("modeChip").textContent = auto ? "AUTO" : "MANUAL";
+  document.getElementById("autoBtn").innerHTML = auto
+    ? '<i class="fa-solid fa-pause"></i> Pause'
+    : '<i class="fa-solid fa-forward"></i> Auto Play';
+
   if(auto){
-    interval = setInterval(()=>{
+    interval = setInterval(() => {
       if(step < traceData.length){
         next();
       } else {
         clearInterval(interval);
         auto = false;
+        document.getElementById("modeChip").textContent = "MANUAL";
         document.getElementById("autoBtn").innerHTML = '<i class="fa-solid fa-forward"></i> Auto Play';
       }
-    }, 1200);
+    }, 1150);
   } else {
     clearInterval(interval);
   }
+}
+
+document.getElementById("nextBtn").onclick = next;
+document.getElementById("prevBtn").onclick = prev;
+document.getElementById("resetBtn").onclick = reset;
+document.getElementById("autoBtn").onclick = toggleAuto;
+
+document.getElementById("scenarioSelect").onchange = (event) => {
+  currentScenario = event.target.value;
+  traceData = scenarios[currentScenario];
+
+  clearInterval(interval);
+  auto = false;
+  document.getElementById("autoBtn").innerHTML = '<i class="fa-solid fa-forward"></i> Auto Play';
+
+  setScenarioMeta();
+  reset();
 };
 
-// Keyboard navigation
-document.addEventListener('keydown', function(e){
-  if(document.getElementById("onboardModal").style.display=="flex" || document.getElementById("helpModal").style.display=="flex") return;
-  if(e.key==="ArrowRight") next();
-  if(e.key==="ArrowLeft") prev();
-  if(e.key==="r" || e.key==="R") reset();
+document.addEventListener("keydown", (event) => {
+  const onboardingOpen = document.getElementById("onboardModal").style.display === "flex";
+  const helpOpen = document.getElementById("helpModal").style.display === "flex";
+
+  if(event.key === "Escape"){
+    if(helpOpen) closeHelp();
+    if(onboardingOpen) closeOnboard();
+    return;
+  }
+
+  if(onboardingOpen || helpOpen) return;
+
+  if(event.key === "ArrowRight") next();
+  if(event.key === "ArrowLeft") prev();
+  if(event.key === "r" || event.key === "R") reset();
 });
 
+document.getElementById("onboardModal").addEventListener("click", (event) => {
+  if(event.target.id === "onboardModal") closeOnboard();
+});
+
+document.getElementById("helpModal").addEventListener("click", (event) => {
+  if(event.target.id === "helpModal") closeHelp();
+});
+
+setScenarioMeta();
 updateUI();
 </script>
 </body>
