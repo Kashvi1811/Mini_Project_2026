@@ -6,7 +6,7 @@
   <title>Process State Visualizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
   <style>
     :root{
@@ -28,13 +28,17 @@
       --heading-soft:#b8c7f7;
       --shadow:0 10px 35px rgba(0,0,0,.35);
       --radius:14px;
+      --scenario-accent:#60a5fa;
+      --scenario-accent-soft:#60a5fa33;
+      --scenario-active-glow:#45eeff;
+      --scenario-active-glow-soft:#45eeff55;
     }
 
     *{box-sizing:border-box;margin:0;padding:0;}
 
     body{
       min-height:100vh;
-      font-family:'Inter',sans-serif;
+      font-family:'Sora',sans-serif;
       color:var(--text);
       background:
         radial-gradient(circle at 12% 18%, #12307a88 0, transparent 35%),
@@ -42,6 +46,27 @@
         radial-gradient(circle at 65% 80%, #0e4f8c66 0, transparent 35%),
         linear-gradient(180deg, #050923 0%, #0a1032 100%);
       padding:18px;
+    }
+
+    body.scenario-chrome{
+      --scenario-accent:#60a5fa;
+      --scenario-accent-soft:#60a5fa33;
+      --scenario-active-glow:#67d6ff;
+      --scenario-active-glow-soft:#67d6ff66;
+    }
+
+    body.scenario-video{
+      --scenario-accent:#fb7185;
+      --scenario-accent-soft:#fb718533;
+      --scenario-active-glow:#ff8ba0;
+      --scenario-active-glow-soft:#ff8ba066;
+    }
+
+    body.scenario-download{
+      --scenario-accent:#34d399;
+      --scenario-accent-soft:#34d39933;
+      --scenario-active-glow:#5ff3c0;
+      --scenario-active-glow-soft:#5ff3c066;
     }
 
     .shell{
@@ -71,6 +96,7 @@
     }
 
     .brand h1{
+      font-family:'Space Grotesk',sans-serif;
       font-size:2rem;
       line-height:1;
       font-weight:800;
@@ -91,7 +117,31 @@
       border:1px solid var(--border);
       border-radius:12px;
       padding:8px 10px;
+      transition:border-color .2s ease, box-shadow .2s ease;
     }
+
+    .scenario-wrap.scenario-chrome{border-color:#60a5fa88;box-shadow:0 0 0 1px #60a5fa33 inset;}
+    .scenario-wrap.scenario-video{border-color:#f8717188;box-shadow:0 0 0 1px #f8717133 inset;}
+    .scenario-wrap.scenario-download{border-color:#34d39988;box-shadow:0 0 0 1px #34d39933 inset;}
+
+    .scenario-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#1a275c;
+      border:1px solid #6f84da55;
+      color:#dbe9ff;
+      font-size:.72rem;
+      font-weight:800;
+      white-space:nowrap;
+      transition:background .2s ease, border-color .2s ease, color .2s ease;
+    }
+
+    .scenario-badge.scenario-chrome{background:#1b315f;border-color:#60a5fa88;color:#b8d8ff;}
+    .scenario-badge.scenario-video{background:#3a1f41;border-color:#f8717188;color:#ffd0d0;}
+    .scenario-badge.scenario-download{background:#15384a;border-color:#34d39988;color:#b8f6e1;}
 
     select{
       border:1px solid #5d73c333;
@@ -196,6 +246,24 @@
     .btn-green{background:linear-gradient(135deg,#10b981,#22d3aa);}
     .btn-soft{background:#1b285e;border:1px solid #7f8ce055;color:#c7d6ff;}
     .btn-import{background:linear-gradient(135deg,#4d5fff,#9b59ff);}
+    .btn-simple.active{background:linear-gradient(135deg,#06b6d4,#22d3ee);color:#001828;border-color:#57e7ff;}
+
+    .live-status{
+      background:linear-gradient(135deg,#132462,#102050);
+      border:1px solid #6e85d85f;
+      border-radius:10px;
+      padding:10px 12px;
+      color:#d8e6ff;
+      font-size:.86rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .live-status b{color:#7fe9ff;}
+
+    body.scenario-chrome .live-status b{color:#8fd4ff;}
+    body.scenario-video .live-status b{color:#ffafba;}
+    body.scenario-download .live-status b{color:#87f7d1;}
 
     .speed-btn{
       background:#111d4ecc;
@@ -303,6 +371,22 @@
       font-size:.75rem;
     }
 
+    .lane-body.focus-from{
+      box-shadow:inset 0 0 0 2px #ffd16699, 0 0 14px #ffbf4f33;
+      background:linear-gradient(180deg,#27366f 0%, #22305e 100%);
+    }
+
+    .lane-body.focus-to{
+      box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 22px var(--scenario-active-glow-soft);
+      background:linear-gradient(180deg,#2a3c76 0%, #243262 100%);
+      animation:lanePulse .9s ease-in-out infinite alternate;
+    }
+
+    @keyframes lanePulse{
+      from{ box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 12px var(--scenario-active-glow-soft); }
+      to{ box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 24px var(--scenario-active-glow-soft); }
+    }
+
     .proc-card{
       border:1px solid #bfc8ff2e;
       background:linear-gradient(135deg,#5033f1,#ff006e);
@@ -360,22 +444,95 @@
       margin-top:12px;
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:8px;
+      gap:10px;
     }
 
     .transition-item{
-      background:#1c2a5f;
-      border:1px solid #6f84da55;
-      border-radius:9px;
-      padding:8px;
-      font-size:.72rem;
-      color:#c2d2f6;
+      background:linear-gradient(160deg,#21326f 0%, #1a275d 100%);
+      border:1px solid #6f84da66;
+      border-radius:12px;
+      padding:11px 11px 10px;
+      color:#d3def9;
+      position:relative;
+      overflow:hidden;
+      transition:.2s transform ease, .2s box-shadow ease, .2s border-color ease;
+    }
+
+    .transition-item::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      height:2px;
+      width:100%;
+      background:linear-gradient(90deg,#4ab7ff,#63f3ff);
+      opacity:.75;
     }
 
     .transition-item.active{
-      border-color:#22d3ee;
-      box-shadow:0 0 0 2px #22d3ee33;
-      color:#e8f8ff;
+      border-color:var(--scenario-active-glow);
+      box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 10px 25px #0a123a;
+      transform:translateY(-1px);
+      color:#f4fbff;
+      animation:transitionPulse 1.05s ease-in-out infinite alternate;
+    }
+
+    .transition-item.active::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:12px;
+      pointer-events:none;
+      box-shadow:inset 0 0 0 1px var(--scenario-active-glow-soft);
+    }
+
+    @keyframes transitionPulse{
+      from{ box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 6px 16px #0a123a; }
+      to{ box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 0 20px var(--scenario-active-glow-soft), 0 10px 25px #0a123a; }
+    }
+
+    .transition-route{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .state-chip{
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:.72rem;
+      font-weight:800;
+      letter-spacing:.01em;
+      border:1px solid transparent;
+      white-space:nowrap;
+    }
+
+    .state-chip.new{background:#289cff24;border-color:#42b8ff80;color:#9fd7ff;}
+    .state-chip.ready{background:#f7b50024;border-color:#ffc34f8c;color:#ffd98a;}
+    .state-chip.running{background:#16cb8224;border-color:#33e29a85;color:#91f3ca;}
+    .state-chip.waiting{background:#ff4d7d24;border-color:#ff769b8c;color:#ffb6c8;}
+    .state-chip.terminated{background:#93a4c024;border-color:#b5c1d885;color:#dce5f7;}
+
+    .transition-arrow{
+      min-width:22px;
+      height:22px;
+      border-radius:999px;
+      display:grid;
+      place-items:center;
+      color:#d9f9ff;
+      background:radial-gradient(circle at 30% 25%, #67ecff, #2d99f8);
+      box-shadow:0 0 0 1px #84d8ff66;
+      font-size:.66rem;
+    }
+
+    .transition-note{
+      margin-top:7px;
+      font-size:.69rem;
+      color:var(--scenario-accent);
+      letter-spacing:.02em;
+      text-transform:uppercase;
+      font-weight:700;
     }
 
     .transition-line{
@@ -444,6 +601,7 @@
 
     .log-entry{
       border:1px solid #2f4f9a70;
+      border-left:4px solid var(--scenario-accent);
       border-radius:14px;
       background:linear-gradient(180deg,#11204d 0%, #101d48 100%);
       color:#d4deff;
@@ -523,6 +681,132 @@
     .p-waiting{background:#f43f5e33;color:#ff9db0;}
     .p-terminated{background:#94a3b833;color:#d4deef;}
 
+    .simple-mode .transition-section{display:none;}
+    .simple-mode .main{grid-template-columns:1fr;}
+    .simple-mode .panel.activity{display:none;}
+
+    .queue-badge{
+      position:absolute;
+      top:2px;right:2px;
+      background:#ff6b9d;
+      color:white;
+      font-size:.6rem;
+      font-weight:900;
+      width:16px;height:16px;
+      border-radius:50%;
+      display:grid;place-items:center;
+      letter-spacing:-.02em;
+      box-shadow:0 0 0 1px #ffffff88;
+    }
+
+    .timeline-section{
+      margin-top:16px;
+      background:#0d1535;
+      border:1px solid #5f73c055;
+      border-radius:12px;
+      padding:12px;
+    }
+
+    .timeline-section h4{
+      font-size:.82rem;
+      font-weight:800;
+      color:#b4c5ef;
+      margin-bottom:10px;
+    }
+
+    .timeline-chart{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:.7rem;
+    }
+
+    .timeline-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .timeline-label{
+      min-width:32px;
+      color:#91a3d1;
+      font-weight:700;
+      text-align:right;
+    }
+
+    .timeline-bar{
+      flex:1;
+      height:18px;
+      background:linear-gradient(90deg,#1a2e5f,#1a1f4a);
+      border:1px solid #4b63b366;
+      border-radius:4px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .timeline-segment{
+      height:100%;
+      position:absolute;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:.6rem;
+      font-weight:700;
+      color:white;
+      opacity:.95;
+    }
+
+    .timeline-seg-running{background:linear-gradient(90deg,#19c97f,#12b562);box-shadow:inset 0 0 0 1px #ffffff22;}
+    .timeline-seg-ready{background:linear-gradient(90deg,#f7b500,#ff9000);opacity:.75;}
+    .timeline-seg-waiting{background:linear-gradient(90deg,#ff3c7d,#ff6a4d);opacity:.75;}
+    .timeline-seg-new{background:#4a5f8f;opacity:.5;}
+
+    .stats-panel{
+      background:#0d1535;
+      border:1px solid #5f73c055;
+      border-radius:12px;
+      padding:12px;
+      margin-top:12px;
+      max-height:280px;
+      overflow-y:auto;
+    }
+
+    .stats-panel h4{
+      font-size:.82rem;
+      font-weight:800;
+      color:#b4c5ef;
+      margin-bottom:10px;
+    }
+
+    .stat-item{
+      display:flex;
+      justify-content:space-between;
+      padding:6px 0;
+      border-bottom:1px solid #3a4a7a;
+      font-size:.73rem;
+      color:#c2d2f6;
+    }
+
+    .stat-item:last-child{border-bottom:none;}
+
+    .stat-label{
+      font-weight:700;
+      color:#a6b8e8;
+    }
+
+    .stat-value{
+      color:#7fe9ff;
+      font-weight:800;
+    }
+
+    .proc-card{
+      cursor:pointer;
+    }
+
+    .proc-card.clickable:hover{
+      transform:scale(1.02);
+    }
+
     @media (max-width:980px){
       .stats{grid-template-columns:1fr;}
       .guide{grid-template-columns:1fr;}
@@ -557,6 +841,7 @@
           <option value="video">Watching YouTube</option>
           <option value="download">Downloading File</option>
         </select>
+        <span class="scenario-badge" id="scenarioBadge"><i class="fa-solid fa-window-maximize"></i> Chrome Flow</span>
       </div>
     </div>
 
@@ -620,6 +905,7 @@
         <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
         <button class="btn-green" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Run</button>
         <button class="btn-import" id="importTraceBtn"><i class="fa-solid fa-file-import"></i> Import Trace</button>
+        <button class="btn-soft btn-simple" id="simpleModeBtn"><i class="fa-solid fa-eye"></i> Simple Mode</button>
         <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
         <input type="file" id="traceFileInput" accept=".jsonl,.txt,.json" style="display:none;" />
       </div>
@@ -630,6 +916,8 @@
         <button class="speed-btn" data-speed="fast">Fast</button>
       </div>
     </div>
+
+    <div class="live-status" id="liveStatus">Now: No process yet. Click New Process to begin.</div>
 
     <div class="main">
       <div class="panel">
@@ -663,14 +951,69 @@
           </div>
         </div>
 
-        <div style="margin-top:12px;font-size:.82rem;color:#b4c5ef;font-weight:700;"><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transitions</div>
-        <div class="transition-map">
-          <div class="transition-item" id="trans-NEW_READY">New <div class="transition-line"></div> Ready</div>
-          <div class="transition-item" id="trans-READY_RUNNING">Ready <div class="transition-line"></div> Running</div>
-          <div class="transition-item" id="trans-RUNNING_READY">Running <div class="transition-line"></div> Ready</div>
-          <div class="transition-item" id="trans-RUNNING_WAITING">Running <div class="transition-line"></div> Waiting</div>
-          <div class="transition-item" id="trans-WAITING_READY">Waiting <div class="transition-line"></div> Ready</div>
-          <div class="transition-item" id="trans-RUNNING_TERMINATED">Running <div class="transition-line"></div> Terminated</div>
+        <div class="transition-section">
+          <div style="margin-top:12px;font-size:.82rem;color:#b4c5ef;font-weight:700;"><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transitions</div>
+          <div class="transition-map">
+          <div class="transition-item" id="trans-NEW_READY">
+            <div class="transition-route">
+              <span class="state-chip new">New</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip ready">Ready</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">Admit Process</div>
+          </div>
+          <div class="transition-item" id="trans-READY_RUNNING">
+            <div class="transition-route">
+              <span class="state-chip ready">Ready</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip running">Running</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">CPU Dispatch</div>
+          </div>
+          <div class="transition-item" id="trans-RUNNING_READY">
+            <div class="transition-route">
+              <span class="state-chip running">Running</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip ready">Ready</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">Time Slice End</div>
+          </div>
+          <div class="transition-item" id="trans-RUNNING_WAITING">
+            <div class="transition-route">
+              <span class="state-chip running">Running</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip waiting">Waiting</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">I/O Block</div>
+          </div>
+          <div class="transition-item" id="trans-WAITING_READY">
+            <div class="transition-route">
+              <span class="state-chip waiting">Waiting</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip ready">Ready</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">I/O Complete</div>
+          </div>
+          <div class="transition-item" id="trans-RUNNING_TERMINATED">
+            <div class="transition-route">
+              <span class="state-chip running">Running</span>
+              <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              <span class="state-chip terminated">Terminated</span>
+            </div>
+            <div class="transition-line"></div>
+            <div class="transition-note">Program Exit</div>
+          </div>
+          </div>
+        </div>
+
+        <div class="timeline-section">
+          <h4><i class="fa-solid fa-chart-gantt"></i> CPU Timeline</h4>
+          <div class="timeline-chart" id="timelineChart"></div>
         </div>
       </div>
 
@@ -681,6 +1024,10 @@
         </div>
         <div class="current" id="currentInfo">No active process yet. Create a process to begin.</div>
         <div class="log-box" id="activityLog"></div>
+        <div class="stats-panel" id="statsPanel" style="display:none;">
+          <h4><i class="fa-solid fa-chart-bar"></i> Process Statistics</h4>
+          <div id="statsContent"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -703,6 +1050,8 @@
       {from:"RUNNING",to:"WAITING",what:"Loading page assets",why:"Needs disk/network I/O"},
       {from:"WAITING",to:"READY",what:"Data loaded",why:"I/O completed"},
       {from:"READY",to:"RUNNING",what:"Rendering tabs",why:"CPU available"},
+      {from:"RUNNING",to:"READY",what:"UI thread yielded",why:"Scheduler rotates time slice"},
+      {from:"READY",to:"RUNNING",what:"Compositor resumes",why:"CPU returned to browser"},
       {from:"RUNNING",to:"TERMINATED",what:"Application closed",why:"Execution finished"}
     ],
     video: [
@@ -711,6 +1060,9 @@
       {from:"RUNNING",to:"WAITING",what:"Video buffering",why:"Waiting for network packets"},
       {from:"WAITING",to:"READY",what:"Buffer filled",why:"Data arrived"},
       {from:"READY",to:"RUNNING",what:"Playback resumes",why:"CPU free again"},
+      {from:"RUNNING",to:"WAITING",what:"Adaptive quality switch",why:"Player requests new bitrate segment"},
+      {from:"WAITING",to:"READY",what:"New segment ready",why:"Buffered frames restored"},
+      {from:"READY",to:"RUNNING",what:"Smooth playback",why:"Decoder has enough buffered data"},
       {from:"RUNNING",to:"TERMINATED",what:"Video session ends",why:"Task complete"}
     ],
     download: [
@@ -719,8 +1071,50 @@
       {from:"RUNNING",to:"WAITING",what:"Receiving chunks",why:"Waiting for network I/O"},
       {from:"WAITING",to:"READY",what:"Chunk arrived",why:"I/O event completed"},
       {from:"READY",to:"RUNNING",what:"Writing file",why:"CPU resumed"},
+      {from:"RUNNING",to:"WAITING",what:"Await next packet",why:"TCP window waits for sender"},
+      {from:"WAITING",to:"READY",what:"Packet burst arrived",why:"Network queue filled"},
+      {from:"READY",to:"RUNNING",what:"Checksum + flush",why:"Kernel validates and writes blocks"},
       {from:"RUNNING",to:"TERMINATED",what:"Download finished",why:"File saved"}
     ]
+  };
+
+  const scenarioVisuals = {
+    chrome: {
+      icon: "fa-brands fa-chrome",
+      badge: "Chrome Flow",
+      notes: [
+        "Launch Browser",
+        "Tab Scheduler",
+        "CPU Slice End",
+        "Page Asset Wait",
+        "Asset Loaded",
+        "Close Browser"
+      ]
+    },
+    video: {
+      icon: "fa-brands fa-youtube",
+      badge: "YouTube Playback",
+      notes: [
+        "Open Player",
+        "Start Playback",
+        "Frame Slice End",
+        "Buffer Wait",
+        "Buffer Filled",
+        "End Session"
+      ]
+    },
+    download: {
+      icon: "fa-solid fa-download",
+      badge: "File Download",
+      notes: [
+        "Create Job",
+        "Begin Transfer",
+        "Chunk Slice End",
+        "Network Wait",
+        "Chunk Received",
+        "Save Complete"
+      ]
+    }
   };
 
   const statePillClass = {
@@ -744,6 +1138,33 @@
   let logItems = [];
   let nextBadgeMs = 2;
   let traceMeta = null;
+  let simpleMode = false;
+  let roundRobinCursor = -1;
+  let globalTimeStep = 0;
+  let readyQueueOrder = [];
+
+  function applyScenarioVisuals(key){
+    document.body.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
+    document.body.classList.add("scenario-" + key);
+
+    const wrap = document.querySelector(".scenario-wrap");
+    const badge = document.getElementById("scenarioBadge");
+    const notes = document.querySelectorAll(".transition-note");
+    const visual = scenarioVisuals[key] || scenarioVisuals.chrome;
+
+    wrap.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
+    badge.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
+
+    const className = "scenario-" + key;
+    wrap.classList.add(className);
+    badge.classList.add(className);
+
+    badge.innerHTML = '<i class="' + visual.icon + '"></i> ' + visual.badge;
+
+    notes.forEach((note, index) => {
+      if(visual.notes[index]) note.textContent = visual.notes[index];
+    });
+  }
 
   function formatLogTime(date){
     return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).toLowerCase();
@@ -949,7 +1370,11 @@
       chipGradient: getChipGradient(pid),
       traceRows: rows,
       lastVm: null,
-      traceSource: fileName
+      traceSource: fileName,
+      timeline: [],
+      stateEnterTime: 0,
+      stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
+      readyQueuePos: -1
     };
 
     traceMeta = {
@@ -992,7 +1417,11 @@
       state: "NEW",
       cpu: 0,
       badgeMs: nextBadgeMs,
-      chipGradient: getChipGradient(pid)
+      chipGradient: getChipGradient(pid),
+      timeline: [],
+      stateEnterTime: 0,
+      stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
+      readyQueuePos: -1
     };
 
     nextBadgeMs += 2;
@@ -1014,6 +1443,7 @@
 
     const event = proc.trace[proc.step];
     proc.step += 1;
+    const oldState = proc.state;
     proc.state = event.to;
     if(event.vm) proc.lastVm = event.vm;
 
@@ -1021,7 +1451,24 @@
       proc.cpu += 5;
     }
 
+    proc.timeline.push({
+      step: proc.step,
+      from: event.from,
+      to: event.to,
+      time: globalTimeStep
+    });
+
+    if(oldState === "READY" && event.to !== "READY"){
+      readyQueueOrder = readyQueueOrder.filter(id => id !== proc.id);
+    }
+    if(event.to === "READY" && oldState !== "READY"){
+      readyQueueOrder.push(proc.id);
+      proc.readyQueuePos = readyQueueOrder.length;
+    }
+
     transitionCount += 1;
+    globalTimeStep += 1;
+    
     let detail = event.why;
     if(event.vm){
       detail = "VM step " + event.vm.step + " | PC " + event.vm.pc + " | " + event.vm.opName + " (" + event.vm.ins + ") | " + event.why;
@@ -1055,6 +1502,18 @@
     updateUI();
   }
 
+  function getRunnableProcesses(){
+    return processes.filter((p) => p.state !== "TERMINATED");
+  }
+
+  function getNextRunnableProcess(){
+    const runnable = getRunnableProcesses();
+    if(runnable.length === 0) return null;
+
+    roundRobinCursor = (roundRobinCursor + 1) % runnable.length;
+    return runnable[roundRobinCursor];
+  }
+
   function clearAll(){
     processes = [];
     logItems = [];
@@ -1063,6 +1522,9 @@
     activeProcessId = null;
     nextPid = 1;
     nextBadgeMs = 2;
+    roundRobinCursor = -1;
+    globalTimeStep = 0;
+    readyQueueOrder = [];
     stopAuto();
     updateUI();
   }
@@ -1075,8 +1537,7 @@
   }
 
   function toggleAuto(){
-    const proc = getActiveProcess();
-    if(!proc || proc.state === "TERMINATED") return;
+    if(getRunnableProcesses().length === 0) return;
 
     auto = !auto;
     document.getElementById("autoBtn").innerHTML = auto
@@ -1089,17 +1550,18 @@
     }
 
     autoTimer = setInterval(() => {
-      const active = getActiveProcess();
-      if(!active || active.state === "TERMINATED"){
+      const next = getNextRunnableProcess();
+      if(!next){
         stopAuto();
         updateUI();
         return;
       }
 
-      advanceProcess(active);
+      activeProcessId = next.id;
+      advanceProcess(next);
       updateUI();
 
-      if(active.state === "TERMINATED"){
+      if(getRunnableProcesses().length === 0){
         stopAuto();
       }
     }, speedMap[speed]);
@@ -1119,15 +1581,28 @@
         empty.textContent = "Empty";
         lane.appendChild(empty);
       } else {
-        items.forEach((p) => {
+        items.forEach((p, idx) => {
           const card = document.createElement("div");
-          card.className = "proc-card" + (p.id === activeProcessId ? " active" : "");
+          card.className = "proc-card" + (p.id === activeProcessId ? " active" : "") + " clickable";
           card.style.background = p.chipGradient;
+          card.style.position = "relative";
           card.innerHTML =
             '<span class="proc-label">' + p.pid + '</span>' +
             '<span class="proc-time">' + p.badgeMs + 'ms</span>' +
             '<span class="proc-close"><i class="fa-solid fa-xmark"></i></span>';
-          card.onclick = () => { activeProcessId = p.id; updateUI(); };
+          
+          if(state === "READY"){
+            const badge = document.createElement("div");
+            badge.className = "queue-badge";
+            badge.textContent = idx + 1;
+            card.appendChild(badge);
+          }
+          
+          card.onclick = (e) => {
+            if(e.target.closest(".proc-close")) return;
+            activeProcessId = p.id;
+            updateUI();
+          };
           lane.appendChild(card);
         });
       }
@@ -1138,6 +1613,10 @@
 
   function highlightTransitions(){
     document.querySelectorAll(".transition-item").forEach((item) => item.classList.remove("active"));
+    document.querySelectorAll(".lane-body").forEach((lane) => {
+      lane.classList.remove("focus-from");
+      lane.classList.remove("focus-to");
+    });
 
     const proc = getActiveProcess();
     if(!proc || proc.step === 0) return;
@@ -1146,6 +1625,11 @@
     const id = "trans-" + ev.from + "_" + ev.to;
     const el = document.getElementById(id);
     if(el) el.classList.add("active");
+
+    const fromLane = document.getElementById("lane-" + ev.from);
+    const toLane = document.getElementById("lane-" + ev.to);
+    if(fromLane) fromLane.classList.add("focus-from");
+    if(toLane) toLane.classList.add("focus-to");
   }
 
   function renderLog(){
@@ -1202,10 +1686,143 @@
       "Reason: " + reason + traceLine + sourceLine;
   }
 
+  function updateLiveStatus(){
+    const live = document.getElementById("liveStatus");
+    const proc = getActiveProcess();
+
+    if(!proc){
+      live.innerHTML = "Now: No process yet. Click <b>New Process</b> to begin.";
+      return;
+    }
+
+    if(proc.step === 0){
+      live.innerHTML = "Now: <b>" + proc.pid + "</b> is in <b>" + proc.state + "</b>.";
+      return;
+    }
+
+    const ev = proc.trace[proc.step - 1];
+    live.innerHTML = "Now: <b>" + proc.pid + "</b> transitioned <b>" + ev.from + "</b> to <b>" + ev.to + "</b>.";
+  }
+
+  function toggleSimpleMode(){
+    simpleMode = !simpleMode;
+    document.body.classList.toggle("simple-mode", simpleMode);
+
+    const btn = document.getElementById("simpleModeBtn");
+    btn.classList.toggle("active", simpleMode);
+    btn.innerHTML = simpleMode
+      ? '<i class="fa-solid fa-eye-slash"></i> Detailed Mode'
+      : '<i class="fa-solid fa-eye"></i> Simple Mode';
+  }
+
   function updateStats(){
     document.getElementById("statCreated").textContent = processes.length;
     document.getElementById("statCompleted").textContent = processes.filter((p) => p.state === "TERMINATED").length;
     document.getElementById("statTransitions").textContent = transitionCount;
+  }
+
+  function updateButtons(){
+    const proc = getActiveProcess();
+    const disabled = !proc || proc.state === "TERMINATED";
+
+    document.getElementById("stepBtn").disabled = disabled;
+    document.getElementById("autoBtn").disabled = disabled;
+  }
+
+  function renderTimeline(){
+    const chart = document.getElementById("timelineChart");
+    chart.innerHTML = "";
+
+    if(globalTimeStep === 0){
+      chart.innerHTML = '<div style="color:#7f91b7;font-size:.75rem;text-align:center;padding:10px;">No timeline yet. Create a process to begin.</div>';
+      return;
+    }
+
+    processes.slice(0, 6).forEach((proc) => {
+      const row = document.createElement("div");
+      row.className = "timeline-row";
+
+      const label = document.createElement("div");
+      label.className = "timeline-label";
+      label.textContent = proc.pid;
+
+      const bar = document.createElement("div");
+      bar.className = "timeline-bar";
+
+      let lastTime = 0;
+      proc.timeline.forEach((event) => {
+        if(event.time > lastTime && event.to === "RUNNING"){
+          const width = ((1 / globalTimeStep) * 100) + "%";
+          const seg = document.createElement("div");
+          seg.className = "timeline-segment timeline-seg-running";
+          seg.style.left = ((event.time / globalTimeStep) * 100) + "%";
+          seg.style.width = width;
+          seg.textContent = "RUN";
+          bar.appendChild(seg);
+        }
+        lastTime = event.time;
+      });
+
+      if(bar.children.length === 0){
+        const nodata = document.createElement("div");
+        nodata.className = "timeline-segment";
+        nodata.style.width = "100%";
+        nodata.style.opacity = ".3";
+        nodata.style.background = "#4a5f8f";
+        nodata.textContent = "—";
+        bar.appendChild(nodata);
+      }
+
+      row.appendChild(label);
+      row.appendChild(bar);
+      chart.appendChild(row);
+    });
+  }
+
+  function renderStats(){
+    const statsPanel = document.getElementById("statsPanel");
+    const statsContent = document.getElementById("statsContent");
+    const proc = getActiveProcess();
+
+    if(!proc){
+      statsPanel.style.display = "none";
+      return;
+    }
+
+    statsPanel.style.display = "block";
+    statsContent.innerHTML = "";
+
+    const totalTime = proc.timeline.length || 1;
+    const stat = (label, value) => {
+      const item = document.createElement("div");
+      item.className = "stat-item";
+      item.innerHTML = '<span class="stat-label">' + label + '</span><span class="stat-value">' + value + '</span>';
+      statsContent.appendChild(item);
+    };
+
+    stat("PID", proc.pid);
+    stat("State", proc.state);
+    stat("Steps Executed", proc.step + "/" + proc.trace.length);
+    stat("CPU Time", proc.cpu + " ms");
+    stat("Total Transitions", proc.timeline.length);
+    
+    if(proc.state === "TERMINATED"){
+      stat("Status", "✓ Completed");
+    } else if(proc.state === "RUNNING"){
+      stat("Status", "◉ Executing");
+    } else if(proc.state === "READY"){
+      stat("Status", "◆ Queued");
+      stat("Queue Position", proc.readyQueuePos);
+    } else if(proc.state === "WAITING"){
+      stat("Status", "⧖ Blocked");
+    } else {
+      stat("Status", "◎ New");
+    }
+
+    if(proc.scenario){
+      const scenario = scenarios[proc.scenario] ? proc.scenario.charAt(0).toUpperCase() + proc.scenario.slice(1) : "Manual";
+      stat("Scenario", scenario);
+    }
   }
 
   function updateButtons(){
@@ -1221,13 +1838,17 @@
     highlightTransitions();
     renderLog();
     updateCurrentInfo();
+    updateLiveStatus();
     updateStats();
     updateButtons();
+    renderTimeline();
+    renderStats();
   }
 
   document.getElementById("newBtn").onclick = createProcess;
   document.getElementById("stepBtn").onclick = stepForward;
   document.getElementById("autoBtn").onclick = toggleAuto;
+  document.getElementById("simpleModeBtn").onclick = toggleSimpleMode;
   document.getElementById("clearBtn").onclick = clearAll;
 
   document.getElementById("importTraceBtn").onclick = () => {
@@ -1262,6 +1883,7 @@
 
   document.getElementById("scenarioSelect").onchange = (e) => {
     currentScenario = e.target.value;
+    applyScenarioVisuals(currentScenario);
     addLog({
       pid: "SYS",
       color: "#7f91b7",
@@ -1297,6 +1919,8 @@
       toggleAuto();
     }
   });
+
+  applyScenarioVisuals(currentScenario);
 
   updateUI();
 </script>
