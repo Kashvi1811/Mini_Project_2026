@@ -223,6 +223,15 @@
       gap:10px;
       flex-wrap:wrap;
       align-items:center;
+      background:linear-gradient(135deg,#101c4aee,#0d173fee);
+      border:1px solid #6f84da4a;
+      border-radius:12px;
+      padding:10px;
+      box-shadow:0 12px 30px rgba(3,8,29,.35);
+      position:sticky;
+      top:8px;
+      z-index:15;
+      backdrop-filter:blur(6px);
     }
 
     .btn-row,.speed-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -236,10 +245,11 @@
       font-family:inherit;
       color:white;
       cursor:pointer;
-      transition:.18s transform ease, .18s opacity ease;
+      transition:.18s transform ease, .18s opacity ease, .2s box-shadow ease;
+      box-shadow:0 7px 16px rgba(0,0,0,.2);
     }
 
-    button:hover{transform:translateY(-1px);}
+    button:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(0,0,0,.25);}
     button:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 
     .btn-blue{background:linear-gradient(135deg,#2481ff,#1db6ff);}
@@ -257,6 +267,12 @@
       font-size:.86rem;
       font-weight:700;
       box-shadow:var(--shadow);
+      animation:statusIn .45s ease;
+    }
+
+    @keyframes statusIn{
+      from{opacity:0;transform:translateY(4px);}
+      to{opacity:1;transform:translateY(0);}
     }
 
     .live-status b{color:#7fe9ff;}
@@ -275,6 +291,147 @@
     }
 
     .speed-btn.active{background:#6a4cff;color:white;border-color:#8c7aff;}
+
+    .quick-actions{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .quick-action{
+      border:1px solid #5f73c066;
+      background:linear-gradient(135deg,#101d4a,#0f1941);
+      border-radius:12px;
+      padding:10px 12px;
+      color:#d9e7ff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:.78rem;
+      font-weight:700;
+      cursor:pointer;
+      transition:.18s transform ease, .2s border-color ease, .2s box-shadow ease;
+    }
+
+    .quick-action:hover{
+      transform:translateY(-1px);
+      border-color:#7ca2ff;
+      box-shadow:0 10px 20px rgba(0,0,0,.25);
+    }
+
+    .quick-action strong{color:#88e7ff;font-size:.72rem;letter-spacing:.02em;}
+
+    .quick-action i{color:#b6c9ff;}
+
+    .edu-hub{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:10px;
+      background:linear-gradient(135deg,#1a1f56f2,#1a2a68ed 45%,#213072ed);
+      border:1px solid #7d92eb6b;
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 16px 34px rgba(5,10,34,.38);
+    }
+
+    .edu-kicker{
+      font-size:.68rem;
+      font-weight:800;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+      color:#99dcff;
+      margin-bottom:6px;
+    }
+
+    .edu-copy h3{
+      font-family:'Space Grotesk',sans-serif;
+      font-size:1.25rem;
+      line-height:1.15;
+      color:#f4f8ff;
+      margin-bottom:6px;
+    }
+
+    .edu-explain{
+      color:#d5e2ff;
+      font-size:.86rem;
+      line-height:1.5;
+      margin-bottom:7px;
+    }
+
+    .edu-why{
+      color:#9ec0ff;
+      font-size:.79rem;
+      line-height:1.45;
+      margin-bottom:10px;
+    }
+
+    .edu-progress{
+      height:9px;
+      border-radius:999px;
+      background:#111b44;
+      border:1px solid #6d82d34a;
+      overflow:hidden;
+      margin-bottom:6px;
+    }
+
+    .edu-progress > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#49b7ff,#67f4e0);
+      box-shadow:0 0 14px #4ab7ff88;
+      transition:width .3s ease;
+    }
+
+    .edu-progress-text{
+      color:#aac2f0;
+      font-size:.74rem;
+      font-weight:700;
+    }
+
+    .state-compass{
+      background:#131f4b;
+      border:1px solid #7389de4d;
+      border-radius:12px;
+      padding:10px;
+      display:grid;
+      gap:7px;
+      align-content:start;
+    }
+
+    .compass-title{
+      font-size:.75rem;
+      color:#b5c8f1;
+      font-weight:800;
+      margin-bottom:2px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    .compass-chip{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-radius:9px;
+      border:1px solid #6177c955;
+      padding:7px 9px;
+      color:#bed0f3;
+      background:linear-gradient(135deg,#1a275d,#172351);
+      font-size:.74rem;
+      font-weight:700;
+      transition:.2s transform ease,.2s border-color ease,.2s box-shadow ease;
+    }
+
+    .compass-chip.active{
+      border-color:var(--scenario-active-glow);
+      color:#f1fbff;
+      transform:translateX(2px);
+      box-shadow:0 0 0 1px var(--scenario-accent-soft), 0 0 16px var(--scenario-active-glow-soft);
+      background:linear-gradient(135deg,#243478,#20306c);
+    }
+
+    .compass-chip small{opacity:.78;font-weight:700;}
 
     .main{
       display:grid;
@@ -337,6 +494,7 @@
       display:flex;
       flex-direction:column;
       overflow:hidden;
+      box-shadow:inset 0 1px 0 #ffffff1c;
     }
 
     .lane-head{
@@ -812,6 +970,8 @@
       .guide{grid-template-columns:1fr;}
       .main{grid-template-columns:1fr;}
       .lanes{grid-template-columns:1fr 1fr;}
+      .quick-actions{grid-template-columns:1fr;}
+      .edu-hub{grid-template-columns:1fr;}
     }
 
     @media (max-width:680px){
@@ -918,6 +1078,40 @@
     </div>
 
     <div class="live-status" id="liveStatus">Now: No process yet. Click New Process to begin.</div>
+
+    <div class="quick-actions">
+      <button class="quick-action" id="qaCreate" type="button">
+        <span><i class="fa-solid fa-plus"></i> Create Process</span>
+        <strong>N</strong>
+      </button>
+      <button class="quick-action" id="qaRun" type="button">
+        <span><i class="fa-solid fa-forward-step"></i> Run/Pause</span>
+        <strong>SPACE</strong>
+      </button>
+      <button class="quick-action" id="qaReset" type="button">
+        <span><i class="fa-solid fa-rotate-left"></i> Reset Board</span>
+        <strong>CLEAR</strong>
+      </button>
+    </div>
+
+    <div class="edu-hub">
+      <div class="edu-copy">
+        <div class="edu-kicker">Learning Coach</div>
+        <h3 id="eduTitle">Create a process to start the story</h3>
+        <p class="edu-explain" id="eduExplain">Processes are like tasks. They move through states depending on CPU time and I/O events.</p>
+        <p class="edu-why" id="eduWhy">Tip: Press <b>N</b> for New Process, then <b>Space</b> to auto-run and watch state flow.</p>
+        <div class="edu-progress"><span id="eduProgressFill"></span></div>
+        <div class="edu-progress-text" id="eduProgressText">Learning Progress: 0%</div>
+      </div>
+      <div class="state-compass" id="stateCompass">
+        <div class="compass-title">State Compass</div>
+        <div class="compass-chip" data-state="NEW"><span>NEW</span><small>Created</small></div>
+        <div class="compass-chip" data-state="READY"><span>READY</span><small>Queued</small></div>
+        <div class="compass-chip" data-state="RUNNING"><span>RUNNING</span><small>Using CPU</small></div>
+        <div class="compass-chip" data-state="WAITING"><span>WAITING</span><small>On I/O</small></div>
+        <div class="compass-chip" data-state="TERMINATED"><span>TERMINATED</span><small>Done</small></div>
+      </div>
+    </div>
 
     <div class="main">
       <div class="panel">
@@ -1126,6 +1320,39 @@
   };
 
   const speedMap = { slow: 1700, normal: 1100, fast: 600 };
+
+  const lessonMap = {
+    NEW_READY: {
+      title: "Process moved to Ready",
+      explain: "The task is loaded and waiting in line for CPU time.",
+      why: "This is admission control: the OS accepts the process into scheduling."
+    },
+    READY_RUNNING: {
+      title: "CPU assigned",
+      explain: "Now the process is actively executing instructions.",
+      why: "The scheduler picked this process from the ready queue."
+    },
+    RUNNING_WAITING: {
+      title: "Process is waiting",
+      explain: "Execution paused because it requested I/O (disk/network/memory).",
+      why: "CPU is freed so another process can run while this waits for data."
+    },
+    WAITING_READY: {
+      title: "I/O finished",
+      explain: "Required data arrived, so process can compete for CPU again.",
+      why: "This transition keeps system responsive after asynchronous events."
+    },
+    RUNNING_READY: {
+      title: "Time slice ended",
+      explain: "Process was preempted and put back in queue fairly.",
+      why: "Round-robin scheduling prevents one task from monopolizing CPU."
+    },
+    RUNNING_TERMINATED: {
+      title: "Process completed",
+      explain: "The task finished all work and exited successfully.",
+      why: "Resources are released so system can focus on remaining tasks."
+    }
+  };
 
   let processes = [];
   let currentScenario = "chrome";
@@ -1704,6 +1931,55 @@
     live.innerHTML = "Now: <b>" + proc.pid + "</b> transitioned <b>" + ev.from + "</b> to <b>" + ev.to + "</b>.";
   }
 
+  function updateEducationPanel(){
+    const title = document.getElementById("eduTitle");
+    const explain = document.getElementById("eduExplain");
+    const why = document.getElementById("eduWhy");
+    const fill = document.getElementById("eduProgressFill");
+    const pText = document.getElementById("eduProgressText");
+    const chips = document.querySelectorAll(".compass-chip");
+    const proc = getActiveProcess();
+
+    chips.forEach((chip) => chip.classList.remove("active"));
+
+    if(!proc){
+      title.textContent = "Create a process to start the story";
+      explain.textContent = "Processes are like tasks. They move through states depending on CPU time and I/O events.";
+      why.innerHTML = "Tip: Press <b>N</b> for New Process, then <b>Space</b> to auto-run and watch state flow.";
+      fill.style.width = "0%";
+      pText.textContent = "Learning Progress: 0%";
+      return;
+    }
+
+    const activeChip = document.querySelector('.compass-chip[data-state="' + proc.state + '"]');
+    if(activeChip) activeChip.classList.add("active");
+
+    const percent = Math.max(0, Math.min(100, Math.round((proc.step / Math.max(1, proc.trace.length)) * 100)));
+    fill.style.width = percent + "%";
+    pText.textContent = "Learning Progress: " + percent + "%";
+
+    if(proc.step === 0){
+      title.textContent = "Process is born in NEW";
+      explain.textContent = "This process exists, but has not entered CPU scheduling yet.";
+      why.textContent = "Next move: NEW -> READY, where it joins the run queue.";
+      return;
+    }
+
+    const ev = proc.trace[proc.step - 1];
+    const key = ev.from + "_" + ev.to;
+    const lesson = lessonMap[key];
+
+    if(lesson){
+      title.textContent = lesson.title;
+      explain.textContent = lesson.explain;
+      why.textContent = lesson.why;
+    } else {
+      title.textContent = "State changed: " + ev.from + " -> " + ev.to;
+      explain.textContent = ev.what || "The process has transitioned based on scheduler or I/O logic.";
+      why.textContent = ev.why || "This is part of normal OS process lifecycle management.";
+    }
+  }
+
   function toggleSimpleMode(){
     simpleMode = !simpleMode;
     document.body.classList.toggle("simple-mode", simpleMode);
@@ -1727,6 +2003,15 @@
 
     document.getElementById("stepBtn").disabled = disabled;
     document.getElementById("autoBtn").disabled = disabled;
+
+    const qaRun = document.getElementById("qaRun");
+    if(qaRun){
+      qaRun.style.opacity = disabled ? ".45" : "1";
+      qaRun.style.pointerEvents = disabled ? "none" : "auto";
+      qaRun.querySelector("span").innerHTML = auto
+        ? '<i class="fa-solid fa-pause"></i> Pause'
+        : '<i class="fa-solid fa-forward-step"></i> Run/Pause';
+    }
   }
 
   function renderTimeline(){
@@ -1825,14 +2110,6 @@
     }
   }
 
-  function updateButtons(){
-    const proc = getActiveProcess();
-    const disabled = !proc || proc.state === "TERMINATED";
-
-    document.getElementById("stepBtn").disabled = disabled;
-    document.getElementById("autoBtn").disabled = disabled;
-  }
-
   function updateUI(){
     renderLanes();
     highlightTransitions();
@@ -1841,6 +2118,7 @@
     updateLiveStatus();
     updateStats();
     updateButtons();
+    updateEducationPanel();
     renderTimeline();
     renderStats();
   }
@@ -1848,6 +2126,9 @@
   document.getElementById("newBtn").onclick = createProcess;
   document.getElementById("stepBtn").onclick = stepForward;
   document.getElementById("autoBtn").onclick = toggleAuto;
+  document.getElementById("qaCreate").onclick = createProcess;
+  document.getElementById("qaRun").onclick = toggleAuto;
+  document.getElementById("qaReset").onclick = clearAll;
   document.getElementById("simpleModeBtn").onclick = toggleSimpleMode;
   document.getElementById("clearBtn").onclick = clearAll;
 
