@@ -85,7 +85,7 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
   [Download the latest release](https://github.com/Kashvi1811/Mini_Project_2026/releases/latest) for Windows, Linux, or macOS.
 
 - **Try the Visual Simulation (Viewer):**  
-  [Open the interactive viewer](https://kashvi1811.github.io/Mini_Project_2026/)
+  [Open the interactive viewer](https://kashvi1811.github.io/Custom-Virtual-Machine/)
 
 ### 1) ⚙️ Run C++ VM (PowerShell / Windows)
 
