@@ -2269,7 +2269,7 @@ namespace {
     }
 
     int handleViewerCommand(bool open) {
-        const std::string hostedViewerUrl = "https://kashvi1811.github.io/Mini_Project_2026/";
+        const std::string hostedViewerUrl = "https://kashvi1811.github.io/Custom-Virtual-Machine/";
         std::cout << "Opening public viewer: " << hostedViewerUrl << std::endl;
         if (open) {
 #ifdef _WIN32

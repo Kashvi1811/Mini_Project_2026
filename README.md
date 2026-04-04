@@ -82,7 +82,7 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 ## 🚀 Quick Start
 
 - **Run the Custom VM CLI:**  
-  [Download the latest release](https://github.com/Kashvi1811/Mini_Project_2026/releases/latest) for Windows, Linux, or macOS.
+  [Download release v1.0.0](https://github.com/Kashvi1811/Custom-Virtual-Machine/releases/tag/v1.0.0) for Windows, Linux, or macOS.
 
 - **Try the Visual Simulation (Viewer):**  
   [Open the interactive viewer](https://kashvi1811.github.io/Custom-Virtual-Machine/)
