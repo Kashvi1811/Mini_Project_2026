@@ -101,12 +101,12 @@
       line-height:1;
       font-weight:800;
       letter-spacing:-.02em;
-      background:linear-gradient(90deg,#b3e5ff 0%, #7bdeff 35%, #5affff 65%, #3fffff 100%);
+      background:linear-gradient(90deg,#ff99e6 0%, #c08cff 38%, #7b9dff 70%, #54d8ff 100%);
       -webkit-background-clip:text;
       background-clip:text;
       color:transparent;
       -webkit-text-fill-color:transparent;
-      text-shadow:0 0 40px rgba(95,220,255,.35);
+      text-shadow:0 0 28px rgba(180,140,255,.24);
     }
     .brand p{font-size:.84rem;color:var(--muted);margin-top:4px;line-height:1.45;}
 
@@ -246,9 +246,7 @@
       border-radius:13px;
       padding:12px;
       box-shadow:0 12px 30px rgba(3,8,29,.35);
-      position:sticky;
-      top:10px;
-      z-index:15;
+      position:static;
       backdrop-filter:blur(6px);
     }
 
@@ -306,16 +304,75 @@
       gap:8px;
       margin:0;
       font-size:1rem;
-      color:#d9e7ff;
+      color:#fff3d8;
       font-weight:900;
     }
 
     .timeline-subtitle{
       margin-top:4px;
       font-size:.73rem;
-      color:#9fb0dc;
+      color:#e2d2a6;
       line-height:1.35;
     }
+
+    .timeline-ruler{
+      display:flex;
+      align-items:flex-end;
+      gap:0;
+      margin:4px 0 10px;
+      padding:0 52px;
+      overflow-x:auto;
+    }
+
+    .timeline-ruler::-webkit-scrollbar{height:8px;}
+    .timeline-ruler::-webkit-scrollbar-track{background:#071037;border-radius:999px;}
+    .timeline-ruler::-webkit-scrollbar-thumb{background:#9eb2d35f;border-radius:999px;}
+
+    .timeline-ruler-spacer{min-width:44px;flex:0 0 44px;}
+
+    .timeline-ruler-scale{
+      position:relative;
+      flex:1 1 auto;
+      min-width:0;
+      height:28px;
+      border-bottom:2px solid #7aa8ff88;
+    }
+
+    .timeline-ruler-mark{
+      position:absolute;
+      top:0;
+      transform:translateX(-50%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      color:#d9e7ff;
+    }
+
+    .timeline-ruler-mark.start{transform:translateX(0);}
+    .timeline-ruler-mark.end{transform:translateX(-100%);}
+
+    .timeline-ruler-line{
+      width:1px;
+      height:10px;
+      background:#7aa8ff66;
+      position:relative;
+    }
+
+    .timeline-ruler-mark.major .timeline-ruler-line{
+      height:14px;
+      background:#a2c1ffcc;
+    }
+
+    .timeline-ruler-time{
+      font-size:.62rem;
+      font-weight:800;
+      color:#f4d8ff;
+      white-space:nowrap;
+      line-height:1;
+    }
+
+    .timeline-ruler-mark.major .timeline-ruler-time{color:#ffffff;}
 
     .timeline-legend{
       display:flex;
@@ -908,7 +965,7 @@
 
     .timeline-row{
       display:flex;
-      align-items:center;
+      align-items:stretch;
       gap:8px;
       padding:6px 8px;
       border-radius:10px;
@@ -918,15 +975,69 @@
 
     .timeline-label{
       min-width:44px;
-      color:#cfe0ff;
+      color:#ffe7b5;
       font-weight:800;
-      text-align:right;
+      text-align:left;
       padding-right:4px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      line-height:1.2;
+    }
+
+    .timeline-track{
+      flex:1;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .timeline-row-ruler{
+      position:relative;
+      height:20px;
+      border-bottom:1px solid #6f8fd488;
+    }
+
+    .timeline-row-ruler-mark{
+      position:absolute;
+      top:0;
+      transform:translateX(-50%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:3px;
+      color:#cfe0ff;
+      pointer-events:none;
+    }
+
+    .timeline-row-ruler-mark.start{transform:translateX(0);}
+    .timeline-row-ruler-mark.end{transform:translateX(-100%);}
+
+    .timeline-row-ruler-line{
+      width:1px;
+      height:7px;
+      background:#7aa8ff7a;
+    }
+
+    .timeline-row-ruler-mark.major .timeline-row-ruler-line{
+      height:10px;
+      background:#a9c8ffcc;
+    }
+
+    .timeline-row-ruler-time{
+      font-size:.56rem;
+      font-weight:800;
+      color:#d8cfff;
+      line-height:1;
+      white-space:nowrap;
     }
 
     .timeline-bar{
-      flex:1;
+      flex:none;
+      width:100%;
       height:24px;
+      min-height:24px;
       background:linear-gradient(90deg,#182a5a,#101b41);
       border:1px solid #4b63b388;
       border-radius:999px;
@@ -951,13 +1062,7 @@
 
     .timeline-segment .seg-state{
       line-height:1;
-    }
-
-    .timeline-segment .seg-time{
-      font-size:.48rem;
-      line-height:1;
-      opacity:.9;
-      letter-spacing:.03em;
+      color:#fffdf7;
     }
 
     .timeline-seg-running{background:linear-gradient(90deg,#19c97f,#12b562);box-shadow:inset 0 0 0 1px #ffffff22;}
@@ -1017,75 +1122,258 @@
       display:none;
       position:fixed;
       top:0;left:0;right:0;bottom:0;
-      background:rgba(0,0,0,.7);
+      background:
+        radial-gradient(1300px 600px at -5% -10%, rgba(255,151,76,.28), transparent 58%),
+        radial-gradient(1000px 500px at 110% -15%, rgba(33,209,197,.26), transparent 60%),
+        radial-gradient(900px 420px at 40% 120%, rgba(0,129,255,.22), transparent 60%),
+        rgba(3,9,28,.7);
       z-index:999;
       grid-template-columns:1fr;
       place-items:center;
       padding:20px;
+      backdrop-filter: blur(9px);
     }
     .modal.open{display:grid;}
     .modal-content{
-      background:linear-gradient(180deg,#1f3470 0%, #1a2d63 100%);
-      border:1px solid #7898ff77;
-      border-radius:16px;
-      max-width:800px;
+      background:linear-gradient(165deg,#162d67 0%, #17325f 46%, #1a3157 100%);
+      border:1px solid #9ec8ff6b;
+      border-radius:20px;
+      max-width:860px;
       width:100%;
-      max-height:85vh;
+      max-height:88vh;
       display:flex;
       flex-direction:column;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
+      box-shadow:0 34px 84px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+      overflow:hidden;
+      position:relative;
     }
-    .modal-head{padding:16px;border-bottom:1px solid #5d73c333;display:flex;align-items:center;justify-content:space-between;}
-    .modal-head h3{margin:0;font-size:1.3rem;color:#d8e6ff;font-weight:800;}
-    .modal-close{background:none;border:none;color:#a9bde8;font-size:1.5rem;cursor:pointer;padding:0;width:32px;height:32px;display:grid;place-items:center;transition:color .2s;}
-    .modal-close:hover{color:#deebff;}
-    .modal-body{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
-    .editor-textarea{flex:1;font-family:monospace;font-size:.8rem;background:#0a153f;border:1px solid #6a82cc5a;border-radius:10px;padding:12px;color:#c7d6ff;line-height:1.5;resize:none;outline:none;}
-    .editor-textarea:focus{border-color:#7898ff;box-shadow:0 0 12px #3d66cc44;}
+    .modal-content::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(90deg, rgba(255,170,78,.12), transparent 22%, transparent 78%, rgba(39,220,203,.12)),
+        linear-gradient(180deg, rgba(255,255,255,.06), transparent 32%);
+    }
+    .modal-head{
+      padding:18px 20px;
+      border-bottom:1px solid #87a8ea3b;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01));
+      position:relative;
+      z-index:1;
+    }
+    .modal-head h3{margin:0;font-size:1.28rem;color:#f5fbff;font-weight:900;letter-spacing:.01em;}
+    .modal-subtitle{margin-top:4px;color:#b8cbee;font-size:.82rem;line-height:1.4;}
+    .modal-close{
+      background:linear-gradient(145deg,#29539d,#213e79);
+      border:1px solid #8cb4f066;
+      color:#ecf4ff;
+      font-size:1.3rem;
+      cursor:pointer;
+      padding:0;
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
+      transition:transform .2s, filter .2s, border-color .2s;
+    }
+    .modal-close:hover{border-color:#b8d6ff99;transform:translateY(-1px);filter:brightness(1.12);}
+    .modal-body{flex:1;padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1;}
+
+    .editor-panel{
+      background:linear-gradient(180deg,#1a3674 0%, #1b3262 100%);
+      border:1px solid #88abed42;
+      border-radius:16px;
+      padding:12px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .editor-hint{
+      font-size:.78rem;
+      color:#b6c8eb;
+      line-height:1.45;
+      background:linear-gradient(90deg,#18366a,#1e2f5f);
+      border:1px solid #7b9fe04d;
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .editor-hint strong{color:#f2f7ff;}
+
+    .builder-tools{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
+    .builder-btn{
+      border:1px solid #83aee56e;
+      background:linear-gradient(145deg,#22427a,#1c3564);
+      color:#e4efff;
+      font-size:.72rem;
+      font-weight:800;
+      border-radius:10px;
+      padding:7px 11px;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .builder-btn:hover{filter:brightness(1.08);border-color:#b8d7ff8d;}
+
+    .builder-rows{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:180px;
+      overflow-y:auto;
+      padding-right:2px;
+    }
+
+    .builder-row{
+      display:grid;
+      grid-template-columns:1fr auto 1fr auto;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+      border-radius:10px;
+      background:#162f61b8;
+      border:1px solid #7aa8e145;
+    }
+
+    .builder-arrow{color:#9dd5ff;font-weight:900;font-size:.82rem;}
+
+    .builder-select{
+      width:100%;
+      background:#0f2551;
+      color:#e6f0ff;
+      border:1px solid #79a3de66;
+      border-radius:8px;
+      padding:7px 8px;
+      font-size:.74rem;
+      font-weight:700;
+      outline:none;
+    }
+
+    .builder-remove{
+      border:1px solid #ff8ca578;
+      background:#54223c;
+      color:#ffd1dd;
+      border-radius:8px;
+      padding:6px 8px;
+      font-size:.7rem;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .builder-remove:hover{filter:brightness(1.08);}
+
+    .editor-textarea{
+      flex:1;
+      width:100%;
+      min-height:150px;
+      max-height:42vh;
+      font-family:Consolas, "Courier New", monospace;
+      font-size:.95rem;
+      background:linear-gradient(180deg,#06133a,#071032 70%, #09113b);
+      border:1px solid #7eb1ff78;
+      border-radius:12px;
+      padding:14px;
+      color:#e4efff;
+      line-height:1.55;
+      resize:vertical;
+      outline:none;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .editor-textarea:focus{border-color:#91dcff;box-shadow:0 0 0 3px rgba(45,201,255,.22);}
 
     .preset-examples{
       display:grid;
       grid-template-columns:repeat(2,1fr);
-      gap:10px;
-      margin-bottom:10px;
+      gap:12px;
     }
 
     .preset-btn{
-      background:#1a2858;
-      border:1px solid #6f84da55;
-      color:#c7d6ff;
-      padding:10px 12px;
-      border-radius:8px;
+      background:linear-gradient(135deg,#1f3d78 0%, #1b315d 100%);
+      border:1px solid #8ab7f066;
+      color:#d8e6ff;
+      padding:12px 13px;
+      border-radius:12px;
       font-weight:700;
-      font-size:.75rem;
+      font-size:.8rem;
       cursor:pointer;
-      transition:.2s;
+      transition:transform .2s, background .2s, border-color .2s, box-shadow .2s;
       text-align:left;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
     }
+
+    .preset-btn:nth-child(1){border-color:#ffbd7666;background:linear-gradient(135deg,#4a3a1f,#2f3f6d);} 
+    .preset-btn:nth-child(2){border-color:#76d2ff66;background:linear-gradient(135deg,#1e4e62,#23406d);} 
+    .preset-btn:nth-child(3){border-color:#f59f7e66;background:linear-gradient(135deg,#4f2f44,#2d3d6a);} 
+    .preset-btn:nth-child(4){border-color:#7ef0c266;background:linear-gradient(135deg,#214a42,#27406a);} 
 
     .preset-btn:hover{
-      background:#213774;
-      border-color:#7898ff;
+      border-color:#c3dcff;
+      transform:translateY(-1px);
+      box-shadow:0 12px 22px rgba(5,14,44,.4);
+      filter:saturate(1.07);
     }
 
+    .preset-btn:focus-visible{outline:2px solid #a5dfff;outline-offset:2px;}
+
     .preset-label{
-      font-weight:800;
-      color:#d8e6ff;
+      font-weight:900;
+      color:#f8fbff;
       display:block;
     }
 
     .preset-desc{
-      font-size:.65rem;
-      color:#8fa4d5;
-      margin-top:2px;
+      font-size:.72rem;
+      color:#c3d4f5;
+      margin-top:3px;
     }
 
-    .editor-hint{font-size:.75rem;color:#7f91b7;line-height:1.4;}
-    .modal-footer{padding:14px 16px;border-top:1px solid #5d73c333;display:flex;gap:10px;justify-content:flex-end;}
-    .btn-cancel{background:#1a2858;border:1px solid #6f84da55;color:#c7d6ff;padding:9px 16px;border-radius:10px;font-weight:700;cursor:pointer;transition:.2s;}
-    .btn-cancel:hover{background:#213774;}
-    .btn-visualize{background:linear-gradient(135deg,#2e8fff,#35d6ff);border:none;color:white;padding:9px 20px;border-radius:10px;font-weight:700;cursor:pointer;transition:.2s;}
-    .btn-visualize:hover{transform:translateY(-1px);box-shadow:0 8px 16px #2e8fff66;}
+    .modal-footer{
+      padding:14px 20px;
+      border-top:1px solid #87a8ea38;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      background:linear-gradient(180deg,rgba(255,255,255,.01),rgba(255,255,255,.04));
+      position:relative;
+      z-index:1;
+    }
+    .btn-cancel{
+      background:linear-gradient(145deg,#1e356f,#1b315e);
+      border:1px solid #8ab0f169;
+      color:#e0ebff;
+      padding:10px 18px;
+      border-radius:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .btn-cancel:hover{border-color:#bfdbff99;filter:brightness(1.08);}
+    .btn-visualize{
+      background:linear-gradient(135deg,#ff9d4a 0%, #ff6f7f 45%, #3fc2ff 100%);
+      border:none;
+      color:white;
+      padding:10px 22px;
+      border-radius:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s;
+      box-shadow:0 12px 26px rgba(20,90,210,.35);
+      letter-spacing:.01em;
+    }
+    .btn-visualize:hover{transform:translateY(-1px);filter:saturate(1.1);box-shadow:0 14px 28px rgba(20,90,210,.45);}
 
     @media (max-width:980px){
       .stats{grid-template-columns:1fr;}
@@ -1101,6 +1389,12 @@
       .shell{padding-bottom:16px;}
       .activity-head h3{font-size:1.55rem;}
       .log-transition,.log-desc{font-size:.94rem;}
+      .modal{padding:12px;}
+      .modal-head,.modal-body,.modal-footer{padding-left:14px;padding-right:14px;}
+      .preset-examples{grid-template-columns:1fr;}
+      .modal-close{width:34px;height:34px;border-radius:10px;}
+      .builder-row{grid-template-columns:1fr;gap:6px;}
+      .builder-arrow{display:none;}
     }
   </style>
 </head>
@@ -1215,13 +1509,17 @@
     <div class="modal" id="customEditorModal">
       <div class="modal-content">
         <div class="modal-head">
-          <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Custom Process Editor</h3>
+          <div>
+            <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Custom Process Editor</h3>
+            <div class="modal-subtitle">Build your own state flow in seconds using presets or JSON.</div>
+          </div>
           <button class="modal-close" id="modalCloseBtn">&times;</button>
         </div>
       <div class="modal-body">
           <div class="editor-hint">
             <strong>Quick Start:</strong> Click any example below, or write your own
           </div>
+          <div class="editor-panel">
           <div class="preset-examples">
             <button class="preset-btn" data-example="simple">
               <span class="preset-label">Simple 3-Step</span>
@@ -1240,8 +1538,17 @@
               <span class="preset-desc">Multiple Waiting states</span>
             </button>
           </div>
-          <div class="editor-hint"><strong>Or enter JSON:</strong> [{{"from":"STATE1","to":"STATE2"}}, ...]</div>
+          </div>
+          <div class="editor-panel">
+          <div class="editor-hint"><strong>Or enter JSON:</strong> [{"from":"STATE1","to":"STATE2"}, ...] &nbsp; <strong>Tip:</strong> 6-10 transitions is easiest to read. Over 15 may feel dense.</div>
+          <div class="builder-tools">
+            <button class="builder-btn" id="builderAddBtn" type="button"><i class="fa-solid fa-plus"></i> Add Step</button>
+            <button class="builder-btn" id="builderClearBtn" type="button"><i class="fa-solid fa-eraser"></i> Clear Steps</button>
+          </div>
+          <div class="editor-hint" style="margin-top:8px;"><strong>Simple mode:</strong> Builder steps auto-generate JSON below. <strong>Note:</strong> These steps define state changes for one process (P1), not multiple processes.</div>
+          <div class="builder-rows" id="builderRows"></div>
         <textarea class="editor-textarea" id="processEditor" placeholder='Just paste or edit JSON here. Example: [{"from":"NEW","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"TERMINATED"}]'></textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" id="modalCancelBtn">Cancel</button>
@@ -1259,7 +1566,7 @@
         <div class="timeline-head">
           <div>
             <h4><i class="fa-solid fa-chart-gantt"></i> CPU Timeline</h4>
-            <div class="timeline-subtitle">Color-coded slices show how each process moved through the CPU and waiting states.</div>
+            <div class="timeline-subtitle" id="timelineSubtitle">Color-coded slices show how each process moved through the CPU and waiting states. Time scale: 1 unit = 1 second.</div>
           </div>
           <div class="timeline-legend">
             <span class="timeline-tag new">New</span>
@@ -1524,6 +1831,18 @@
   let roundRobinCursor = -1;
   let globalTimeStep = 0;
   let readyQueueOrder = [];
+  let lastLogSecondKey = "";
+  const RECOMMENDED_TRANSITION_LIMIT = 15;
+
+  function warnIfDenseTimeline(source, count){
+    if(count <= RECOMMENDED_TRANSITION_LIMIT) return;
+    addLog({
+      pid: "SYS",
+      color: "#ffd27b",
+      to: "Timeline Warning",
+      desc: source + " has " + count + " transitions. For readability, try keeping each process at 6-10 (recommended max " + RECOMMENDED_TRANSITION_LIMIT + ")."
+    });
+  }
 
   function applyScenarioVisuals(key){
     document.body.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
@@ -1547,8 +1866,11 @@
     });
   }
 
-  function formatLogTime(date){
-    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).toLowerCase();
+  function formatLogTime(date, includeMs){
+    const base = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).toLowerCase();
+    if(!includeMs) return base;
+    const ms = String(date.getMilliseconds()).padStart(3, "0");
+    return base + "." + ms;
   }
 
   function getPidColor(pid){
@@ -1569,13 +1891,18 @@
   }
 
   function addLog(entry){
+    const now = new Date();
+    const secondKey = now.toISOString().slice(0, 19);
+    const includeMs = secondKey === lastLogSecondKey;
+    lastLogSecondKey = secondKey;
+
     logItems.push({
       pid: entry.pid || "SYS",
       color: entry.color || "#7f91b7",
       from: entry.from || "",
       to: entry.to || "",
       desc: entry.desc || "",
-      time: entry.time || formatLogTime(new Date())
+      time: entry.time || formatLogTime(now, includeMs)
     });
 
     if(logItems.length > 24) logItems = logItems.slice(-24);
@@ -1775,6 +2102,7 @@
       to: "Trace",
       desc: "Loaded " + rows.length + " VM steps from " + fileName + " (PC " + rows[0].pc + " -> " + rows[rows.length - 1].pc + ")"
     });
+    warnIfDenseTimeline("Imported trace", traceEvents.length);
     addLog({
       pid: proc.pid,
       color: getPidColor(proc.pid),
@@ -1836,7 +2164,8 @@
       step: proc.step,
       from: event.from,
       to: event.to,
-      time: globalTimeStep
+      time: globalTimeStep,
+      timestamp: Date.now()
     });
 
     if(oldState === "READY" && event.to !== "READY"){
@@ -1898,6 +2227,7 @@
   function clearAll(){
     processes = [];
     logItems = [];
+    lastLogSecondKey = "";
     traceMeta = null;
     transitionCount = 0;
     activeProcessId = null;
@@ -2165,11 +2495,19 @@
 
   function renderTimeline(){
     const chart = document.getElementById("timelineChart");
+    const timelineSubtitle = document.getElementById("timelineSubtitle");
     chart.innerHTML = "";
 
     if(globalTimeStep === 0){
+      if(timelineSubtitle){
+        timelineSubtitle.textContent = "Color-coded slices show how each process moved through the CPU and waiting states. Time scale: 1 unit = 1 second.";
+      }
       chart.innerHTML = '<div class="timeline-empty">No timeline yet. Create a process to begin.</div>';
       return;
+    }
+
+    if(timelineSubtitle){
+      timelineSubtitle.textContent = "Each process has its own timeline. Time scale: 1 step = 1 second (labels auto-scale for readability).";
     }
 
     const stateToClass = {
@@ -2188,6 +2526,15 @@
       TERMINATED: "END"
     };
 
+    const formatClock = (timestamp) => {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    };
+
     processes.slice(0, 6).forEach((proc) => {
       const row = document.createElement("div");
       row.className = "timeline-row";
@@ -2199,17 +2546,48 @@
       label.className = "timeline-label";
       label.innerHTML = proc.pid + '<div style="font-size:.62rem;color:#7f91b7;font-weight:700;">' + runCount + ' CPU</div>';
 
+      const track = document.createElement("div");
+      track.className = "timeline-track";
+
+      const localDuration = proc.timeline.length;
+      const labelEvery = localDuration <= 12 ? 1 : (localDuration <= 24 ? 2 : (localDuration <= 50 ? 5 : 10));
+      const rowRuler = document.createElement("div");
+      rowRuler.className = "timeline-row-ruler";
+
+      if(localDuration > 0){
+        for(let second = 0; second <= localDuration; second += 1){
+          const tick = document.createElement("div");
+          tick.className = "timeline-row-ruler-mark";
+          const isBoundary = second === 0 || second === localDuration;
+          const shouldLabel = isBoundary || (second % labelEvery === 0);
+          if(second === 0) tick.classList.add("start");
+          if(second === localDuration) tick.classList.add("end");
+          if(shouldLabel) tick.classList.add("major");
+          tick.style.left = ((second / localDuration) * 100) + "%";
+
+          const line = document.createElement("div");
+          line.className = "timeline-row-ruler-line";
+          const time = document.createElement("div");
+          time.className = "timeline-row-ruler-time";
+          time.textContent = shouldLabel ? (second + "s") : "";
+
+          tick.appendChild(line);
+          tick.appendChild(time);
+          rowRuler.appendChild(tick);
+        }
+      }
+
       const bar = document.createElement("div");
       bar.className = "timeline-bar";
 
-      proc.timeline.forEach((event) => {
-        const width = ((1 / globalTimeStep) * 100) + "%";
+      proc.timeline.forEach((event, index) => {
+        const width = ((1 / localDuration) * 100) + "%";
         const seg = document.createElement("div");
         seg.className = "timeline-segment timeline-seg-" + (stateToClass[event.to] || "new");
-        seg.style.left = ((event.time / globalTimeStep) * 100) + "%";
+        seg.style.left = ((index / localDuration) * 100) + "%";
         seg.style.width = width;
-        seg.innerHTML = '<span class="seg-state">' + (stateToLabel[event.to] || event.to) + '</span><span class="seg-time">T' + event.time + '</span>';
-        seg.title = proc.pid + " | " + event.from + " → " + event.to + " | step " + event.step;
+        seg.innerHTML = '<span class="seg-state">' + (stateToLabel[event.to] || event.to) + '</span>';
+        seg.title = proc.pid + " | " + event.from + " → " + event.to + " | local " + index + "s to " + (index + 1) + "s | " + formatClock(event.timestamp || Date.now());
         bar.appendChild(seg);
       });
 
@@ -2226,7 +2604,9 @@
       row.title = proc.pid + " | states: " + (statesSeen.length ? statesSeen.join(" → ") : "NEW");
 
       row.appendChild(label);
-      row.appendChild(bar);
+      track.appendChild(rowRuler);
+      track.appendChild(bar);
+      row.appendChild(track);
       chart.appendChild(row);
     });
   }
@@ -2259,10 +2639,87 @@
   const modalCancelBtn = document.getElementById("modalCancelBtn");
   const visualizeBtn = document.getElementById("visualizeBtn");
   const processEditor = document.getElementById("processEditor");
+  const builderRows = document.getElementById("builderRows");
+  const builderAddBtn = document.getElementById("builderAddBtn");
+  const builderClearBtn = document.getElementById("builderClearBtn");
+
+  const builderStates = ["NEW", "READY", "RUNNING", "WAITING", "TERMINATED"];
+
+  function setEditorTransitions(transitions){
+    processEditor.value = JSON.stringify(transitions, null, 2);
+  }
+
+  function createStateSelect(selected){
+    const select = document.createElement("select");
+    select.className = "builder-select";
+    builderStates.forEach((state) => {
+      const option = document.createElement("option");
+      option.value = state;
+      option.textContent = state;
+      if(state === selected) option.selected = true;
+      select.appendChild(option);
+    });
+    return select;
+  }
+
+  function appendBuilderRow(fromState, toState){
+    const row = document.createElement("div");
+    row.className = "builder-row";
+
+    const fromSelect = createStateSelect(fromState || "NEW");
+    const arrow = document.createElement("div");
+    arrow.className = "builder-arrow";
+    arrow.textContent = "->";
+    const toSelect = createStateSelect(toState || "READY");
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "builder-remove";
+    removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    removeBtn.onclick = () => {
+      row.remove();
+      syncEditorFromBuilder();
+    };
+
+    fromSelect.onchange = syncEditorFromBuilder;
+    toSelect.onchange = syncEditorFromBuilder;
+
+    row.appendChild(fromSelect);
+    row.appendChild(arrow);
+    row.appendChild(toSelect);
+    row.appendChild(removeBtn);
+    builderRows.appendChild(row);
+  }
+
+  function getBuilderTransitions(){
+    return Array.from(builderRows.querySelectorAll(".builder-row")).map((row) => {
+      const selects = row.querySelectorAll("select");
+      return {
+        from: selects[0].value,
+        to: selects[1].value,
+        what: selects[0].value + " -> " + selects[1].value,
+        why: "Custom transition"
+      };
+    });
+  }
+
+  function syncEditorFromBuilder(){
+    const transitions = getBuilderTransitions();
+    if(transitions.length > 0){
+      setEditorTransitions(transitions);
+    }
+  }
+
+  function loadBuilderTransitions(transitions){
+    builderRows.innerHTML = "";
+    transitions.forEach((step) => appendBuilderRow(step.from, step.to));
+    syncEditorFromBuilder();
+  }
 
   customEditorBtn.onclick = () => {
     modal.classList.add("open");
-    processEditor.value = JSON.stringify(presetExamples.standard);
+    setEditorTransitions(presetExamples.standard);
+    loadBuilderTransitions(presetExamples.standard);
     processEditor.focus();
   };
 
@@ -2282,11 +2739,21 @@
       const example = btn.dataset.example;
       const transitions = presetExamples[example];
       if(transitions){
-        processEditor.value = JSON.stringify(transitions);
+        setEditorTransitions(transitions);
+        loadBuilderTransitions(transitions);
         processEditor.focus();
       }
     };
   });
+
+  builderAddBtn.onclick = () => {
+    appendBuilderRow("READY", "RUNNING");
+    syncEditorFromBuilder();
+  };
+  builderClearBtn.onclick = () => {
+    builderRows.innerHTML = "";
+    processEditor.value = "";
+  };
 
   modalCloseBtn.onclick = closeModal;
   modalCancelBtn.onclick = closeModal;
@@ -2296,15 +2763,21 @@
 
   visualizeBtn.onclick = () => {
     try {
+      let transitions = [];
       const jsonStr = processEditor.value.trim();
-      const transitions = JSON.parse(jsonStr);
+
+      if(jsonStr.length > 0){
+        transitions = JSON.parse(jsonStr);
+      } else {
+        transitions = getBuilderTransitions();
+      }
 
       if(!Array.isArray(transitions) || transitions.length === 0){
         addLog({
           pid: "ERR",
           color: "#ff6a8b",
           to: "Parse Error",
-          desc: "Must be a non-empty JSON array of transitions."
+          desc: "Add transitions in Builder or provide a non-empty JSON array."
         });
         updateUI();
         return;
@@ -2345,8 +2818,9 @@
         pid: "SYS",
         color: "#7f91b7",
         to: "Custom",
-        desc: "Created custom process with " + transitions.length + " transitions"
+        desc: "Created 1 custom process with " + transitions.length + " state transitions"
       });
+      warnIfDenseTimeline("Custom process", transitions.length);
       addLog({
         pid: proc.pid,
         color: getPidColor(proc.pid),
@@ -2382,6 +2856,7 @@
 
   document.getElementById("clearLogBtn").onclick = () => {
     logItems = [];
+    lastLogSecondKey = "";
     renderLog();
   };
 
