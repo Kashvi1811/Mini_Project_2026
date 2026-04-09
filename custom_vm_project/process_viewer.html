@@ -97,15 +97,16 @@
 
     .brand h1{
       font-family:'Space Grotesk',sans-serif;
-      font-size:2rem;
+      font-size:2.4rem;
       line-height:1;
       font-weight:800;
       letter-spacing:-.02em;
-      background:linear-gradient(90deg,#9cd3ff 0%, #73b2ff 44%, #61ebff 100%);
+      background:linear-gradient(90deg,#b3e5ff 0%, #7bdeff 35%, #5affff 65%, #3fffff 100%);
       -webkit-background-clip:text;
       background-clip:text;
       color:transparent;
       -webkit-text-fill-color:transparent;
+      text-shadow:0 0 40px rgba(95,220,255,.35);
     }
     .brand p{font-size:.84rem;color:var(--muted);margin-top:4px;line-height:1.45;}
 
@@ -113,45 +114,39 @@
       display:flex;
       gap:8px;
       align-items:center;
-      background:var(--card);
+      background:linear-gradient(180deg,#1f346d 0%, #1a2c5d 100%);
       border:1px solid var(--border);
       border-radius:12px;
-      padding:8px 10px;
+      padding:8px;
       transition:border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .scenario-icon{
+      width:28px;
+      height:28px;
+      border-radius:8px;
+      display:grid;
+      place-items:center;
+      color:#cfe2ff;
+      background:#132356;
+      border:1px solid #6a82cc5a;
+      font-size:.78rem;
     }
 
     .scenario-wrap.scenario-chrome{border-color:#60a5fa88;box-shadow:0 0 0 1px #60a5fa33 inset;}
     .scenario-wrap.scenario-video{border-color:#f8717188;box-shadow:0 0 0 1px #f8717133 inset;}
     .scenario-wrap.scenario-download{border-color:#34d39988;box-shadow:0 0 0 1px #34d39933 inset;}
 
-    .scenario-badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#1a275c;
-      border:1px solid #6f84da55;
-      color:#dbe9ff;
-      font-size:.72rem;
-      font-weight:800;
-      white-space:nowrap;
-      transition:background .2s ease, border-color .2s ease, color .2s ease;
-    }
-
-    .scenario-badge.scenario-chrome{background:#1b315f;border-color:#60a5fa88;color:#b8d8ff;}
-    .scenario-badge.scenario-video{background:#3a1f41;border-color:#f8717188;color:#ffd0d0;}
-    .scenario-badge.scenario-download{background:#15384a;border-color:#34d39988;color:#b8f6e1;}
-
     select{
       border:1px solid #5d73c333;
-      background:#0b153fcc;
+      background:#111f4dcc;
       color:#e9efff;
       border-radius:10px;
-      padding:8px 10px;
+      padding:8px 12px;
       font-weight:700;
       font-family:inherit;
       outline:none;
+      min-width:220px;
     }
 
     .stats{
@@ -182,15 +177,39 @@
     .stat h4{font-size:.7rem;color:#a8bbeb;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
     .stat strong{font-size:1.22rem;line-height:1;display:block;margin-top:4px;font-weight:800;}
 
-    .guide{
-      background:linear-gradient(135deg,#24458fde,#2f4f9ccf);
-      border:1px solid #9ba8ff70;
+    .help-panel{
+      background:linear-gradient(135deg,#203b7fde,#294a8ecf);
+      border:1px solid #8ea6eb70;
       border-radius:12px;
-      padding:14px;
+      padding:10px 12px;
       box-shadow:var(--shadow);
+    }
+
+    .help-panel summary{
+      list-style:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      font-size:.88rem;
+      color:#d7e6ff;
+      font-weight:800;
+    }
+
+    .help-panel summary::-webkit-details-marker{display:none;}
+
+    .help-note{
+      font-size:.72rem;
+      color:#b7c8f0;
+      font-weight:700;
+    }
+
+    .guide-grid{
+      margin-top:10px;
       display:grid;
       grid-template-columns:1.1fr .9fr;
-      gap:16px;
+      gap:14px;
     }
 
     .guide h3{font-size:1rem;font-weight:800;margin-bottom:10px;color:var(--heading-mid);}
@@ -219,10 +238,9 @@
 
     .controls{
       display:flex;
-      justify-content:space-between;
+      flex-direction:column;
       gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
+      align-items:stretch;
       background:linear-gradient(135deg,#243d83f2,#213774ef);
       border:1px solid #9fb4ff66;
       border-radius:13px;
@@ -233,6 +251,105 @@
       z-index:15;
       backdrop-filter:blur(6px);
     }
+
+    .controls-top,
+    .controls-bottom{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .control-group{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+
+    .group-label{
+      font-size:.7rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#9eb5e9;
+      font-weight:800;
+      padding-left:2px;
+    }
+
+    .controls-bottom{padding-top:2px;}
+
+    .hero-timeline{
+      padding:12px 14px 14px;
+      background:linear-gradient(180deg,#1f356f 0%, #192d61 100%);
+      border-color:#97b2f166;
+    }
+
+    .hero-timeline .timeline-section{
+      margin-top:0;
+      border:none;
+      padding:0;
+      background:transparent;
+    }
+
+    .timeline-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .timeline-head h4{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:0;
+      font-size:1rem;
+      color:#d9e7ff;
+      font-weight:900;
+    }
+
+    .timeline-subtitle{
+      margin-top:4px;
+      font-size:.73rem;
+      color:#9fb0dc;
+      line-height:1.35;
+    }
+
+    .timeline-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+    }
+
+    .timeline-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:.68rem;
+      font-weight:800;
+      letter-spacing:.02em;
+      border:1px solid transparent;
+      white-space:nowrap;
+    }
+
+    .timeline-tag::before{
+      content:"";
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:currentColor;
+    }
+
+    .timeline-tag.run{background:#15d37b24;border-color:#15d37b66;color:#7ef2c5;}
+    .timeline-tag.ready{background:#f7b50024;border-color:#f7b50066;color:#ffd27b;}
+    .timeline-tag.wait{background:#ff4d7d24;border-color:#ff4d7d66;color:#ff9db0;}
+    .timeline-tag.new{background:#2aa8ff24;border-color:#2aa8ff66;color:#8ed1ff;}
+    .timeline-tag.end{background:#94a3b824;border-color:#94a3b866;color:#d4deef;}
 
     .btn-row,.speed-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
@@ -466,14 +583,27 @@
     }
 
     .transition-item{
-      background:linear-gradient(160deg,#1d3068 0%, #18275a 100%);
-      border:1px solid #6f84da66;
+      --trans-color:#67d6ff;
+      --trans-color-2:#9fe9ff;
+      --trans-soft:#67d6ff44;
+      background:linear-gradient(160deg,#213876 0%, #1a2f68 100%);
+      border:2px solid #7898ff77;
       border-radius:12px;
       padding:11px 11px 10px;
       color:#d3def9;
       position:relative;
       overflow:hidden;
       transition:.2s transform ease, .2s box-shadow ease, .2s border-color ease;
+    }
+
+    .transition-item::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:12px;
+      pointer-events:none;
+      background:radial-gradient(circle at 100% 0%, var(--trans-soft), transparent 70%);
+      opacity:.5;
     }
 
     .transition-item::before{
@@ -483,13 +613,24 @@
       top:0;
       height:2px;
       width:100%;
-      background:linear-gradient(90deg,#4ab7ff,#63f3ff);
-      opacity:.75;
+      background:linear-gradient(90deg,var(--trans-color),var(--trans-color-2));
+      opacity:.95;
     }
 
+    .transition-item.t-new-ready{--trans-color:#3FA8FF;--trans-color-2:#7FD9FF;--trans-soft:#3FA8FF66;}
+    .transition-item.t-ready-running{--trans-color:#1DEAFF;--trans-color-2:#5AFFFF;--trans-soft:#1DEAFF66;}
+    .transition-item.t-running-ready{--trans-color:#FFB800;--trans-color-2:#FFCE4D;--trans-soft:#FFB80066;}
+    .transition-item.t-running-waiting{--trans-color:#FF4466;--trans-color-2:#FF7799;--trans-soft:#FF446699;}
+    .transition-item.t-waiting-ready{--trans-color:#9D4DFF;--trans-color-2:#C699FF;--trans-soft:#9D4DFF66;}
+    .transition-item.t-running-terminated{--trans-color:#2FD963;--trans-color-2:#7FFF99;--trans-soft:#2FD96366;}
+
     .transition-item.active{
-      border-color:var(--scenario-active-glow);
-      box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 10px 25px #0a123a;
+      border-color:var(--trans-color);
+      box-shadow:
+        inset 0 0 0 1px var(--trans-color),
+        0 0 0 3px var(--trans-soft),
+        0 0 18px var(--trans-soft),
+        0 12px 30px rgba(0, 0, 0, 0.4);
       transform:translateY(-1px);
       color:#f4fbff;
       animation:transitionPulse 1.05s ease-in-out infinite alternate;
@@ -501,12 +642,24 @@
       inset:0;
       border-radius:12px;
       pointer-events:none;
-      box-shadow:inset 0 0 0 1px var(--scenario-active-glow-soft);
+      box-shadow:inset 0 0 12px var(--trans-soft);
     }
 
     @keyframes transitionPulse{
-      from{ box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 6px 16px #0a123a; }
-      to{ box-shadow:0 0 0 2px var(--scenario-accent-soft), 0 0 20px var(--scenario-active-glow-soft), 0 10px 25px #0a123a; }
+      from{
+        box-shadow:
+          inset 0 0 0 1px var(--trans-color),
+          0 0 0 3px var(--trans-soft),
+          0 0 12px var(--trans-soft),
+          0 8px 20px rgba(0, 0, 0, 0.4);
+      }
+      to{
+        box-shadow:
+          inset 0 0 0 1px var(--trans-color),
+          0 0 0 3px var(--trans-soft),
+          0 0 24px var(--trans-soft),
+          0 14px 32px rgba(0, 0, 0, 0.5);
+      }
     }
 
     .transition-route{
@@ -539,18 +692,22 @@
       display:grid;
       place-items:center;
       color:#d9f9ff;
-      background:radial-gradient(circle at 30% 25%, #67ecff, #2d99f8);
-      box-shadow:0 0 0 1px #84d8ff66;
+      background:linear-gradient(135deg,var(--trans-color),var(--trans-color-2));
+      box-shadow:
+        0 0 0 1px var(--trans-color),
+        0 0 12px var(--trans-soft);
       font-size:.66rem;
+      font-weight:800;
     }
 
     .transition-note{
       margin-top:7px;
       font-size:.69rem;
-      color:var(--scenario-accent);
+      color:var(--trans-color);
       letter-spacing:.02em;
       text-transform:uppercase;
       font-weight:700;
+      text-shadow:0 0 8px rgba(0, 0, 0, 0.5);
     }
 
     .transition-line{
@@ -728,7 +885,7 @@
     }
 
     .timeline-section{
-      margin-top:16px;
+      margin-top:14px;
       background:#223772;
       border:1px solid #91a8ef66;
       border-radius:12px;
@@ -745,7 +902,7 @@
     .timeline-chart{
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:10px;
       font-size:.7rem;
     }
 
@@ -753,21 +910,26 @@
       display:flex;
       align-items:center;
       gap:8px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:linear-gradient(180deg,#132455 0%, #102149 100%);
+      border:1px solid #4b63b333;
     }
 
     .timeline-label{
-      min-width:32px;
-      color:#91a3d1;
-      font-weight:700;
+      min-width:44px;
+      color:#cfe0ff;
+      font-weight:800;
       text-align:right;
+      padding-right:4px;
     }
 
     .timeline-bar{
       flex:1;
-      height:18px;
-      background:linear-gradient(90deg,#1a2e5f,#1a1f4a);
-      border:1px solid #4b63b366;
-      border-radius:4px;
+      height:24px;
+      background:linear-gradient(90deg,#182a5a,#101b41);
+      border:1px solid #4b63b388;
+      border-radius:999px;
       position:relative;
       overflow:hidden;
     }
@@ -776,18 +938,34 @@
       height:100%;
       position:absolute;
       display:flex;
+      flex-direction:column;
       align-items:center;
       justify-content:center;
-      font-size:.6rem;
-      font-weight:700;
+      gap:1px;
+      font-size:.58rem;
+      font-weight:800;
       color:white;
-      opacity:.95;
+      opacity:.96;
+      border-right:1px solid rgba(255,255,255,.12);
+    }
+
+    .timeline-segment .seg-state{
+      line-height:1;
+    }
+
+    .timeline-segment .seg-time{
+      font-size:.48rem;
+      line-height:1;
+      opacity:.9;
+      letter-spacing:.03em;
     }
 
     .timeline-seg-running{background:linear-gradient(90deg,#19c97f,#12b562);box-shadow:inset 0 0 0 1px #ffffff22;}
-    .timeline-seg-ready{background:linear-gradient(90deg,#f7b500,#ff9000);opacity:.75;}
-    .timeline-seg-waiting{background:linear-gradient(90deg,#ff3c7d,#ff6a4d);opacity:.75;}
-    .timeline-seg-new{background:#4a5f8f;opacity:.5;}
+    .timeline-seg-ready{background:linear-gradient(90deg,#f7b500,#ff9000);opacity:.88;}
+    .timeline-seg-waiting{background:linear-gradient(90deg,#ff3c7d,#ff6a4d);opacity:.88;}
+    .timeline-seg-new{background:#4a5f8f;opacity:.7;}
+    .timeline-seg-terminated{background:linear-gradient(90deg,#8398bd,#6279a3);opacity:.9;}
+    .timeline-empty{color:#8ea2cf;font-size:.72rem;text-align:center;padding:6px 0;}
 
     .stats-panel{
       background:#233a76;
@@ -835,9 +1013,83 @@
       transform:scale(1.02);
     }
 
+    .modal{
+      display:none;
+      position:fixed;
+      top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,.7);
+      z-index:999;
+      grid-template-columns:1fr;
+      place-items:center;
+      padding:20px;
+    }
+    .modal.open{display:grid;}
+    .modal-content{
+      background:linear-gradient(180deg,#1f3470 0%, #1a2d63 100%);
+      border:1px solid #7898ff77;
+      border-radius:16px;
+      max-width:800px;
+      width:100%;
+      max-height:85vh;
+      display:flex;
+      flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    .modal-head{padding:16px;border-bottom:1px solid #5d73c333;display:flex;align-items:center;justify-content:space-between;}
+    .modal-head h3{margin:0;font-size:1.3rem;color:#d8e6ff;font-weight:800;}
+    .modal-close{background:none;border:none;color:#a9bde8;font-size:1.5rem;cursor:pointer;padding:0;width:32px;height:32px;display:grid;place-items:center;transition:color .2s;}
+    .modal-close:hover{color:#deebff;}
+    .modal-body{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+    .editor-textarea{flex:1;font-family:monospace;font-size:.8rem;background:#0a153f;border:1px solid #6a82cc5a;border-radius:10px;padding:12px;color:#c7d6ff;line-height:1.5;resize:none;outline:none;}
+    .editor-textarea:focus{border-color:#7898ff;box-shadow:0 0 12px #3d66cc44;}
+
+    .preset-examples{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .preset-btn{
+      background:#1a2858;
+      border:1px solid #6f84da55;
+      color:#c7d6ff;
+      padding:10px 12px;
+      border-radius:8px;
+      font-weight:700;
+      font-size:.75rem;
+      cursor:pointer;
+      transition:.2s;
+      text-align:left;
+    }
+
+    .preset-btn:hover{
+      background:#213774;
+      border-color:#7898ff;
+    }
+
+    .preset-label{
+      font-weight:800;
+      color:#d8e6ff;
+      display:block;
+    }
+
+    .preset-desc{
+      font-size:.65rem;
+      color:#8fa4d5;
+      margin-top:2px;
+    }
+
+    .editor-hint{font-size:.75rem;color:#7f91b7;line-height:1.4;}
+    .modal-footer{padding:14px 16px;border-top:1px solid #5d73c333;display:flex;gap:10px;justify-content:flex-end;}
+    .btn-cancel{background:#1a2858;border:1px solid #6f84da55;color:#c7d6ff;padding:9px 16px;border-radius:10px;font-weight:700;cursor:pointer;transition:.2s;}
+    .btn-cancel:hover{background:#213774;}
+    .btn-visualize{background:linear-gradient(135deg,#2e8fff,#35d6ff);border:none;color:white;padding:9px 20px;border-radius:10px;font-weight:700;cursor:pointer;transition:.2s;}
+    .btn-visualize:hover{transform:translateY(-1px);box-shadow:0 8px 16px #2e8fff66;}
+
     @media (max-width:980px){
       .stats{grid-template-columns:1fr;}
-      .guide{grid-template-columns:1fr;}
+      .guide-grid{grid-template-columns:1fr;}
       .main{grid-template-columns:1fr;}
       .lanes{grid-template-columns:1fr 1fr;}
     }
@@ -862,14 +1114,13 @@
           <p>Learn how processes move through different states in an Operating System</p>
         </div>
       </div>
-      <div class="scenario-wrap">
-        <label for="scenarioSelect">Scenario</label>
+      <div class="scenario-wrap" id="scenarioWrap">
+        <i class="fa-solid fa-compass scenario-icon"></i>
         <select id="scenarioSelect">
           <option value="chrome">Opening Chrome</option>
           <option value="video">Watching YouTube</option>
           <option value="download">Downloading File</option>
         </select>
-        <span class="scenario-badge" id="scenarioBadge"><i class="fa-solid fa-window-maximize"></i> Chrome Flow</span>
       </div>
     </div>
 
@@ -897,57 +1148,130 @@
       </div>
     </div>
 
-    <div class="guide">
-      <div>
-        <h3><i class="fa-regular fa-circle-question"></i> Quick Start Guide</h3>
-        <div class="guide-list">
-          <div class="guide-item">
-            <div class="guide-step" style="background:#2aa8ff">1</div>
-            <p><b>Create a Process:</b> Click <b>New Process</b>. It starts in <b>NEW</b> state.</p>
+    <details class="help-panel">
+      <summary>
+        <span><i class="fa-regular fa-circle-question"></i> Quick Help</span>
+        <span class="help-note">Expand only if needed</span>
+      </summary>
+      <div class="guide-grid">
+        <div>
+          <div class="guide-list">
+            <div class="guide-item">
+              <div class="guide-step" style="background:#2aa8ff">1</div>
+              <p><b>Create a Process:</b> Click <b>New Process</b>. It starts in <b>NEW</b> state.</p>
+            </div>
+            <div class="guide-item">
+              <div class="guide-step" style="background:#11c58d">2</div>
+              <p><b>Manual Control:</b> Click <b>Step Forward</b> to move one transition at a time.</p>
+            </div>
+            <div class="guide-item">
+              <div class="guide-step" style="background:#da5dfb">3</div>
+              <p><b>Auto Run:</b> Click <b>Auto Run</b> to automatically simulate transitions.</p>
+            </div>
           </div>
-          <div class="guide-item">
-            <div class="guide-step" style="background:#11c58d">2</div>
-            <p><b>Manual Control:</b> Click <b>Step Forward</b> to move one transition at a time.</p>
-          </div>
-          <div class="guide-item">
-            <div class="guide-step" style="background:#da5dfb">3</div>
-            <p><b>Auto Run:</b> Click <b>Auto Run</b> to automatically simulate transitions.</p>
+        </div>
+        <div class="legend-box">
+          <h4><i class="fa-solid fa-bolt"></i> Process States Explained</h4>
+          <div class="legend">
+            <div><span class="dot" style="background:#2aa8ff"></span><b>New:</b> Process just created</div>
+            <div><span class="dot" style="background:#f7b500"></span><b>Ready:</b> Waiting for CPU</div>
+            <div><span class="dot" style="background:#12d98e"></span><b>Running:</b> Executing on CPU</div>
+            <div><span class="dot" style="background:#ff4d7d"></span><b>Waiting:</b> Waiting for I/O</div>
+            <div><span class="dot" style="background:#8ea4ca"></span><b>Terminated:</b> Execution complete</div>
           </div>
         </div>
       </div>
-      <div class="legend-box">
-        <h4><i class="fa-solid fa-bolt"></i> Process States Explained</h4>
-        <div class="legend">
-          <div><span class="dot" style="background:#2aa8ff"></span><b>New:</b> Process just created</div>
-          <div><span class="dot" style="background:#f7b500"></span><b>Ready:</b> Waiting for CPU</div>
-          <div><span class="dot" style="background:#12d98e"></span><b>Running:</b> Executing on CPU</div>
-          <div><span class="dot" style="background:#ff4d7d"></span><b>Waiting:</b> Waiting for I/O</div>
-          <div><span class="dot" style="background:#8ea4ca"></span><b>Terminated:</b> Execution complete</div>
+    </details>
+
+    <div class="controls">
+      <div class="controls-top">
+        <div class="control-group">
+          <div class="group-label">Actions</div>
+          <div class="btn-row">
+            <button class="btn-blue" id="newBtn"><i class="fa-solid fa-plus"></i> New Process</button>
+            <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
+            <button class="btn-green" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Run</button>
+            <button class="btn-soft" id="customEditorBtn" style="background:linear-gradient(135deg,#7b5dff,#2eb8ff);"><i class="fa-solid fa-code"></i> Custom Process</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="group-label">View</div>
+          <div class="btn-row">
+            <button class="btn-soft btn-simple" id="simpleModeBtn"><i class="fa-solid fa-eye"></i> Simple Mode</button>
+            <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
+          </div>
+        </div>
+      </div>
+      <div class="controls-bottom">
+        <div class="speed-row">
+          <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
+          <button class="speed-btn" data-speed="slow">Slow</button>
+          <button class="speed-btn active" data-speed="normal">Normal</button>
+          <button class="speed-btn" data-speed="fast">Fast</button>
         </div>
       </div>
     </div>
 
-    <div class="controls">
-      <div class="btn-row">
-        <button class="btn-blue" id="newBtn"><i class="fa-solid fa-plus"></i> New Process</button>
-        <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
-        <button class="btn-green" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Run</button>
-        <button class="btn-import" id="importTraceBtn"><i class="fa-solid fa-file-import"></i> Import Trace</button>
-        <button class="btn-soft btn-simple" id="simpleModeBtn"><i class="fa-solid fa-eye"></i> Simple Mode</button>
-        <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
-        <input type="file" id="traceFileInput" accept=".jsonl,.txt,.json" style="display:none;" />
-      </div>
-      <div class="speed-row">
-        <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
-        <button class="speed-btn" data-speed="slow">Slow</button>
-        <button class="speed-btn active" data-speed="normal">Normal</button>
-        <button class="speed-btn" data-speed="fast">Fast</button>
+    <div class="modal" id="customEditorModal">
+      <div class="modal-content">
+        <div class="modal-head">
+          <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Custom Process Editor</h3>
+          <button class="modal-close" id="modalCloseBtn">&times;</button>
+        </div>
+      <div class="modal-body">
+          <div class="editor-hint">
+            <strong>Quick Start:</strong> Click any example below, or write your own
+          </div>
+          <div class="preset-examples">
+            <button class="preset-btn" data-example="simple">
+              <span class="preset-label">Simple 3-Step</span>
+              <span class="preset-desc">New → Ready → Terminated</span>
+            </button>
+            <button class="preset-btn" data-example="standard">
+              <span class="preset-label">Standard 5-Step</span>
+              <span class="preset-desc">With Running & Waiting</span>
+            </button>
+            <button class="preset-btn" data-example="complex">
+              <span class="preset-label">Complex Multi-Loop</span>
+              <span class="preset-desc">Ready → Running → Ready</span>
+            </button>
+            <button class="preset-btn" data-example="io">
+              <span class="preset-label">I/O Heavy</span>
+              <span class="preset-desc">Multiple Waiting states</span>
+            </button>
+          </div>
+          <div class="editor-hint"><strong>Or enter JSON:</strong> [{{"from":"STATE1","to":"STATE2"}}, ...]</div>
+        <textarea class="editor-textarea" id="processEditor" placeholder='Just paste or edit JSON here. Example: [{"from":"NEW","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"TERMINATED"}]'></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" id="modalCancelBtn">Cancel</button>
+          <button class="btn-visualize" id="visualizeBtn"><i class="fa-solid fa-play"></i> Create & Visualize</button>
+        </div>
       </div>
     </div>
 
     <div class="live-status" id="liveStatus">Now: No process yet. Click New Process to begin.</div>
 
     <div class="minimal-note">Tip: Click <b>New Process</b>, then use <b>Step Forward</b> or <b>Auto Run</b> to follow transitions clearly.</div>
+
+    <div class="panel hero-timeline">
+      <div class="timeline-section">
+        <div class="timeline-head">
+          <div>
+            <h4><i class="fa-solid fa-chart-gantt"></i> CPU Timeline</h4>
+            <div class="timeline-subtitle">Color-coded slices show how each process moved through the CPU and waiting states.</div>
+          </div>
+          <div class="timeline-legend">
+            <span class="timeline-tag new">New</span>
+            <span class="timeline-tag ready">Ready</span>
+            <span class="timeline-tag run">Running</span>
+            <span class="timeline-tag wait">Waiting</span>
+            <span class="timeline-tag end">Done</span>
+          </div>
+        </div>
+        <div class="timeline-chart" id="timelineChart"></div>
+      </div>
+    </div>
 
     <div class="main">
       <div class="panel">
@@ -984,7 +1308,7 @@
         <div class="transition-section">
           <div style="margin-top:12px;font-size:.82rem;color:#b4c5ef;font-weight:700;"><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transitions</div>
           <div class="transition-map">
-          <div class="transition-item" id="trans-NEW_READY">
+          <div class="transition-item t-new-ready" id="trans-NEW_READY">
             <div class="transition-route">
               <span class="state-chip new">New</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -993,7 +1317,7 @@
             <div class="transition-line"></div>
             <div class="transition-note">Admit Process</div>
           </div>
-          <div class="transition-item" id="trans-READY_RUNNING">
+          <div class="transition-item t-ready-running" id="trans-READY_RUNNING">
             <div class="transition-route">
               <span class="state-chip ready">Ready</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1002,7 +1326,7 @@
             <div class="transition-line"></div>
             <div class="transition-note">CPU Dispatch</div>
           </div>
-          <div class="transition-item" id="trans-RUNNING_READY">
+          <div class="transition-item t-running-ready" id="trans-RUNNING_READY">
             <div class="transition-route">
               <span class="state-chip running">Running</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1011,7 +1335,7 @@
             <div class="transition-line"></div>
             <div class="transition-note">Time Slice End</div>
           </div>
-          <div class="transition-item" id="trans-RUNNING_WAITING">
+          <div class="transition-item t-running-waiting" id="trans-RUNNING_WAITING">
             <div class="transition-route">
               <span class="state-chip running">Running</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1020,7 +1344,7 @@
             <div class="transition-line"></div>
             <div class="transition-note">I/O Block</div>
           </div>
-          <div class="transition-item" id="trans-WAITING_READY">
+          <div class="transition-item t-waiting-ready" id="trans-WAITING_READY">
             <div class="transition-route">
               <span class="state-chip waiting">Waiting</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1029,7 +1353,7 @@
             <div class="transition-line"></div>
             <div class="transition-note">I/O Complete</div>
           </div>
-          <div class="transition-item" id="trans-RUNNING_TERMINATED">
+          <div class="transition-item t-running-terminated" id="trans-RUNNING_TERMINATED">
             <div class="transition-route">
               <span class="state-chip running">Running</span>
               <span class="transition-arrow"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1039,11 +1363,6 @@
             <div class="transition-note">Program Exit</div>
           </div>
           </div>
-        </div>
-
-        <div class="timeline-section">
-          <h4><i class="fa-solid fa-chart-gantt"></i> CPU Timeline</h4>
-          <div class="timeline-chart" id="timelineChart"></div>
         </div>
       </div>
 
@@ -1211,18 +1530,17 @@
     document.body.classList.add("scenario-" + key);
 
     const wrap = document.querySelector(".scenario-wrap");
-    const badge = document.getElementById("scenarioBadge");
+    const select = document.getElementById("scenarioSelect");
     const notes = document.querySelectorAll(".transition-note");
     const visual = scenarioVisuals[key] || scenarioVisuals.chrome;
 
     wrap.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
-    badge.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
 
     const className = "scenario-" + key;
     wrap.classList.add(className);
-    badge.classList.add(className);
-
-    badge.innerHTML = '<i class="' + visual.icon + '"></i> ' + visual.badge;
+    if(select){
+      select.title = visual.badge;
+    }
 
     notes.forEach((note, index) => {
       if(visual.notes[index]) note.textContent = visual.notes[index];
@@ -1251,7 +1569,7 @@
   }
 
   function addLog(entry){
-    logItems.unshift({
+    logItems.push({
       pid: entry.pid || "SYS",
       color: entry.color || "#7f91b7",
       from: entry.from || "",
@@ -1260,7 +1578,7 @@
       time: entry.time || formatLogTime(new Date())
     });
 
-    if(logItems.length > 24) logItems = logItems.slice(0, 24);
+    if(logItems.length > 24) logItems = logItems.slice(-24);
   }
 
   function getChipGradient(pid){
@@ -1723,6 +2041,8 @@
 
       box.appendChild(row);
     });
+
+    box.scrollTop = box.scrollHeight;
   }
 
   function updateCurrentInfo(){
@@ -1848,33 +2168,49 @@
     chart.innerHTML = "";
 
     if(globalTimeStep === 0){
-      chart.innerHTML = '<div style="color:#7f91b7;font-size:.75rem;text-align:center;padding:10px;">No timeline yet. Create a process to begin.</div>';
+      chart.innerHTML = '<div class="timeline-empty">No timeline yet. Create a process to begin.</div>';
       return;
     }
+
+    const stateToClass = {
+      NEW: "new",
+      READY: "ready",
+      RUNNING: "running",
+      WAITING: "waiting",
+      TERMINATED: "terminated"
+    };
+
+    const stateToLabel = {
+      NEW: "NEW",
+      READY: "RDY",
+      RUNNING: "RUN",
+      WAITING: "WAIT",
+      TERMINATED: "END"
+    };
 
     processes.slice(0, 6).forEach((proc) => {
       const row = document.createElement("div");
       row.className = "timeline-row";
 
+      const statesSeen = proc.timeline.map((entry) => entry.to).filter((state, index, array) => array.indexOf(state) === index);
+      const runCount = proc.timeline.filter((entry) => entry.to === "RUNNING").length;
+
       const label = document.createElement("div");
       label.className = "timeline-label";
-      label.textContent = proc.pid;
+      label.innerHTML = proc.pid + '<div style="font-size:.62rem;color:#7f91b7;font-weight:700;">' + runCount + ' CPU</div>';
 
       const bar = document.createElement("div");
       bar.className = "timeline-bar";
 
-      let lastTime = 0;
       proc.timeline.forEach((event) => {
-        if(event.time > lastTime && event.to === "RUNNING"){
-          const width = ((1 / globalTimeStep) * 100) + "%";
-          const seg = document.createElement("div");
-          seg.className = "timeline-segment timeline-seg-running";
-          seg.style.left = ((event.time / globalTimeStep) * 100) + "%";
-          seg.style.width = width;
-          seg.textContent = "RUN";
-          bar.appendChild(seg);
-        }
-        lastTime = event.time;
+        const width = ((1 / globalTimeStep) * 100) + "%";
+        const seg = document.createElement("div");
+        seg.className = "timeline-segment timeline-seg-" + (stateToClass[event.to] || "new");
+        seg.style.left = ((event.time / globalTimeStep) * 100) + "%";
+        seg.style.width = width;
+        seg.innerHTML = '<span class="seg-state">' + (stateToLabel[event.to] || event.to) + '</span><span class="seg-time">T' + event.time + '</span>';
+        seg.title = proc.pid + " | " + event.from + " → " + event.to + " | step " + event.step;
+        bar.appendChild(seg);
       });
 
       if(bar.children.length === 0){
@@ -1887,6 +2223,8 @@
         bar.appendChild(nodata);
       }
 
+      row.title = proc.pid + " | states: " + (statesSeen.length ? statesSeen.join(" → ") : "NEW");
+
       row.appendChild(label);
       row.appendChild(bar);
       chart.appendChild(row);
@@ -1898,6 +2236,7 @@
   }
 
   function updateUI(){
+    renderLanes();
     highlightTransitions();
     renderLog();
     updateCurrentInfo();
@@ -1906,7 +2245,6 @@
     updateButtons();
     updateEducationPanel();
     renderTimeline();
-    renderStats();
   }
 
   document.getElementById("newBtn").onclick = createProcess;
@@ -1915,35 +2253,120 @@
   document.getElementById("simpleModeBtn").onclick = toggleSimpleMode;
   document.getElementById("clearBtn").onclick = clearAll;
 
-  document.getElementById("importTraceBtn").onclick = () => {
-    document.getElementById("traceFileInput").click();
+  const modal = document.getElementById("customEditorModal");
+  const customEditorBtn = document.getElementById("customEditorBtn");
+  const modalCloseBtn = document.getElementById("modalCloseBtn");
+  const modalCancelBtn = document.getElementById("modalCancelBtn");
+  const visualizeBtn = document.getElementById("visualizeBtn");
+  const processEditor = document.getElementById("processEditor");
+
+  customEditorBtn.onclick = () => {
+    modal.classList.add("open");
+    processEditor.value = JSON.stringify(presetExamples.standard);
+    processEditor.focus();
   };
 
-  document.getElementById("traceFileInput").onchange = (event) => {
-    const file = event.target.files && event.target.files[0];
-    if(!file) return;
+  const closeModal = () => {
+    modal.classList.remove("open");
+  };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const text = String(reader.result || "");
-        const rows = parseTraceJsonl(text);
-        importTraceRows(rows, file.name);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to read trace";
+  const presetExamples = {
+    simple: [{"from":"NEW","to":"READY"},{"from":"READY","to":"TERMINATED"}],
+    standard: [{"from":"NEW","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"WAITING"},{"from":"WAITING","to":"READY"},{"from":"READY","to":"TERMINATED"}],
+    complex: [{"from":"NEW","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"TERMINATED"}],
+    io: [{"from":"NEW","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"WAITING"},{"from":"WAITING","to":"READY"},{"from":"READY","to":"RUNNING"},{"from":"RUNNING","to":"WAITING"},{"from":"WAITING","to":"READY"},{"from":"READY","to":"TERMINATED"}]
+  };
+
+  document.querySelectorAll(".preset-btn").forEach((btn) => {
+    btn.onclick = () => {
+      const example = btn.dataset.example;
+      const transitions = presetExamples[example];
+      if(transitions){
+        processEditor.value = JSON.stringify(transitions);
+        processEditor.focus();
+      }
+    };
+  });
+
+  modalCloseBtn.onclick = closeModal;
+  modalCancelBtn.onclick = closeModal;
+  modal.onclick = (e) => {
+    if(e.target === modal) closeModal();
+  };
+
+  visualizeBtn.onclick = () => {
+    try {
+      const jsonStr = processEditor.value.trim();
+      const transitions = JSON.parse(jsonStr);
+
+      if(!Array.isArray(transitions) || transitions.length === 0){
         addLog({
-          pid: "SYS",
+          pid: "ERR",
           color: "#ff6a8b",
-          to: "Import Error",
-          desc: message
+          to: "Parse Error",
+          desc: "Must be a non-empty JSON array of transitions."
         });
         updateUI();
+        return;
       }
-      event.target.value = "";
-    };
 
-    reader.readAsText(file);
+      transitions.forEach((t, i) => {
+        if(!t.from || !t.to){
+          throw new Error("Transition " + i + ": missing 'from' or 'to' field");
+        }
+        if(!t.what) t.what = t.from + " → " + t.to;
+        if(!t.why) t.why = "Custom transition";
+      });
+
+      stopAuto();
+      clearAll();
+
+      const pid = makePid();
+      const proc = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        pid,
+        scenario: "custom",
+        trace: transitions,
+        step: 0,
+        state: "NEW",
+        cpu: 0,
+        badgeMs: transitions.length * 2,
+        chipGradient: getChipGradient(pid),
+        timeline: [],
+        stateEnterTime: 0,
+        stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
+        readyQueuePos: -1
+      };
+
+      processes.push(proc);
+      activeProcessId = proc.id;
+
+      addLog({
+        pid: "SYS",
+        color: "#7f91b7",
+        to: "Custom",
+        desc: "Created custom process with " + transitions.length + " transitions"
+      });
+      addLog({
+        pid: proc.pid,
+        color: getPidColor(proc.pid),
+        to: "New",
+        desc: "Custom process created. Use Step Forward or Auto Run to begin."
+      });
+
+      closeModal();
+      updateUI();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Invalid JSON";
+      alert("Error: " + msg);
+    }
   };
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && modal.classList.contains("open")){
+      closeModal();
+    }
+  });
 
   document.getElementById("scenarioSelect").onchange = (e) => {
     currentScenario = e.target.value;
