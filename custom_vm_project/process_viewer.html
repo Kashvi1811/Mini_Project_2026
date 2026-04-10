@@ -39,8 +39,9 @@
         radial-gradient(circle at 86% 12%, #1c84b98a 0, transparent 34%),
         radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
         linear-gradient(180deg, #0a1436 0%, #122554 100%);
+      overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:none;
+      overscroll-behavior-y:auto;
     }
 
     body{
@@ -53,8 +54,9 @@
         radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
         linear-gradient(180deg, #0a1436 0%, #122554 100%);
       padding:18px;
+      overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:none;
+      overscroll-behavior-y:auto;
     }
 
     .shell{
@@ -798,9 +800,7 @@
       display:flex;
       flex-direction:column;
       gap:9px;
-      position:sticky;
-      top:10px;
-      align-self:start;
+      position:static;
     }
 
     .activity-head{
