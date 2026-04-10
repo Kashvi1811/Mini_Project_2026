@@ -10,6 +10,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
   <style>
     :root{
+      --page-bg:
+        radial-gradient(circle at 14% 16%, #2a63c18f 0, transparent 38%),
+        radial-gradient(circle at 86% 12%, #1c84b98a 0, transparent 34%),
+        radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
+        linear-gradient(180deg, #0a1436 0%, #122554 100%);
       --bg:#0b153a;
       --bg2:#1a2d63;
       --card:#1d3168de;
@@ -34,29 +39,33 @@
 
     html{
       min-height:100%;
-      background:
-        radial-gradient(circle at 14% 16%, #2a63c18f 0, transparent 38%),
-        radial-gradient(circle at 86% 12%, #1c84b98a 0, transparent 34%),
-        radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
-        linear-gradient(180deg, #0a1436 0%, #122554 100%);
+      background:var(--page-bg);
+      background-color:#0a1436;
       overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:auto;
+      overscroll-behavior-y:none;
     }
 
     body{
       min-height:100vh;
       font-family:'Sora',sans-serif;
       color:var(--text);
-      background:
-        radial-gradient(circle at 14% 16%, #2a63c18f 0, transparent 38%),
-        radial-gradient(circle at 86% 12%, #1c84b98a 0, transparent 34%),
-        radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
-        linear-gradient(180deg, #0a1436 0%, #122554 100%);
+      background:transparent;
       padding:18px;
       overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:auto;
+      overscroll-behavior-y:none;
+      position:relative;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      background:var(--page-bg);
+      background-color:#0a1436;
     }
 
     .shell{
