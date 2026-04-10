@@ -28,10 +28,6 @@
       --heading-soft:#b8c7f7;
       --shadow:0 14px 30px rgba(7,18,52,.34);
       --radius:14px;
-      --scenario-accent:#60a5fa;
-      --scenario-accent-soft:#60a5fa33;
-      --scenario-active-glow:#45eeff;
-      --scenario-active-glow-soft:#45eeff55;
     }
 
     *{box-sizing:border-box;margin:0;padding:0;}
@@ -46,27 +42,6 @@
         radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
         linear-gradient(180deg, #0a1436 0%, #122554 100%);
       padding:18px;
-    }
-
-    body.scenario-chrome{
-      --scenario-accent:#60a5fa;
-      --scenario-accent-soft:#60a5fa33;
-      --scenario-active-glow:#67d6ff;
-      --scenario-active-glow-soft:#67d6ff66;
-    }
-
-    body.scenario-video{
-      --scenario-accent:#fb7185;
-      --scenario-accent-soft:#fb718533;
-      --scenario-active-glow:#ff8ba0;
-      --scenario-active-glow-soft:#ff8ba066;
-    }
-
-    body.scenario-download{
-      --scenario-accent:#34d399;
-      --scenario-accent-soft:#34d39933;
-      --scenario-active-glow:#5ff3c0;
-      --scenario-active-glow-soft:#5ff3c066;
     }
 
     .shell{
@@ -109,33 +84,6 @@
       text-shadow:0 0 28px rgba(180,140,255,.24);
     }
     .brand p{font-size:.84rem;color:var(--muted);margin-top:4px;line-height:1.45;}
-
-    .scenario-wrap{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      background:linear-gradient(180deg,#1f346d 0%, #1a2c5d 100%);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:8px;
-      transition:border-color .2s ease, box-shadow .2s ease;
-    }
-
-    .scenario-icon{
-      width:28px;
-      height:28px;
-      border-radius:8px;
-      display:grid;
-      place-items:center;
-      color:#cfe2ff;
-      background:#132356;
-      border:1px solid #6a82cc5a;
-      font-size:.78rem;
-    }
-
-    .scenario-wrap.scenario-chrome{border-color:#60a5fa88;box-shadow:0 0 0 1px #60a5fa33 inset;}
-    .scenario-wrap.scenario-video{border-color:#f8717188;box-shadow:0 0 0 1px #f8717133 inset;}
-    .scenario-wrap.scenario-download{border-color:#34d39988;box-shadow:0 0 0 1px #34d39933 inset;}
 
     select{
       border:1px solid #5d73c333;
@@ -409,6 +357,20 @@
     .timeline-tag.end{background:#94a3b824;border-color:#94a3b866;color:#d4deef;}
 
     .btn-row,.speed-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .sched-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .sched-select,
+    .sched-input{
+      background:#152957;
+      border:1px solid #6f84da55;
+      color:#d7e4ff;
+      border-radius:9px;
+      padding:6px 8px;
+      font-size:.73rem;
+      font-weight:700;
+      outline:none;
+    }
+    .sched-select{min-width:132px;}
+    .sched-input{width:66px;}
 
     button{
       border:none;
@@ -450,10 +412,6 @@
     }
 
     .live-status b{color:#7fe9ff;}
-
-    body.scenario-chrome .live-status b{color:#8fd4ff;}
-    body.scenario-video .live-status b{color:#ffafba;}
-    body.scenario-download .live-status b{color:#87f7d1;}
 
     .speed-btn{
       background:#111d4ecc;
@@ -569,14 +527,14 @@
     }
 
     .lane-body.focus-to{
-      box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 22px var(--scenario-active-glow-soft);
+      box-shadow:inset 0 0 0 2px #67d6ff, 0 0 22px #67d6ff66;
       background:linear-gradient(180deg,#2a3c76 0%, #243262 100%);
       animation:lanePulse .9s ease-in-out infinite alternate;
     }
 
     @keyframes lanePulse{
-      from{ box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 12px var(--scenario-active-glow-soft); }
-      to{ box-shadow:inset 0 0 0 2px var(--scenario-active-glow), 0 0 24px var(--scenario-active-glow-soft); }
+      from{ box-shadow:inset 0 0 0 2px #67d6ff, 0 0 12px #67d6ff55; }
+      to{ box-shadow:inset 0 0 0 2px #67d6ff, 0 0 24px #67d6ff77; }
     }
 
     .proc-card{
@@ -843,7 +801,7 @@
 
     .log-entry{
       border:1px solid #2f4f9a70;
-      border-left:4px solid var(--scenario-accent);
+      border-left:4px solid #60a5fa;
       border-radius:12px;
       background:linear-gradient(180deg,#11204d 0%, #101d48 100%);
       color:#d4deff;
@@ -1408,14 +1366,6 @@
           <p>Learn how processes move through different states in an Operating System</p>
         </div>
       </div>
-      <div class="scenario-wrap" id="scenarioWrap">
-        <i class="fa-solid fa-compass scenario-icon"></i>
-        <select id="scenarioSelect">
-          <option value="chrome">Opening Chrome</option>
-          <option value="video">Watching YouTube</option>
-          <option value="download">Downloading File</option>
-        </select>
-      </div>
     </div>
 
     <div class="stats">
@@ -1502,6 +1452,15 @@
           <button class="speed-btn" data-speed="slow">Slow</button>
           <button class="speed-btn active" data-speed="normal">Normal</button>
           <button class="speed-btn" data-speed="fast">Fast</button>
+        </div>
+        <div class="sched-row">
+          <span style="font-size:.75rem;color:#a9bce8;">Scheduler:</span>
+          <select id="schedulerSelect" class="sched-select">
+            <option value="rr" selected>Round Robin</option>
+            <option value="fcfs">FCFS</option>
+          </select>
+          <span style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
+          <input id="quantumInput" class="sched-input" type="number" min="1" max="10" value="2">
         </div>
       </div>
     </div>
@@ -1680,7 +1639,7 @@
         </div>
         <div class="current" id="currentInfo">No active process yet. Create a process to begin.</div>
         <div class="log-box" id="activityLog"></div>
-        <div class="stats-panel" id="statsPanel" style="display:none;">
+        <div class="stats-panel" id="statsPanel">
           <h4><i class="fa-solid fa-chart-bar"></i> Process Statistics</h4>
           <div id="statsContent"></div>
         </div>
@@ -1699,79 +1658,16 @@
     "linear-gradient(135deg,#14b8a6,#22c55e)"
   ];
 
-  const scenarios = {
-    chrome: [
-      {from:"NEW",to:"READY",what:"Chrome launched",why:"User clicked icon"},
-      {from:"READY",to:"RUNNING",what:"Chrome starts",why:"CPU assigned"},
-      {from:"RUNNING",to:"WAITING",what:"Loading page assets",why:"Needs disk/network I/O"},
-      {from:"WAITING",to:"READY",what:"Data loaded",why:"I/O completed"},
-      {from:"READY",to:"RUNNING",what:"Rendering tabs",why:"CPU available"},
-      {from:"RUNNING",to:"READY",what:"UI thread yielded",why:"Scheduler rotates time slice"},
-      {from:"READY",to:"RUNNING",what:"Compositor resumes",why:"CPU returned to browser"},
-      {from:"RUNNING",to:"TERMINATED",what:"Application closed",why:"Execution finished"}
-    ],
-    video: [
-      {from:"NEW",to:"READY",what:"YouTube opened",why:"User clicked play"},
-      {from:"READY",to:"RUNNING",what:"Playback starts",why:"Scheduler gives CPU"},
-      {from:"RUNNING",to:"WAITING",what:"Video buffering",why:"Waiting for network packets"},
-      {from:"WAITING",to:"READY",what:"Buffer filled",why:"Data arrived"},
-      {from:"READY",to:"RUNNING",what:"Playback resumes",why:"CPU free again"},
-      {from:"RUNNING",to:"WAITING",what:"Adaptive quality switch",why:"Player requests new bitrate segment"},
-      {from:"WAITING",to:"READY",what:"New segment ready",why:"Buffered frames restored"},
-      {from:"READY",to:"RUNNING",what:"Smooth playback",why:"Decoder has enough buffered data"},
-      {from:"RUNNING",to:"TERMINATED",what:"Video session ends",why:"Task complete"}
-    ],
-    download: [
-      {from:"NEW",to:"READY",what:"Download requested",why:"User clicked download"},
-      {from:"READY",to:"RUNNING",what:"Connection setup",why:"CPU assigned"},
-      {from:"RUNNING",to:"WAITING",what:"Receiving chunks",why:"Waiting for network I/O"},
-      {from:"WAITING",to:"READY",what:"Chunk arrived",why:"I/O event completed"},
-      {from:"READY",to:"RUNNING",what:"Writing file",why:"CPU resumed"},
-      {from:"RUNNING",to:"WAITING",what:"Await next packet",why:"TCP window waits for sender"},
-      {from:"WAITING",to:"READY",what:"Packet burst arrived",why:"Network queue filled"},
-      {from:"READY",to:"RUNNING",what:"Checksum + flush",why:"Kernel validates and writes blocks"},
-      {from:"RUNNING",to:"TERMINATED",what:"Download finished",why:"File saved"}
-    ]
-  };
-
-  const scenarioVisuals = {
-    chrome: {
-      icon: "fa-brands fa-chrome",
-      badge: "Chrome Flow",
-      notes: [
-        "Launch Browser",
-        "Tab Scheduler",
-        "CPU Slice End",
-        "Page Asset Wait",
-        "Asset Loaded",
-        "Close Browser"
-      ]
-    },
-    video: {
-      icon: "fa-brands fa-youtube",
-      badge: "YouTube Playback",
-      notes: [
-        "Open Player",
-        "Start Playback",
-        "Frame Slice End",
-        "Buffer Wait",
-        "Buffer Filled",
-        "End Session"
-      ]
-    },
-    download: {
-      icon: "fa-solid fa-download",
-      badge: "File Download",
-      notes: [
-        "Create Job",
-        "Begin Transfer",
-        "Chunk Slice End",
-        "Network Wait",
-        "Chunk Received",
-        "Save Complete"
-      ]
-    }
-  };
+  const defaultTrace = [
+    {from:"NEW",to:"READY",what:"Process admitted",why:"Created and queued by scheduler"},
+    {from:"READY",to:"RUNNING",what:"CPU assigned",why:"Scheduler selected process"},
+    {from:"RUNNING",to:"WAITING",what:"I/O request",why:"Process blocked for I/O"},
+    {from:"WAITING",to:"READY",what:"I/O complete",why:"Process returned to ready queue"},
+    {from:"READY",to:"RUNNING",what:"CPU reassigned",why:"Process resumed execution"},
+    {from:"RUNNING",to:"READY",what:"Time slice ended",why:"Preemption under scheduling policy"},
+    {from:"READY",to:"RUNNING",what:"CPU reassigned",why:"Next RR/FCFS selection"},
+    {from:"RUNNING",to:"TERMINATED",what:"Execution complete",why:"No instructions left"}
+  ];
 
   const statePillClass = {
     NEW:"p-new",
@@ -1817,7 +1713,6 @@
   };
 
   let processes = [];
-  let currentScenario = "chrome";
   let nextPid = 1;
   let activeProcessId = null;
   let transitionCount = 0;
@@ -1831,6 +1726,10 @@
   let roundRobinCursor = -1;
   let globalTimeStep = 0;
   let readyQueueOrder = [];
+  let schedulerMode = "rr";
+  let rrQuantum = 2;
+  let rrSliceUsed = 0;
+  let rrActivePid = null;
   let lastLogSecondKey = "";
   const RECOMMENDED_TRANSITION_LIMIT = 15;
 
@@ -1841,28 +1740,6 @@
       color: "#ffd27b",
       to: "Timeline Warning",
       desc: source + " has " + count + " transitions. For readability, try keeping each process at 6-10 (recommended max " + RECOMMENDED_TRANSITION_LIMIT + ")."
-    });
-  }
-
-  function applyScenarioVisuals(key){
-    document.body.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
-    document.body.classList.add("scenario-" + key);
-
-    const wrap = document.querySelector(".scenario-wrap");
-    const select = document.getElementById("scenarioSelect");
-    const notes = document.querySelectorAll(".transition-note");
-    const visual = scenarioVisuals[key] || scenarioVisuals.chrome;
-
-    wrap.classList.remove("scenario-chrome", "scenario-video", "scenario-download");
-
-    const className = "scenario-" + key;
-    wrap.classList.add(className);
-    if(select){
-      select.title = visual.badge;
-    }
-
-    notes.forEach((note, index) => {
-      if(visual.notes[index]) note.textContent = visual.notes[index];
     });
   }
 
@@ -2082,7 +1959,16 @@
       timeline: [],
       stateEnterTime: 0,
       stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
-      readyQueuePos: -1
+      readyQueuePos: -1,
+      arrivalStep: globalTimeStep,
+      firstRunStep: null,
+      completionStep: null,
+      waitingTime: 0,
+      turnaroundTime: 0,
+      responseTime: null,
+      executedSteps: 0,
+      burstEstimate: traceEvents.length,
+      priority: Math.floor(Math.random() * 5) + 1
     };
 
     traceMeta = {
@@ -2120,8 +2006,8 @@
     const proc = {
       id: Date.now() + Math.floor(Math.random() * 1000),
       pid,
-      scenario: currentScenario,
-      trace: scenarios[currentScenario],
+      scenario: "default",
+      trace: defaultTrace,
       step: 0,
       state: "NEW",
       cpu: 0,
@@ -2130,7 +2016,16 @@
       timeline: [],
       stateEnterTime: 0,
       stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
-      readyQueuePos: -1
+      readyQueuePos: -1,
+      arrivalStep: globalTimeStep,
+      firstRunStep: null,
+      completionStep: null,
+      waitingTime: 0,
+      turnaroundTime: 0,
+      responseTime: null,
+      executedSteps: 0,
+      burstEstimate: defaultTrace.length,
+      priority: Math.floor(Math.random() * 5) + 1
     };
 
     nextBadgeMs += 2;
@@ -2155,6 +2050,15 @@
     const oldState = proc.state;
     proc.state = event.to;
     if(event.vm) proc.lastVm = event.vm;
+
+    if(oldState === "READY") proc.waitingTime += 1;
+    if(event.to === "RUNNING"){
+      proc.executedSteps += 1;
+      if(proc.firstRunStep === null){
+        proc.firstRunStep = globalTimeStep;
+        proc.responseTime = proc.firstRunStep - proc.arrivalStep;
+      }
+    }
 
     if(event.to === "RUNNING"){
       proc.cpu += 5;
@@ -2193,6 +2097,8 @@
     });
 
     if(proc.state === "TERMINATED"){
+      proc.completionStep = globalTimeStep;
+      proc.turnaroundTime = proc.completionStep - proc.arrivalStep;
       addLog({
         pid: proc.pid,
         color: getPidColor(proc.pid),
@@ -2206,9 +2112,19 @@
   }
 
   function stepForward(){
-    const proc = getActiveProcess();
-    if(!proc || proc.state === "TERMINATED") return;
+    const proc = getNextRunnableProcess();
+    if(!proc) return;
+    activeProcessId = proc.id;
     advanceProcess(proc);
+
+    if(schedulerMode === "rr" && rrActivePid === proc.id){
+      rrSliceUsed += 1;
+      if(rrSliceUsed >= rrQuantum || proc.state !== "RUNNING"){
+        rrSliceUsed = 0;
+        rrActivePid = null;
+      }
+    }
+
     updateUI();
   }
 
@@ -2220,8 +2136,27 @@
     const runnable = getRunnableProcesses();
     if(runnable.length === 0) return null;
 
-    roundRobinCursor = (roundRobinCursor + 1) % runnable.length;
-    return runnable[roundRobinCursor];
+    const readyCandidates = readyQueueOrder
+      .map((id) => runnable.find((p) => p.id === id))
+      .filter((p) => !!p);
+
+    if(schedulerMode === "fcfs"){
+      if(readyCandidates.length > 0) return readyCandidates[0];
+      return runnable[0];
+    }
+
+    // Round Robin: continue active process until quantum expires, then rotate.
+    if(rrActivePid !== null && rrSliceUsed < rrQuantum){
+      const active = runnable.find((p) => p.id === rrActivePid);
+      if(active) return active;
+    }
+
+    const pool = readyCandidates.length > 0 ? readyCandidates : runnable;
+    roundRobinCursor = (roundRobinCursor + 1) % pool.length;
+    const next = pool[roundRobinCursor];
+    rrActivePid = next.id;
+    rrSliceUsed = 0;
+    return next;
   }
 
   function clearAll(){
@@ -2236,6 +2171,8 @@
     roundRobinCursor = -1;
     globalTimeStep = 0;
     readyQueueOrder = [];
+    rrSliceUsed = 0;
+    rrActivePid = null;
     stopAuto();
     updateUI();
   }
@@ -2270,6 +2207,15 @@
 
       activeProcessId = next.id;
       advanceProcess(next);
+
+      if(schedulerMode === "rr" && rrActivePid === next.id){
+        rrSliceUsed += 1;
+        if(rrSliceUsed >= rrQuantum || next.state !== "RUNNING"){
+          rrSliceUsed = 0;
+          rrActivePid = null;
+        }
+      }
+
       updateUI();
 
       if(getRunnableProcesses().length === 0){
@@ -2392,11 +2338,14 @@
     const sourceLine = (proc.scenario === "trace" && proc.traceSource)
       ? "<br>Source: " + proc.traceSource
       : "";
+    const metricsLine = "<br>Scheduler: <b>" + schedulerMode.toUpperCase() + "</b>" +
+      (schedulerMode === "rr" ? " (q=" + rrQuantum + ")" : "") +
+      " | Pri: <b>" + proc.priority + "</b> | WT: <b>" + proc.waitingTime + "</b> | TAT: <b>" + proc.turnaroundTime + "</b>";
 
     info.innerHTML =
       "Active: <b>" + proc.pid + "</b> " +
       '<span class="pill ' + stateClass + '">' + proc.state + "</span><br>" +
-      "Reason: " + reason + traceLine + sourceLine;
+      "Reason: " + reason + metricsLine + traceLine + sourceLine;
   }
 
   function updateLiveStatus(){
@@ -2481,6 +2430,39 @@
     document.getElementById("statCreated").textContent = processes.length;
     document.getElementById("statCompleted").textContent = processes.filter((p) => p.state === "TERMINATED").length;
     document.getElementById("statTransitions").textContent = transitionCount;
+  }
+
+  function updateSchedulerMetrics(){
+    const box = document.getElementById("statsContent");
+    if(!box) return;
+
+    if(processes.length === 0){
+      box.innerHTML = '<div class="stat-item"><span class="stat-label">No metrics yet</span><span class="stat-value">Create a process</span></div>';
+      return;
+    }
+
+    const completed = processes.filter((p) => p.state === "TERMINATED");
+    const avgWaiting = completed.length
+      ? (completed.reduce((acc, p) => acc + (p.waitingTime || 0), 0) / completed.length)
+      : 0;
+    const avgTurnaround = completed.length
+      ? (completed.reduce((acc, p) => acc + (p.turnaroundTime || 0), 0) / completed.length)
+      : 0;
+    const avgResponse = completed.length
+      ? (completed.reduce((acc, p) => acc + (p.responseTime || 0), 0) / completed.length)
+      : 0;
+
+    const totalCpuBusy = processes.reduce((acc, p) => acc + (p.executedSteps || 0), 0);
+    const cpuUtilization = globalTimeStep > 0 ? (totalCpuBusy / globalTimeStep) * 100 : 0;
+    const throughput = globalTimeStep > 0 ? (completed.length / globalTimeStep) : 0;
+
+    box.innerHTML =
+      '<div class="stat-item"><span class="stat-label">Scheduler</span><span class="stat-value">' + schedulerMode.toUpperCase() + (schedulerMode === "rr" ? ' (q=' + rrQuantum + ')' : '') + '</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Waiting Time</span><span class="stat-value">' + avgWaiting.toFixed(2) + ' steps</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Turnaround Time</span><span class="stat-value">' + avgTurnaround.toFixed(2) + ' steps</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Response Time</span><span class="stat-value">' + avgResponse.toFixed(2) + ' steps</span></div>' +
+      '<div class="stat-item"><span class="stat-label">CPU Utilization</span><span class="stat-value">' + cpuUtilization.toFixed(1) + '%</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Throughput</span><span class="stat-value">' + throughput.toFixed(3) + ' proc/step</span></div>';
   }
 
   function updateButtons(){
@@ -2622,6 +2604,7 @@
     updateCurrentInfo();
     updateLiveStatus();
     updateStats();
+    updateSchedulerMetrics();
     updateButtons();
     updateEducationPanel();
     renderTimeline();
@@ -2808,7 +2791,16 @@
         timeline: [],
         stateEnterTime: 0,
         stateTimes: { NEW: 0, READY: 0, RUNNING: 0, WAITING: 0, TERMINATED: 0 },
-        readyQueuePos: -1
+        readyQueuePos: -1,
+        arrivalStep: globalTimeStep,
+        firstRunStep: null,
+        completionStep: null,
+        waitingTime: 0,
+        turnaroundTime: 0,
+        responseTime: null,
+        executedSteps: 0,
+        burstEstimate: transitions.length,
+        priority: Math.floor(Math.random() * 5) + 1
       };
 
       processes.push(proc);
@@ -2842,18 +2834,6 @@
     }
   });
 
-  document.getElementById("scenarioSelect").onchange = (e) => {
-    currentScenario = e.target.value;
-    applyScenarioVisuals(currentScenario);
-    addLog({
-      pid: "SYS",
-      color: "#7f91b7",
-      to: "Scenario",
-      desc: "Switched to " + e.target.options[e.target.selectedIndex].text
-    });
-    updateUI();
-  };
-
   document.getElementById("clearLogBtn").onclick = () => {
     logItems = [];
     lastLogSecondKey = "";
@@ -2873,6 +2853,34 @@
     };
   });
 
+  document.getElementById("schedulerSelect").onchange = (e) => {
+    schedulerMode = e.target.value;
+    rrSliceUsed = 0;
+    rrActivePid = null;
+    addLog({
+      pid: "SYS",
+      color: "#7f91b7",
+      to: "Scheduler",
+      desc: "Switched scheduler to " + schedulerMode.toUpperCase()
+    });
+    updateUI();
+  };
+
+  document.getElementById("quantumInput").onchange = (e) => {
+    const parsed = parseInt(e.target.value, 10);
+    rrQuantum = Number.isNaN(parsed) ? 2 : Math.max(1, Math.min(10, parsed));
+    e.target.value = String(rrQuantum);
+    rrSliceUsed = 0;
+    rrActivePid = null;
+    addLog({
+      pid: "SYS",
+      color: "#7f91b7",
+      to: "Quantum",
+      desc: "Round Robin quantum set to " + rrQuantum
+    });
+    updateUI();
+  };
+
   document.addEventListener("keydown", (e) => {
     if(e.key === "n" || e.key === "N") createProcess();
     if(e.key === "ArrowRight") stepForward();
@@ -2881,8 +2889,6 @@
       toggleAuto();
     }
   });
-
-  applyScenarioVisuals(currentScenario);
 
   updateUI();
 </script>
