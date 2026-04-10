@@ -7,8 +7,6 @@
   <img alt="Type" src="https://img.shields.io/badge/Project-Systems%20%2B%20Education-0EA5E9">
 </p>
 
-A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
-
 ## 📑 Table of Contents
 
 - 📌 [Project Overview](#-custom-register-vm--interactive-visualizer)
@@ -25,6 +23,8 @@ A compact educational project that demonstrates how a CPU-like virtual machine e
 - ⚠️ [Limitations](#-current-limitations)
 - 🛣️ [Roadmap](#-roadmap)
 - 📌 [Project Note](#-project-note)
+
+A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
 
 This repository contains:
 
