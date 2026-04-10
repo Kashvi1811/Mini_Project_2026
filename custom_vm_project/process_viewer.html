@@ -32,6 +32,17 @@
 
     *{box-sizing:border-box;margin:0;padding:0;}
 
+    html{
+      min-height:100%;
+      background:
+        radial-gradient(circle at 14% 16%, #2a63c18f 0, transparent 38%),
+        radial-gradient(circle at 86% 12%, #1c84b98a 0, transparent 34%),
+        radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
+        linear-gradient(180deg, #0a1436 0%, #122554 100%);
+      overflow-x:hidden;
+      overscroll-behavior-y:none;
+    }
+
     body{
       min-height:100vh;
       font-family:'Sora',sans-serif;
@@ -42,6 +53,8 @@
         radial-gradient(circle at 62% 80%, #1e6fc486 0, transparent 36%),
         linear-gradient(180deg, #0a1436 0%, #122554 100%);
       padding:18px;
+      overflow-x:hidden;
+      overscroll-behavior-y:none;
     }
 
     .shell{
@@ -224,6 +237,30 @@
     }
 
     .controls-bottom{padding-top:2px;}
+
+    .advanced-controls{
+      margin-top:4px;
+      border:1px solid #7f95db4d;
+      border-radius:10px;
+      background:#182b5e9e;
+      padding:8px 10px;
+    }
+
+    .advanced-controls summary{
+      list-style:none;
+      cursor:pointer;
+      color:#c7d8ff;
+      font-size:.77rem;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      gap:7px;
+      user-select:none;
+    }
+
+    .advanced-controls summary::-webkit-details-marker{display:none;}
+    .advanced-controls[open]{background:#1a2f6696;}
+    .advanced-controls-body{margin-top:8px;display:flex;flex-direction:column;gap:10px;}
 
     .hero-timeline{
       padding:12px 14px 14px;
@@ -733,11 +770,37 @@
       opacity:.85;
     }
 
+    .transition-details{
+      margin-top:10px;
+      border:1px solid #7b92d64d;
+      border-radius:10px;
+      background:#1b2f6480;
+      padding:8px 10px;
+    }
+
+    .transition-details summary{
+      list-style:none;
+      cursor:pointer;
+      color:#c9d8ff;
+      font-size:.83rem;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+
+    .transition-details summary::-webkit-details-marker{display:none;}
+    .transition-details .transition-map{margin-top:10px;}
+
     .activity{
       min-height:420px;
       display:flex;
       flex-direction:column;
       gap:9px;
+      position:sticky;
+      top:10px;
+      align-self:start;
     }
 
     .activity-head{
@@ -791,13 +854,9 @@
       display:flex;
       flex-direction:column;
       gap:10px;
-      max-height:390px;
-      overflow:auto;
+      max-height:none;
+      overflow:visible;
     }
-
-    .log-box::-webkit-scrollbar{width:10px;}
-    .log-box::-webkit-scrollbar-track{background:#071037;border-radius:999px;}
-    .log-box::-webkit-scrollbar-thumb{background:#9eb2d35f;border-radius:999px;}
 
     .log-entry{
       border:1px solid #2f4f9a70;
@@ -1036,8 +1095,8 @@
       border-radius:12px;
       padding:12px;
       margin-top:12px;
-      max-height:280px;
-      overflow-y:auto;
+      max-height:none;
+      overflow:visible;
     }
 
     .stats-panel h4{
@@ -1338,6 +1397,7 @@
       .guide-grid{grid-template-columns:1fr;}
       .main{grid-template-columns:1fr;}
       .lanes{grid-template-columns:1fr 1fr;}
+      .activity{position:static;top:auto;}
     }
 
     @media (max-width:680px){
@@ -1430,7 +1490,7 @@
     <div class="controls">
       <div class="controls-top">
         <div class="control-group">
-          <div class="group-label">Actions</div>
+          <div class="group-label">Quick Actions</div>
           <div class="btn-row">
             <button class="btn-blue" id="newBtn"><i class="fa-solid fa-plus"></i> New Process</button>
             <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
@@ -1438,31 +1498,33 @@
             <button class="btn-soft" id="customEditorBtn" style="background:linear-gradient(135deg,#7b5dff,#2eb8ff);"><i class="fa-solid fa-code"></i> Custom Process</button>
           </div>
         </div>
-        <div class="control-group">
-          <div class="group-label">View</div>
+      </div>
+      <details class="advanced-controls">
+        <summary><i class="fa-solid fa-sliders"></i> Advanced Controls</summary>
+        <div class="advanced-controls-body">
           <div class="btn-row">
             <button class="btn-soft btn-simple" id="simpleModeBtn"><i class="fa-solid fa-eye"></i> Simple Mode</button>
             <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
           </div>
+          <div class="controls-bottom">
+            <div class="speed-row">
+              <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
+              <button class="speed-btn" data-speed="slow">Slow</button>
+              <button class="speed-btn active" data-speed="normal">Normal</button>
+              <button class="speed-btn" data-speed="fast">Fast</button>
+            </div>
+            <div class="sched-row">
+              <span style="font-size:.75rem;color:#a9bce8;">Scheduler:</span>
+              <select id="schedulerSelect" class="sched-select">
+                <option value="rr" selected>Round Robin</option>
+                <option value="fcfs">FCFS</option>
+              </select>
+              <span style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
+              <input id="quantumInput" class="sched-input" type="number" min="1" max="10" value="2">
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="controls-bottom">
-        <div class="speed-row">
-          <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
-          <button class="speed-btn" data-speed="slow">Slow</button>
-          <button class="speed-btn active" data-speed="normal">Normal</button>
-          <button class="speed-btn" data-speed="fast">Fast</button>
-        </div>
-        <div class="sched-row">
-          <span style="font-size:.75rem;color:#a9bce8;">Scheduler:</span>
-          <select id="schedulerSelect" class="sched-select">
-            <option value="rr" selected>Round Robin</option>
-            <option value="fcfs">FCFS</option>
-          </select>
-          <span style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
-          <input id="quantumInput" class="sched-input" type="number" min="1" max="10" value="2">
-        </div>
-      </div>
+      </details>
     </div>
 
     <div class="modal" id="customEditorModal">
@@ -1518,7 +1580,7 @@
 
     <div class="live-status" id="liveStatus">Now: No process yet. Click New Process to begin.</div>
 
-    <div class="minimal-note">Tip: Click <b>New Process</b>, then use <b>Step Forward</b> or <b>Auto Run</b> to follow transitions clearly.</div>
+    <div class="minimal-note">Quick flow: <b>New Process</b> -> <b>Step Forward</b>. Open <b>Advanced Controls</b> only when needed.</div>
 
     <div class="panel hero-timeline">
       <div class="timeline-section">
@@ -1572,7 +1634,8 @@
         </div>
 
         <div class="transition-section">
-          <div style="margin-top:12px;font-size:.82rem;color:#b4c5ef;font-weight:700;"><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transitions</div>
+          <details class="transition-details">
+          <summary><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transition Reference</summary>
           <div class="transition-map">
           <div class="transition-item t-new-ready" id="trans-NEW_READY">
             <div class="transition-route">
@@ -1629,6 +1692,7 @@
             <div class="transition-note">Program Exit</div>
           </div>
           </div>
+          </details>
         </div>
       </div>
 
