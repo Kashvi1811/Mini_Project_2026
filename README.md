@@ -9,6 +9,23 @@
 
 A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
 
+## 📑 Table of Contents
+
+- 📌 [Project Overview](#-custom-register-vm--interactive-visualizer)
+- 🎯 [Why This Project](#-why-this-project)
+- ✨ [Key Features](#-key-features)
+- 📁 [Project Structure](#-project-structure)
+- 🧩 [Instruction Set](#-instruction-set-current)
+- 🚀 [Getting Started](#-quick-start)
+- 🧪 [Supported C++ Subset](#-supported-c-subset-in-viewer)
+- 🧠 [Demo Programs](#-demo-programs)
+- 📚 [Documentation](#-documentation-deliverables)
+- 🌍 [Deployment (GitHub Pages)](#-publish-for-everyone-github-pages)
+- 📦 [Releases](#-best-way-to-share-native-cli-no-clonebuild)
+- ⚠️ [Limitations](#-current-limitations)
+- 🛣️ [Roadmap](#-roadmap)
+- 📌 [Project Note](#-project-note)
+
 This repository contains:
 
 - A **C++ VM engine** (`vm.cpp`) for instruction execution and trace logging
