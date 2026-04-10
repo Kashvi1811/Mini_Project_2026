@@ -16,7 +16,7 @@ A compact, interactive VM that brings instruction execution and CPU behavior to 
 - ✨ [Key Features](#-key-features)
 - 📁 [Project Structure](#-project-structure)
 - 🧩 [Instruction Set](#-instruction-set-current)
-- 🚀 [Getting Started](#-quick-start)
+- 🚀 [Quick Start](#-quick-start)
 - 🧪 [Supported C++ Subset](#-supported-c-subset-in-viewer)
 - 🧠 [Demo Programs](#-demo-programs)
 - 📚 [Documentation](#-documentation-deliverables)
@@ -266,10 +266,8 @@ This repo includes an auto-deploy workflow in `.github/workflows/` (currently `j
 
 ### Public links
 
-- Landing page: `https://<your-username>.github.io/<repo-name>/`
-- Browser CLI: `https://<your-username>.github.io/<repo-name>/custom_vm_project/kali_ui.html`
-- Classic Menu CLI: `https://<your-username>.github.io/<repo-name>/custom_vm_project/menu_cli.html`
-- Viewer: `https://<your-username>.github.io/<repo-name>/custom_vm_project/viewer.html`
+- CLI Version: `https://github.com/Kashvi1811/Custom-Virtual-Machine/releases/tag/v1.0.0`
+- Visual Simulation: `https://kashvi1811.github.io/Custom-Virtual-Machine/`
 
 ## 📦 Best Way to Share Native CLI (No Clone/Build)
 
