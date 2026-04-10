@@ -7,9 +7,11 @@
   <img alt="Type" src="https://img.shields.io/badge/Project-Systems%20%2B%20Education-0EA5E9">
 </p>
 
+A compact, interactive VM that brings instruction execution and CPU behavior to life.
+
 ## 📑 Table of Contents
 
-- 📌 [Project Overview](#-custom-register-vm--interactive-visualizer)
+- 📌 [Project Overview](#-project-overview)
 - 🎯 [Why This Project](#-why-this-project)
 - ✨ [Key Features](#-key-features)
 - 📁 [Project Structure](#-project-structure)
@@ -23,9 +25,9 @@
 - ⚠️ [Limitations](#-current-limitations)
 - 🛣️ [Roadmap](#-roadmap)
 - 📌 [Project Note](#-project-note)
-
-A compact educational project that demonstrates how a CPU-like virtual machine executes instructions through the **Fetch → Decode → Execute** cycle.
-
+  
+## 📌 Project Overview  
+A compact, interactive project that brings a CPU-like virtual machine to life, showcasing how instructions flow through the Fetch → Decode → Execute cycle.
 This repository contains:
 
 - A **C++ VM engine** (`vm.cpp`) for instruction execution and trace logging
