@@ -2775,14 +2775,14 @@
 
     if(globalTimeStep === 0){
       if(timelineSubtitle){
-        timelineSubtitle.textContent = "Color-coded slices show how each process moved through the CPU and waiting states. Time scale: 1 unit = 1 second.";
+        timelineSubtitle.textContent = "Color-coded slices share one global time axis so scheduler differences are easier to compare.";
       }
       chart.innerHTML = '<div class="timeline-empty">No timeline yet. Create a process to begin.</div>';
       return;
     }
 
     if(timelineSubtitle){
-      timelineSubtitle.textContent = "Each process has its own timeline. Time scale: 1 step = 1 second (labels auto-scale for readability).";
+      timelineSubtitle.textContent = "All rows share the same global time axis. Time scale: 1 step = 1 second (labels auto-scale for readability).";
     }
 
     const stateToClass = {
@@ -2824,21 +2824,21 @@
       const track = document.createElement("div");
       track.className = "timeline-track";
 
-      const localDuration = proc.timeline.length;
-      const labelEvery = localDuration <= 12 ? 1 : (localDuration <= 24 ? 2 : (localDuration <= 50 ? 5 : 10));
+      const axisDuration = Math.max(1, globalTimeStep);
+      const labelEvery = axisDuration <= 12 ? 1 : (axisDuration <= 24 ? 2 : (axisDuration <= 50 ? 5 : 10));
       const rowRuler = document.createElement("div");
       rowRuler.className = "timeline-row-ruler";
 
-      if(localDuration > 0){
-        for(let second = 0; second <= localDuration; second += 1){
+      for(let second = 0; second <= axisDuration; second += 1){
+        if(axisDuration === 0) break;
           const tick = document.createElement("div");
           tick.className = "timeline-row-ruler-mark";
-          const isBoundary = second === 0 || second === localDuration;
+          const isBoundary = second === 0 || second === axisDuration;
           const shouldLabel = isBoundary || (second % labelEvery === 0);
           if(second === 0) tick.classList.add("start");
-          if(second === localDuration) tick.classList.add("end");
+          if(second === axisDuration) tick.classList.add("end");
           if(shouldLabel) tick.classList.add("major");
-          tick.style.left = ((second / localDuration) * 100) + "%";
+          tick.style.left = ((second / axisDuration) * 100) + "%";
 
           const line = document.createElement("div");
           line.className = "timeline-row-ruler-line";
@@ -2849,20 +2849,37 @@
           tick.appendChild(line);
           tick.appendChild(time);
           rowRuler.appendChild(tick);
-        }
       }
 
       const bar = document.createElement("div");
       bar.className = "timeline-bar";
 
-      proc.timeline.forEach((event, index) => {
-        const width = ((1 / localDuration) * 100) + "%";
+      const segments = [];
+      if(proc.timeline.length > 0){
+        const firstEvent = proc.timeline[0];
+        if(firstEvent.time > 0){
+          segments.push({ start: 0, end: firstEvent.time, state: "NEW" });
+        }
+
+        proc.timeline.forEach((event, index) => {
+          const nextEvent = proc.timeline[index + 1];
+          const start = event.time;
+          const end = nextEvent ? nextEvent.time : globalTimeStep;
+          if(end > start){
+            segments.push({ start, end, state: event.to });
+          }
+        });
+      }
+
+      segments.forEach((segment) => {
+        const duration = segment.end - segment.start;
+        const width = ((duration / axisDuration) * 100) + "%";
         const seg = document.createElement("div");
-        seg.className = "timeline-segment timeline-seg-" + (stateToClass[event.to] || "new");
-        seg.style.left = ((index / localDuration) * 100) + "%";
+        seg.className = "timeline-segment timeline-seg-" + (stateToClass[segment.state] || "new");
+        seg.style.left = ((segment.start / axisDuration) * 100) + "%";
         seg.style.width = width;
-        seg.innerHTML = '<span class="seg-state">' + (stateToLabel[event.to] || event.to) + '</span>';
-        seg.title = proc.pid + " | " + event.from + " → " + event.to + " | local " + index + "s to " + (index + 1) + "s | " + formatClock(event.timestamp || Date.now());
+        seg.innerHTML = '<span class="seg-state">' + (stateToLabel[segment.state] || segment.state) + '</span>';
+        seg.title = proc.pid + " | " + segment.state + " | global " + segment.start + "s to " + segment.end + "s";
         bar.appendChild(seg);
       });
 
