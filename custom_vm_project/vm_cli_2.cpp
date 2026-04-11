@@ -24,7 +24,7 @@ namespace {
     constexpr size_t MAX_RECENT_HISTORY = 5;
     constexpr int FACT_MAX_INPUT = 17;
     constexpr int FIB_MAX_INPUT = 63;
-    const string CLI_VERSION = "1.0";
+    const string CLI_VERSION = "2.0";
     const string HISTORY_FILE = ".vm_cli_history";
 
     // Keep menu IDs stable to avoid breaking docs/demo scripts that reference option numbers.

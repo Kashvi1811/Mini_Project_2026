@@ -1,0 +1,286 @@
+CUSTOM REGISTER VM PROJECT - COMPLETE MASTER EXPLANATION SCRIPT
+
+Use this as a clean, simple, and accurate script for viva/demo.
+It covers the full project and explicitly includes both vm_cli (v1 line) and vm_cli_2 (v2 line).
+
+============================================================
+1) PROJECT INTRODUCTION
+============================================================
+Hello everyone. This project is a Custom 16-bit Register Virtual Machine with CLI tools and browser visualizers.
+Its main purpose is to demonstrate how CPU-like execution works step by step using Fetch, Decode, and Execute.
+
+The project has three major pillars:
+1. Core VM execution engine in C++
+2. Command line interfaces for running programs and analyzing traces
+3. Interactive web visualizers for educational demonstration
+
+============================================================
+2) HIGH-LEVEL ARCHITECTURE
+============================================================
+The architecture is modular:
+1. VM Engine layer: instruction execution and state updates
+2. Tooling layer: CLI commands, assembler flow, binary flow, trace summary
+3. Visualization layer: browser UIs for simulation and process-state understanding
+
+This separation makes the project easier to explain, test, and extend.
+
+============================================================
+3) CORE VM MODEL
+============================================================
+The VM simulates a compact CPU model:
+1. Memory: 65536 words (16-bit each)
+2. Registers: R0 to R7
+3. Program Counter (PC)
+4. Condition flags: Z, N, P
+
+Execution loop:
+1. Fetch instruction from memory[PC]
+2. Decode opcode and fields
+3. Execute operation
+4. Update flags and state
+5. Continue until HALT
+
+============================================================
+4) INSTRUCTION FORMAT
+============================================================
+Each instruction is 16-bit:
+1. Bits 15 to 12: opcode
+2. Bits 11 to 9: destination register (rd)
+3. Bits 8 to 6: source register (rs)
+4. Bits 5 to 0: immediate (imm6)
+
+Immediate range is 0 to 63.
+
+============================================================
+5) SUPPORTED INSTRUCTION SET
+============================================================
+1. HALT (0): stop execution
+2. ADD (1): R[rd] = R[rd] + R[rs]
+3. AND (2): R[rd] = R[rd] & R[rs]
+4. NOT (3): R[rd] = ~R[rs]
+5. JZ (4): if R[rd] == 0, jump by immediate offset
+6. JMP (5): PC = R[rd]
+7. LOAD (6): R[rd] = imm
+8. MUL (7): R[rd] = R[rd] * R[rs]
+9. SUB (8): R[rd] = R[rd] - imm
+10. STORE (9): MEM[imm] = R[rd]
+11. LOADM (10): R[rd] = MEM[imm]
+
+============================================================
+6) PROJECT FILE GROUPS
+============================================================
+A) Core C++
+1. custom_vm_project/vm.cpp
+2. custom_vm_project/vm_cli.cpp
+3. custom_vm_project/vm_cli_2.cpp
+
+B) Web interfaces
+1. custom_vm_project/viewer.html
+2. custom_vm_project/kali_ui.html
+3. custom_vm_project/menu_cli.html
+4. custom_vm_project/process_viewer.html
+5. process-state-visualizer/src/* (React app)
+
+C) Windows launch scripts
+1. custom_vm_project/run_windows_vm.ps1
+2. custom_vm_project/run_windows_vm.bat
+3. custom_vm_project/demo.ps1
+4. custom_vm_project/kali_app.ps1
+
+D) Sample programs and traces
+1. custom_vm_project/sample_addition.asm
+2. custom_vm_project/sample_factorial.asm
+3. custom_vm_project/sample_fibonacci.asm
+4. custom_vm_project/trace.jsonl
+5. custom_vm_project/trace_addition_bin.jsonl
+6. custom_vm_project/trace_factorial_bin.jsonl
+7. custom_vm_project/trace_fibonacci_bin.jsonl
+
+============================================================
+7) CLI FAMILY OVERVIEW
+============================================================
+You have two native CLI binaries in this project line:
+1. vm_cli (legacy/main v1 line)
+2. vm_cli_2 (extended v2 line)
+
+Both share the same core engine style and command philosophy.
+vm_cli_2 adds one extra capability: process-visualizer command and menu option.
+
+============================================================
+8) vm_cli COMMAND FEATURES (BASE SET)
+============================================================
+Main commands:
+1. help
+2. menu
+3. shell
+4. fact [n] [run options]
+5. fib [n] [run options]
+6. asm <path.asm> [run options]
+7. asm --last [run options]
+8. asm-build <path.asm> [out.bin]
+9. run-bin <path.bin> [run options]
+10. dump-bin <path.bin> [--json or --format text|json]
+11. trace-summary [trace.jsonl or --last] [--json or --format text|json]
+12. viewer [--open]
+13. kali-ui [--open]
+14. kali-app [--open]
+
+Run options used by fact/fib/asm/run-bin:
+1. --trace <file>
+2. --no-trace
+3. --max-steps <n>
+4. --steps
+5. --quiet
+6. --verbose
+7. --json
+8. --format text|json
+
+Validation rules:
+1. --steps cannot be combined with JSON mode
+2. --quiet and --verbose cannot be combined
+3. --quiet/--verbose cannot be combined with JSON mode
+4. factorial input accepted range: 0 to 17
+5. fibonacci input accepted range: 0 to 63
+
+Interactive menu options in vm_cli:
+1. Factorial
+2. Fibonacci
+3. Run ASM file (loader)
+4. Trace summary
+5. Viewer path
+0. Exit
+
+Shell mode includes:
+1. help
+2. all execution commands listed above
+3. clear
+4. menu
+5. exit/quit
+
+============================================================
+9) vm_cli_2 COMMAND FEATURES (EXTENDED SET)
+============================================================
+vm_cli_2 contains all vm_cli features plus Process State Visualizer support.
+
+Additional command in vm_cli_2:
+1. process-visualizer [--open]
+
+Additional interactive menu item in vm_cli_2:
+1. option 6: Process State Visualizer
+
+So vm_cli_2 menu is:
+1. Factorial
+2. Fibonacci
+3. Run ASM file (loader)
+4. Trace summary
+5. Viewer path
+6. Process State Visualizer
+0. Exit
+
+Current banner/version heading for vm_cli_2:
+1. Custom VM CLI v2.0
+
+============================================================
+10) ASM, BIN, AND TRACE FLOW
+============================================================
+Flow A: Direct ASM run
+1. choose/provide .asm
+2. parse and encode instructions
+3. load into VM memory
+4. execute
+5. optionally write trace JSONL
+
+Flow B: Build binary then run
+1. asm-build converts .asm to binary (CVM1 header format)
+2. run-bin executes binary
+3. dump-bin prints decoded word list
+
+Flow C: Analyze trace
+1. trace-summary reads JSONL
+2. computes total steps
+3. computes step range
+4. computes opcode frequency
+5. computes register deltas
+6. prints text or JSON summary
+
+============================================================
+11) SAMPLE PROGRAMS
+============================================================
+1. sample_addition.asm: adds constants and stores result in R0
+2. sample_factorial.asm: looped multiplication logic
+3. sample_fibonacci.asm: iterative Fibonacci sequence logic
+
+These are prepacked for demo and release distribution.
+
+============================================================
+12) WEB VISUAL LAYER
+============================================================
+A) viewer.html
+1. compile/flash and execute instruction programs
+2. step mode and auto-run mode
+3. register and memory visualization
+4. instruction bit and execution explanation view
+
+B) kali_ui.html
+1. browser-based terminal style interface
+2. command-like experience without native compilation
+
+C) menu_cli.html
+1. screenshot-like classic VM menu experience in browser
+
+D) process_viewer.html and process-state-visualizer app
+1. process-state and scheduling education UI
+2. timeline and metric-style explanation for process flow
+
+============================================================
+13) WINDOWS SCRIPT WORKFLOW
+============================================================
+run_windows_vm.ps1 acts as launcher automation.
+It supports:
+1. building and running selected CLI target
+2. selecting vm_cli or vm_cli_2 target
+3. opening selected mode in same/new window
+4. mode shortcuts including process-visualizer support
+
+This avoids manual repeated compile/run commands during demo.
+
+============================================================
+14) RELEASE AND DISTRIBUTION MODEL
+============================================================
+Current release automation is separated by tag pattern:
+1. v1* tags map to vm_cli release workflow
+2. v2* tags map to vm_cli_2 release workflow
+
+vm_cli_2 release assets include:
+1. vm_cli_2-windows-x64.zip
+2. vm_cli_2-linux-x64.tar.gz
+3. vm_cli_2-macos.tar.gz
+4. sample_addition.asm
+5. sample_factorial.asm
+6. sample_fibonacci.asm
+7. trace_addition_bin.jsonl
+8. trace_factorial_bin.jsonl
+9. trace_fibonacci_bin.jsonl
+
+============================================================
+15) DEMO SCRIPT (SHORT, COMPLETE ORDER)
+============================================================
+1. Start with project goal and architecture
+2. Show instruction format and opcode table
+3. Run vm_cli quick demo: help, fact, fib, asm, trace-summary
+4. Show menu and shell modes
+5. Run vm_cli_2 and show new option: process-visualizer
+6. Demonstrate asm-build, run-bin, and dump-bin chain
+7. Open viewer/process visual UI for visual explanation
+8. Conclude with trace-driven verification and release packaging
+
+============================================================
+16) WHY THIS PROJECT IS STRONG
+============================================================
+1. Full stack of low-level execution + user-facing tooling
+2. Clear educational value with visual + CLI pathways
+3. Practical engineering flow: source ASM to binary to execution to analytics
+4. Cross-platform release artifacts with sample programs
+5. Extensible architecture with separate v1 and v2 CLI lines
+
+END OF MASTER SCRIPT
