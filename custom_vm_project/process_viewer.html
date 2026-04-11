@@ -2682,52 +2682,9 @@
   }
 
   function updateEducationPanel(){
-    const title = document.getElementById("eduTitle");
-    const explain = document.getElementById("eduExplain");
-    const why = document.getElementById("eduWhy");
-    const fill = document.getElementById("eduProgressFill");
-    const pText = document.getElementById("eduProgressText");
-    const chips = document.querySelectorAll(".compass-chip");
-    const proc = getActiveProcess();
-
-    chips.forEach((chip) => chip.classList.remove("active"));
-
-    if(!proc){
-      title.textContent = "Create a process to start the story";
-      explain.textContent = "Processes are like tasks. They move through states depending on CPU time and I/O events.";
-      why.innerHTML = "Tip: Press <b>N</b> for New Process, then <b>Space</b> to auto-run and watch state flow.";
-      fill.style.width = "0%";
-      pText.textContent = "Learning Progress: 0%";
-      return;
-    }
-
-    const activeChip = document.querySelector('.compass-chip[data-state="' + proc.state + '"]');
-    if(activeChip) activeChip.classList.add("active");
-
-    const percent = Math.max(0, Math.min(100, Math.round((proc.step / Math.max(1, proc.trace.length)) * 100)));
-    fill.style.width = percent + "%";
-    pText.textContent = "Learning Progress: " + percent + "%";
-
-    if(proc.step === 0){
-      title.textContent = "Process is born in NEW";
-      explain.textContent = "This process exists, but has not entered CPU scheduling yet.";
-      why.textContent = "Next move: NEW -> READY, where it joins the run queue.";
-      return;
-    }
-
-    const ev = proc.trace[proc.step - 1];
-    const key = ev.from + "_" + ev.to;
-    const lesson = lessonMap[key];
-
-    if(lesson){
-      title.textContent = lesson.title;
-      explain.textContent = lesson.explain;
-      why.textContent = lesson.why;
-    } else {
-      title.textContent = "State changed: " + ev.from + " -> " + ev.to;
-      explain.textContent = ev.what || "The process has transitioned based on scheduler or I/O logic.";
-      why.textContent = ev.why || "This is part of normal OS process lifecycle management.";
-    }
+    // Education panel was removed from the UI. Keep this as a no-op
+    // so updateUI() can safely call it without breaking timeline rendering.
+    return;
   }
 
   function toggleSimpleMode(){
