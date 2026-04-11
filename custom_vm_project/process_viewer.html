@@ -41,9 +41,8 @@
       min-height:100%;
       background:var(--page-bg);
       background-color:#0a1436;
-      overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:none;
+      overscroll-behavior-y:auto;
     }
 
     body{
@@ -52,20 +51,7 @@
       color:var(--text);
       background:transparent;
       padding:18px;
-      overflow-y:auto;
       overflow-x:hidden;
-      overscroll-behavior-y:none;
-      position:relative;
-    }
-
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      z-index:-1;
-      pointer-events:none;
-      background:var(--page-bg);
-      background-color:#0a1436;
     }
 
     .shell{
@@ -419,6 +405,12 @@
     }
     .sched-select{min-width:132px;}
     .sched-input{width:66px;}
+    .sched-note{
+      font-size:.7rem;
+      color:#9fb4e8;
+      margin-top:3px;
+      line-height:1.35;
+    }
 
     button{
       border:none;
@@ -439,6 +431,7 @@
     .btn-blue{background:linear-gradient(135deg,#2481ff,#1db6ff);}
     .btn-green{background:linear-gradient(135deg,#10b981,#22d3aa);}
     .btn-soft{background:#1b285e;border:1px solid #7f8ce055;color:#c7d6ff;}
+    .btn-danger{background:linear-gradient(135deg,#ef4444,#f97316);border:1px solid #fda4af66;color:#fff7f7;}
     .btn-import{background:linear-gradient(135deg,#4d5fff,#9b59ff);}
     .btn-simple.active{background:linear-gradient(135deg,#06b6d4,#22d3ee);color:#001828;border-color:#57e7ff;}
 
@@ -477,6 +470,7 @@
       display:grid;
       grid-template-columns:1.45fr .7fr;
       gap:16px;
+      align-items:start;
     }
 
     .panel{
@@ -809,7 +803,9 @@
       display:flex;
       flex-direction:column;
       gap:9px;
-      position:static;
+      position:sticky;
+      top:12px;
+      align-self:start;
     }
 
     .activity-head{
@@ -860,12 +856,17 @@
       border-radius:12px;
       padding:9px 8px;
       flex:1;
+      min-height:180px;
+      max-height:38vh;
       display:flex;
       flex-direction:column;
       gap:10px;
-      max-height:none;
-      overflow:visible;
+      overflow:auto;
     }
+
+    .log-box::-webkit-scrollbar{width:10px;}
+    .log-box::-webkit-scrollbar-track{background:#071037;border-radius:999px;}
+    .log-box::-webkit-scrollbar-thumb{background:#9eb2d35f;border-radius:999px;}
 
     .log-entry{
       border:1px solid #2f4f9a70;
@@ -1104,9 +1105,13 @@
       border-radius:12px;
       padding:12px;
       margin-top:12px;
-      max-height:none;
-      overflow:visible;
+      max-height:34vh;
+      overflow:auto;
     }
+
+    .stats-panel::-webkit-scrollbar{width:10px;}
+    .stats-panel::-webkit-scrollbar-track{background:#1a2f63;border-radius:999px;}
+    .stats-panel::-webkit-scrollbar-thumb{background:#9eb2d35f;border-radius:999px;}
 
     .stats-panel h4{
       font-size:.82rem;
@@ -1118,6 +1123,8 @@
     .stat-item{
       display:flex;
       justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
       padding:6px 0;
       border-bottom:1px solid #3a4a7a;
       font-size:.73rem;
@@ -1129,11 +1136,66 @@
     .stat-label{
       font-weight:700;
       color:#a6b8e8;
+      min-width:0;
+      flex:1 1 auto;
     }
 
     .stat-value{
       color:#7fe9ff;
       font-weight:800;
+      min-width:0;
+      flex:0 1 48%;
+      text-align:right;
+      overflow-wrap:anywhere;
+    }
+
+    .stats-note{
+      font-size:.72rem;
+      color:#9fb4e8;
+      margin-bottom:8px;
+      line-height:1.4;
+    }
+
+    .stats-section-title{
+      margin-top:10px;
+      margin-bottom:6px;
+      font-size:.7rem;
+      color:#aac1f0;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+
+    .process-metrics{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .process-metric{
+      background:#1b2f64;
+      border:1px solid #6f85c84a;
+      border-radius:9px;
+      padding:8px 9px;
+    }
+
+    .process-metric-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      gap:8px;
+      font-size:.73rem;
+      font-weight:800;
+      color:#d9e6ff;
+    }
+
+    .process-metric-meta{
+      margin-top:5px;
+      font-size:.7rem;
+      color:#9dd5ff;
+      line-height:1.4;
+      overflow-wrap:anywhere;
     }
 
     .proc-card{
@@ -1407,6 +1469,8 @@
       .main{grid-template-columns:1fr;}
       .lanes{grid-template-columns:1fr 1fr;}
       .activity{position:static;top:auto;}
+      .log-box{max-height:none;}
+      .stats-panel{max-height:none;}
     }
 
     @media (max-width:680px){
@@ -1504,6 +1568,7 @@
             <button class="btn-blue" id="newBtn"><i class="fa-solid fa-plus"></i> New Process</button>
             <button class="btn-blue" id="stepBtn"><i class="fa-solid fa-play"></i> Step Forward</button>
             <button class="btn-green" id="autoBtn"><i class="fa-solid fa-forward"></i> Auto Run</button>
+            <button class="btn-danger" id="quickClearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
             <button class="btn-soft" id="customEditorBtn" style="background:linear-gradient(135deg,#7b5dff,#2eb8ff);"><i class="fa-solid fa-code"></i> Custom Process</button>
           </div>
         </div>
@@ -1527,10 +1592,14 @@
               <select id="schedulerSelect" class="sched-select">
                 <option value="rr" selected>Round Robin</option>
                 <option value="fcfs">FCFS</option>
+                <option value="sjf">SJF (Non-preemptive)</option>
+                <option value="priority">Priority (Non-preemptive)</option>
+                <option value="srtf">SRTF (Preemptive)</option>
               </select>
-              <span style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
+              <span id="quantumLabel" style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
               <input id="quantumInput" class="sched-input" type="number" min="1" max="10" value="2">
             </div>
+            <div class="sched-note" id="schedulerModeNote">Round Robin: CPU rotates after each quantum.</div>
           </div>
         </div>
       </details>
@@ -1803,8 +1872,17 @@
   let rrQuantum = 2;
   let rrSliceUsed = 0;
   let rrActivePid = null;
+  let cpuPinnedPid = null;
   let lastLogSecondKey = "";
   const RECOMMENDED_TRANSITION_LIMIT = 15;
+
+  const schedulerLabels = {
+    rr: "Round Robin",
+    fcfs: "FCFS",
+    sjf: "SJF (Non-preemptive)",
+    priority: "Priority (Non-preemptive)",
+    srtf: "SRTF (Preemptive)"
+  };
 
   function warnIfDenseTimeline(source, count){
     if(count <= RECOMMENDED_TRANSITION_LIMIT) return;
@@ -2196,26 +2274,108 @@
         rrSliceUsed = 0;
         rrActivePid = null;
       }
+    } else if((schedulerMode === "sjf" || schedulerMode === "priority") && cpuPinnedPid === proc.id && proc.state !== "RUNNING"){
+      cpuPinnedPid = null;
     }
 
     updateUI();
   }
 
   function getRunnableProcesses(){
-    return processes.filter((p) => p.state !== "TERMINATED");
+    return processes.filter((p) => p.state !== "TERMINATED" && p.step < p.trace.length);
+  }
+
+  function getRemainingBurst(proc){
+    return Math.max(0, (proc.burstEstimate || 0) - (proc.executedSteps || 0));
+  }
+
+  function getReadyCandidates(runnable){
+    const ready = [];
+    const seen = new Set();
+
+    readyQueueOrder.forEach((id) => {
+      if(seen.has(id)) return;
+      const p = runnable.find((item) => item.id === id && item.state === "READY");
+      if(!p) return;
+      seen.add(id);
+      ready.push(p);
+    });
+
+    runnable.forEach((p) => {
+      if(p.state === "READY" && !seen.has(p.id)){
+        seen.add(p.id);
+        ready.push(p);
+      }
+    });
+
+    return ready;
+  }
+
+  function canAdvanceWithoutCpu(proc){
+    if(!proc) return false;
+    if(proc.state !== "NEW" && proc.state !== "WAITING") return false;
+    const next = proc.trace[proc.step];
+    return !!next && next.from === proc.state && next.to === "READY";
   }
 
   function getNextRunnableProcess(){
     const runnable = getRunnableProcesses();
     if(runnable.length === 0) return null;
 
-    const readyCandidates = readyQueueOrder
-      .map((id) => runnable.find((p) => p.id === id))
-      .filter((p) => !!p);
+    const readyCandidates = getReadyCandidates(runnable);
+
+    const pickMin = (list, valueFn) => {
+      if(list.length === 0) return null;
+      return list.slice().sort((a, b) => {
+        const va = valueFn(a);
+        const vb = valueFn(b);
+        if(va !== vb) return va - vb;
+        return (a.arrivalStep || 0) - (b.arrivalStep || 0);
+      })[0];
+    };
+
+    const fallbackUnblock = () => runnable.find((p) => canAdvanceWithoutCpu(p)) || null;
 
     if(schedulerMode === "fcfs"){
       if(readyCandidates.length > 0) return readyCandidates[0];
-      return runnable[0];
+      return fallbackUnblock();
+    }
+
+    if(schedulerMode === "sjf"){
+      if(cpuPinnedPid !== null){
+        const pinned = runnable.find((p) => p.id === cpuPinnedPid);
+        if(pinned && (pinned.state === "READY" || pinned.state === "RUNNING")) return pinned;
+        cpuPinnedPid = null;
+      }
+
+      if(readyCandidates.length > 0){
+        const next = pickMin(readyCandidates, (p) => getRemainingBurst(p));
+        cpuPinnedPid = next ? next.id : null;
+        return next;
+      }
+      return fallbackUnblock();
+    }
+
+    if(schedulerMode === "priority"){
+      if(cpuPinnedPid !== null){
+        const pinned = runnable.find((p) => p.id === cpuPinnedPid);
+        if(pinned && (pinned.state === "READY" || pinned.state === "RUNNING")) return pinned;
+        cpuPinnedPid = null;
+      }
+
+      if(readyCandidates.length > 0){
+        const next = pickMin(readyCandidates, (p) => (p.priority || 5));
+        cpuPinnedPid = next ? next.id : null;
+        return next;
+      }
+      return fallbackUnblock();
+    }
+
+    if(schedulerMode === "srtf"){
+      if(readyCandidates.length > 0){
+        return pickMin(readyCandidates, (p) => getRemainingBurst(p));
+      }
+      return fallbackUnblock();
     }
 
     // Round Robin: continue active process until quantum expires, then rotate.
@@ -2224,11 +2384,20 @@
       if(active) return active;
     }
 
-    const pool = readyCandidates.length > 0 ? readyCandidates : runnable;
+    const pool = readyCandidates.length > 0
+      ? readyCandidates
+      : runnable.filter((p) => canAdvanceWithoutCpu(p));
+    if(pool.length === 0) return null;
+
     roundRobinCursor = (roundRobinCursor + 1) % pool.length;
     const next = pool[roundRobinCursor];
-    rrActivePid = next.id;
-    rrSliceUsed = 0;
+    if(next.state === "READY"){
+      rrActivePid = next.id;
+      rrSliceUsed = 0;
+    } else {
+      rrActivePid = null;
+      rrSliceUsed = 0;
+    }
     return next;
   }
 
@@ -2246,6 +2415,7 @@
     readyQueueOrder = [];
     rrSliceUsed = 0;
     rrActivePid = null;
+    cpuPinnedPid = null;
     stopAuto();
     updateUI();
   }
@@ -2287,6 +2457,8 @@
           rrSliceUsed = 0;
           rrActivePid = null;
         }
+      } else if((schedulerMode === "sjf" || schedulerMode === "priority") && cpuPinnedPid === next.id && next.state !== "RUNNING"){
+        cpuPinnedPid = null;
       }
 
       updateUI();
@@ -2404,21 +2576,22 @@
     }
 
     const stateClass = statePillClass[proc.state];
-    const reason = proc.step === 0 ? "Process is created and waiting to transition." : proc.trace[proc.step - 1].why;
+    const latest = proc.step === 0 ? "Process created and waiting for first transition." : proc.trace[proc.step - 1].why;
+    const responseText = proc.responseTime === null ? "Pending" : (proc.responseTime + " steps");
+    const turnaroundText = proc.completionStep === null ? "In progress" : (proc.turnaroundTime + " steps");
     const traceLine = (proc.scenario === "trace" && proc.lastVm)
       ? "<br>Trace: <b>step " + proc.lastVm.step + "</b> | PC " + proc.lastVm.pc + " | " + proc.lastVm.opName + " (" + proc.lastVm.ins + ")"
       : "";
     const sourceLine = (proc.scenario === "trace" && proc.traceSource)
       ? "<br>Source: " + proc.traceSource
       : "";
-    const metricsLine = "<br>Scheduler: <b>" + schedulerMode.toUpperCase() + "</b>" +
-      (schedulerMode === "rr" ? " (q=" + rrQuantum + ")" : "") +
-      " | Pri: <b>" + proc.priority + "</b> | WT: <b>" + proc.waitingTime + "</b> | TAT: <b>" + proc.turnaroundTime + "</b>";
+    const detailsLine = "<br>Progress: Waiting Time <b>" + proc.waitingTime + " steps</b> | Response Time <b>" + responseText + "</b> | Turnaround Time <b>" + turnaroundText + "</b>" +
+      " | CPU Slices <b>" + (proc.executedSteps || 0) + "</b>";
 
     info.innerHTML =
-      "Active: <b>" + proc.pid + "</b> " +
+      "Active Process: <b>" + proc.pid + "</b> " +
       '<span class="pill ' + stateClass + '">' + proc.state + "</span><br>" +
-      "Reason: " + reason + metricsLine + traceLine + sourceLine;
+      "Latest Update: " + latest + detailsLine + traceLine + sourceLine;
   }
 
   function updateLiveStatus(){
@@ -2499,6 +2672,28 @@
       : '<i class="fa-solid fa-eye"></i> Simple Mode';
   }
 
+  function updateSchedulerControls(){
+    const quantumInput = document.getElementById("quantumInput");
+    const quantumLabel = document.getElementById("quantumLabel");
+    const modeNote = document.getElementById("schedulerModeNote");
+    const showQuantum = schedulerMode === "rr";
+
+    if(quantumInput) quantumInput.style.display = showQuantum ? "inline-flex" : "none";
+    if(quantumLabel) quantumLabel.style.display = showQuantum ? "inline-flex" : "none";
+
+    if(!modeNote) return;
+
+    const noteMap = {
+      rr: "Round Robin: CPU rotates after each quantum.",
+      fcfs: "FCFS: earliest READY process runs first (non-preemptive).",
+      sjf: "SJF: shortest estimated remaining burst is picked (non-preemptive).",
+      priority: "Priority: lower priority value runs first (non-preemptive).",
+      srtf: "SRTF: process with the shortest remaining burst is selected every step."
+    };
+
+    modeNote.textContent = noteMap[schedulerMode] || noteMap.rr;
+  }
+
   function updateStats(){
     document.getElementById("statCreated").textContent = processes.length;
     document.getElementById("statCompleted").textContent = processes.filter((p) => p.state === "TERMINATED").length;
@@ -2514,28 +2709,53 @@
       return;
     }
 
+    const totalProcesses = processes.length;
     const completed = processes.filter((p) => p.state === "TERMINATED");
+    const active = processes.filter((p) => p.state !== "TERMINATED");
     const avgWaiting = completed.length
       ? (completed.reduce((acc, p) => acc + (p.waitingTime || 0), 0) / completed.length)
-      : 0;
+      : null;
     const avgTurnaround = completed.length
       ? (completed.reduce((acc, p) => acc + (p.turnaroundTime || 0), 0) / completed.length)
-      : 0;
+      : null;
     const avgResponse = completed.length
       ? (completed.reduce((acc, p) => acc + (p.responseTime || 0), 0) / completed.length)
-      : 0;
+      : null;
 
     const totalCpuBusy = processes.reduce((acc, p) => acc + (p.executedSteps || 0), 0);
     const cpuUtilization = globalTimeStep > 0 ? (totalCpuBusy / globalTimeStep) * 100 : 0;
     const throughput = globalTimeStep > 0 ? (completed.length / globalTimeStep) : 0;
 
+    const avgOrPending = (value) => value === null ? "Pending (no completed process yet)" : value.toFixed(2) + " steps";
+
+    const perProcessHtml = processes
+      .map((p) => {
+        const response = p.responseTime === null ? "Pending" : (p.responseTime + " steps");
+        const turnaround = p.completionStep === null ? "In progress" : (p.turnaroundTime + " steps");
+        return (
+          '<div class="process-metric">' +
+            '<div class="process-metric-head">' +
+              '<span>' + p.pid + ' - ' + p.state + '</span>' +
+              '<span>Executed: ' + (p.executedSteps || 0) + '</span>' +
+            '</div>' +
+            '<div class="process-metric-meta">Waiting Time: ' + (p.waitingTime || 0) + ' steps | Response Time: ' + response + ' | Turnaround Time: ' + turnaround + '</div>' +
+          '</div>'
+        );
+      })
+      .join('');
+
     box.innerHTML =
-      '<div class="stat-item"><span class="stat-label">Scheduler</span><span class="stat-value">' + schedulerMode.toUpperCase() + (schedulerMode === "rr" ? ' (q=' + rrQuantum + ')' : '') + '</span></div>' +
-      '<div class="stat-item"><span class="stat-label">Avg Waiting Time</span><span class="stat-value">' + avgWaiting.toFixed(2) + ' steps</span></div>' +
-      '<div class="stat-item"><span class="stat-label">Avg Turnaround Time</span><span class="stat-value">' + avgTurnaround.toFixed(2) + ' steps</span></div>' +
-      '<div class="stat-item"><span class="stat-label">Avg Response Time</span><span class="stat-value">' + avgResponse.toFixed(2) + ' steps</span></div>' +
+      '<div class="stats-note">These analytics are for all processes. Averages are calculated only from completed processes.</div>' +
+      '<div class="stats-section-title">Overall</div>' +
+      '<div class="stat-item"><span class="stat-label">Processes</span><span class="stat-value">' + totalProcesses + ' total / ' + active.length + ' active / ' + completed.length + ' done</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Scheduler</span><span class="stat-value">' + (schedulerLabels[schedulerMode] || schedulerMode.toUpperCase()) + (schedulerMode === "rr" ? ' (q=' + rrQuantum + ')' : '') + '</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Waiting Time</span><span class="stat-value">' + avgOrPending(avgWaiting) + '</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Turnaround Time</span><span class="stat-value">' + avgOrPending(avgTurnaround) + '</span></div>' +
+      '<div class="stat-item"><span class="stat-label">Avg Response Time</span><span class="stat-value">' + avgOrPending(avgResponse) + '</span></div>' +
       '<div class="stat-item"><span class="stat-label">CPU Utilization</span><span class="stat-value">' + cpuUtilization.toFixed(1) + '%</span></div>' +
-      '<div class="stat-item"><span class="stat-label">Throughput</span><span class="stat-value">' + throughput.toFixed(3) + ' proc/step</span></div>';
+      '<div class="stat-item"><span class="stat-label">Throughput</span><span class="stat-value">' + throughput.toFixed(3) + ' proc/step</span></div>' +
+      '<div class="stats-section-title">Per Process</div>' +
+      '<div class="process-metrics">' + perProcessHtml + '</div>';
   }
 
   function updateButtons(){
@@ -2686,6 +2906,7 @@
   document.getElementById("newBtn").onclick = createProcess;
   document.getElementById("stepBtn").onclick = stepForward;
   document.getElementById("autoBtn").onclick = toggleAuto;
+  document.getElementById("quickClearBtn").onclick = clearAll;
   document.getElementById("simpleModeBtn").onclick = toggleSimpleMode;
   document.getElementById("clearBtn").onclick = clearAll;
 
@@ -2930,12 +3151,14 @@
     schedulerMode = e.target.value;
     rrSliceUsed = 0;
     rrActivePid = null;
+    cpuPinnedPid = null;
     addLog({
       pid: "SYS",
       color: "#7f91b7",
       to: "Scheduler",
-      desc: "Switched scheduler to " + schedulerMode.toUpperCase()
+      desc: "Switched scheduler to " + (schedulerLabels[schedulerMode] || schedulerMode.toUpperCase())
     });
+    updateSchedulerControls();
     updateUI();
   };
 
@@ -2963,6 +3186,7 @@
     }
   });
 
+  updateSchedulerControls();
   updateUI();
 </script>
 </body>
