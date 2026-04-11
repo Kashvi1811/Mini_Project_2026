@@ -157,12 +157,6 @@
 
     .help-panel summary::-webkit-details-marker{display:none;}
 
-    .help-note{
-      font-size:.72rem;
-      color:#b7c8f0;
-      font-weight:700;
-    }
-
     .guide-grid{
       margin-top:10px;
       display:grid;
@@ -251,13 +245,30 @@
       font-weight:800;
       display:flex;
       align-items:center;
-      gap:7px;
+      justify-content:space-between;
+      gap:10px;
       user-select:none;
     }
 
     .advanced-controls summary::-webkit-details-marker{display:none;}
     .advanced-controls[open]{background:#1a2f6696;}
     .advanced-controls-body{margin-top:8px;display:flex;flex-direction:column;gap:10px;}
+    .summary-left{display:inline-flex;align-items:center;gap:7px;}
+    .summary-right{display:inline-flex;align-items:center;gap:7px;}
+    .expand-hint{
+      font-size:.66rem;
+      color:#b9ccf6;
+      background:#1a2f63c0;
+      border:1px solid #89a4e45c;
+      border-radius:999px;
+      padding:3px 8px;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+    .expand-chevron{color:#9ec5ff;font-size:.72rem;transition:transform .2s ease;}
+    .advanced-controls[open] .expand-chevron,
+    .transition-details[open] .expand-chevron{transform:rotate(180deg);}
 
     .hero-timeline{
       padding:12px 14px 14px;
@@ -392,6 +403,15 @@
 
     .btn-row,.speed-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
     .sched-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .control-label{
+      font-size:.8rem;
+      font-weight:900;
+      letter-spacing:.02em;
+      text-transform:uppercase;
+    }
+    .label-speed{color:#8fd0ff;}
+    .label-scheduler{color:#ffd78d;}
+    .label-quantum{color:#85f0cb;}
     .sched-select,
     .sched-input{
       background:#152957;
@@ -406,11 +426,18 @@
     .sched-select{min-width:132px;}
     .sched-input{width:66px;}
     .sched-note{
-      font-size:.7rem;
-      color:#9fb4e8;
-      margin-top:3px;
-      line-height:1.35;
+      font-size:.74rem;
+      color:#d8e6ff;
+      margin-top:4px;
+      line-height:1.45;
+      background:linear-gradient(135deg,#1a2f63c9,#162655c9);
+      border:1px solid #7f97df55;
+      border-radius:10px;
+      padding:8px 10px;
+      box-shadow:inset 0 1px 0 #ffffff1a;
+      max-width:700px;
     }
+    .sched-note b{color:#9fe8ff;}
 
     button{
       border:none;
@@ -453,6 +480,8 @@
     }
 
     .live-status b{color:#7fe9ff;}
+    .live-status .live-title{color:#9ec5ff;font-weight:900;letter-spacing:.02em;text-transform:uppercase;font-size:.73rem;margin-right:8px;}
+    .live-status .live-tip{color:#bfd0f6;font-weight:600;}
 
     .speed-btn{
       background:#111d4ecc;
@@ -791,7 +820,8 @@
       font-weight:800;
       display:flex;
       align-items:center;
-      gap:8px;
+      justify-content:space-between;
+      gap:10px;
       user-select:none;
     }
 
@@ -833,9 +863,30 @@
       border-radius:12px;
       padding:10px 12px;
       color:#d2defa;
-      font-size:.8rem;
-      line-height:1.45;
+      font-size:.82rem;
+      line-height:1.52;
     }
+    .quick-flow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .flow-chip{
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:.77rem;
+      font-weight:800;
+      border:1px solid #7fa0e36b;
+      background:#1a2e62;
+      color:#dbe7ff;
+      white-space:nowrap;
+    }
+    .flow-chip.accent{background:#1b356a;color:#9fe8ff;border-color:#63cfff7a;}
+    .flow-chip.soft{background:#22356a;color:#ffe2b1;border-color:#f7c66b70;}
+    .flow-arrow{color:#9fb5e7;font-weight:900;}
 
     .clear-log-btn{
       border:none;
@@ -1486,6 +1537,7 @@
       .modal-close{width:34px;height:34px;border-radius:10px;}
       .builder-row{grid-template-columns:1fr;gap:6px;}
       .builder-arrow{display:none;}
+      .expand-hint{display:none;}
     }
   </style>
 </head>
@@ -1527,8 +1579,8 @@
 
     <details class="help-panel">
       <summary>
-        <span><i class="fa-regular fa-circle-question"></i> Quick Help</span>
-        <span class="help-note">Expand only if needed</span>
+        <span class="summary-left"><i class="fa-regular fa-circle-question"></i> Quick Help</span>
+        <span class="summary-right"><span class="expand-hint">Click to expand</span><i class="fa-solid fa-chevron-down expand-chevron"></i></span>
       </summary>
       <div class="guide-grid">
         <div>
@@ -1572,23 +1624,29 @@
             <button class="btn-soft" id="customEditorBtn" style="background:linear-gradient(135deg,#7b5dff,#2eb8ff);"><i class="fa-solid fa-code"></i> Custom Process</button>
           </div>
         </div>
+        <div class="control-group">
+          <div class="group-label">Simulation Speed</div>
+          <div class="speed-row">
+            <span class="control-label label-speed">Speed:</span>
+            <button class="speed-btn" data-speed="slow">Slow</button>
+            <button class="speed-btn active" data-speed="normal">Normal</button>
+            <button class="speed-btn" data-speed="fast">Fast</button>
+          </div>
+        </div>
       </div>
       <details class="advanced-controls">
-        <summary><i class="fa-solid fa-sliders"></i> Advanced Controls</summary>
+        <summary>
+          <span class="summary-left"><i class="fa-solid fa-sliders"></i> Advanced Controls</span>
+          <span class="summary-right"><span class="expand-hint">Click to expand</span><i class="fa-solid fa-chevron-down expand-chevron"></i></span>
+        </summary>
         <div class="advanced-controls-body">
           <div class="btn-row">
             <button class="btn-soft btn-simple" id="simpleModeBtn"><i class="fa-solid fa-eye"></i> Simple Mode</button>
             <button class="btn-soft" id="clearBtn"><i class="fa-solid fa-trash"></i> Clear All</button>
           </div>
           <div class="controls-bottom">
-            <div class="speed-row">
-              <span style="font-size:.75rem;color:#a9bce8;">Speed:</span>
-              <button class="speed-btn" data-speed="slow">Slow</button>
-              <button class="speed-btn active" data-speed="normal">Normal</button>
-              <button class="speed-btn" data-speed="fast">Fast</button>
-            </div>
             <div class="sched-row">
-              <span style="font-size:.75rem;color:#a9bce8;">Scheduler:</span>
+              <span class="control-label label-scheduler">Scheduler:</span>
               <select id="schedulerSelect" class="sched-select">
                 <option value="rr" selected>Round Robin</option>
                 <option value="fcfs">FCFS</option>
@@ -1596,7 +1654,7 @@
                 <option value="priority">Priority (Non-preemptive)</option>
                 <option value="srtf">SRTF (Preemptive)</option>
               </select>
-              <span id="quantumLabel" style="font-size:.75rem;color:#a9bce8;">Quantum:</span>
+              <span id="quantumLabel" class="control-label label-quantum">Quantum:</span>
               <input id="quantumInput" class="sched-input" type="number" min="1" max="10" value="2">
             </div>
             <div class="sched-note" id="schedulerModeNote">Round Robin: CPU rotates after each quantum.</div>
@@ -1656,16 +1714,24 @@
       </div>
     </div>
 
-    <div class="live-status" id="liveStatus">Now: No process yet. Click New Process to begin.</div>
+    <div class="live-status" id="liveStatus"><span class="live-title">Current Step</span>No process yet. Click <b>New Process</b>, then <b>Step Forward</b> (or <b>Auto Run</b>) to start simulation.</div>
 
-    <div class="minimal-note">Quick flow: <b>New Process</b> -> <b>Step Forward</b>. Open <b>Advanced Controls</b> only when needed.</div>
+    <div class="minimal-note">
+      <div class="quick-flow">
+        <span class="flow-chip">Quick Flow</span>
+        <span class="flow-chip accent">New Process</span>
+        <span class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="flow-chip accent">Step Forward</span>
+        <span class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="flow-chip accent">Auto Run (Optional)</span>
+      </div>
+    </div>
 
     <div class="panel hero-timeline">
       <div class="timeline-section">
         <div class="timeline-head">
           <div>
             <h4><i class="fa-solid fa-chart-gantt"></i> CPU Timeline</h4>
-            <div class="timeline-subtitle" id="timelineSubtitle">Color-coded slices show how each process moved through the CPU and waiting states. Time scale: 1 unit = 1 second.</div>
           </div>
           <div class="timeline-legend">
             <span class="timeline-tag new">New</span>
@@ -1713,7 +1779,10 @@
 
         <div class="transition-section">
           <details class="transition-details">
-          <summary><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transition Reference</summary>
+          <summary>
+            <span class="summary-left"><i class="fa-solid fa-arrow-right-arrow-left"></i> State Transition Reference</span>
+            <span class="summary-right"><span class="expand-hint">Click to expand</span><i class="fa-solid fa-chevron-down expand-chevron"></i></span>
+          </summary>
           <div class="transition-map">
           <div class="transition-item t-new-ready" id="trans-NEW_READY">
             <div class="transition-route">
@@ -2599,17 +2668,17 @@
     const proc = getActiveProcess();
 
     if(!proc){
-      live.innerHTML = "Now: No process yet. Click <b>New Process</b> to begin.";
+      live.innerHTML = '<span class="live-title">Current Step</span>No process yet. Click <b>New Process</b>, then <b>Step Forward</b> to begin.';
       return;
     }
 
     if(proc.step === 0){
-      live.innerHTML = "Now: <b>" + proc.pid + "</b> is in <b>" + proc.state + "</b>.";
+      live.innerHTML = '<span class="live-title">Current Step</span><b>' + proc.pid + '</b> is currently in <b>' + proc.state + '</b>. <span class="live-tip">Use Step Forward to trigger the next state change.</span>';
       return;
     }
 
     const ev = proc.trace[proc.step - 1];
-    live.innerHTML = "Now: <b>" + proc.pid + "</b> transitioned <b>" + ev.from + "</b> to <b>" + ev.to + "</b>.";
+    live.innerHTML = '<span class="live-title">Current Step</span><b>' + proc.pid + '</b> moved from <b>' + ev.from + '</b> to <b>' + ev.to + '</b>. <span class="live-tip">This happened because: ' + (ev.why || 'scheduler decision or I/O event') + '.</span>';
   }
 
   function updateEducationPanel(){
@@ -2684,14 +2753,14 @@
     if(!modeNote) return;
 
     const noteMap = {
-      rr: "Round Robin: CPU rotates after each quantum.",
-      fcfs: "FCFS: earliest READY process runs first (non-preemptive).",
-      sjf: "SJF: shortest estimated remaining burst is picked (non-preemptive).",
-      priority: "Priority: lower priority value runs first (non-preemptive).",
-      srtf: "SRTF: process with the shortest remaining burst is selected every step."
+      rr: "<b>Round Robin</b> shares CPU fairly by giving each READY process a fixed time quantum. After a slice ends, the process goes to the back of the queue.",
+      fcfs: "<b>FCFS</b> runs processes in arrival order. Once a process gets CPU, it keeps it until it blocks or finishes (simple, but long jobs can delay short ones).",
+      sjf: "<b>SJF (Non-preemptive)</b> picks the process with the shortest estimated burst, then lets it continue until it blocks or completes.",
+      priority: "<b>Priority (Non-preemptive)</b> runs the READY process with the highest priority first (lower number = higher priority), then keeps it on CPU until it yields.",
+      srtf: "<b>SRTF (Preemptive)</b> always chooses the process with the shortest remaining burst at each step, so short tasks can preempt longer ones quickly."
     };
 
-    modeNote.textContent = noteMap[schedulerMode] || noteMap.rr;
+    modeNote.innerHTML = noteMap[schedulerMode] || noteMap.rr;
   }
 
   function updateStats(){
@@ -2770,19 +2839,11 @@
 
   function renderTimeline(){
     const chart = document.getElementById("timelineChart");
-    const timelineSubtitle = document.getElementById("timelineSubtitle");
     chart.innerHTML = "";
 
     if(globalTimeStep === 0){
-      if(timelineSubtitle){
-        timelineSubtitle.textContent = "Color-coded slices share one global time axis so scheduler differences are easier to compare.";
-      }
       chart.innerHTML = '<div class="timeline-empty">No timeline yet. Create a process to begin.</div>';
       return;
-    }
-
-    if(timelineSubtitle){
-      timelineSubtitle.textContent = "All rows share the same global time axis. Time scale: 1 step = 1 second (labels auto-scale for readability).";
     }
 
     const stateToClass = {
@@ -2799,15 +2860,6 @@
       RUNNING: "RUN",
       WAITING: "WAIT",
       TERMINATED: "END"
-    };
-
-    const formatClock = (timestamp) => {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit"
-      });
     };
 
     processes.slice(0, 6).forEach((proc) => {
@@ -2901,10 +2953,6 @@
       row.appendChild(track);
       chart.appendChild(row);
     });
-  }
-
-  function updateEducationPanel(){
-    // removed for cleaner minimal layout
   }
 
   function updateUI(){
