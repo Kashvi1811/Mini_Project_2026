@@ -266,7 +266,7 @@ This repo includes an auto-deploy workflow in `.github/workflows/` (currently `j
 
 ### Public links
 
-- CLI Version: [Download v1.0.0](https://github.com/Kashvi1811/Custom-Virtual-Machine/releases/tag/v1.0.0)
+- CLI Version: [Download v2.0.0](https://github.com/Kashvi1811/Custom-Virtual-Machine/releases/tag/v2.0.0)
 - Visual Simulation: [Open Live Viewer](https://kashvi1811.github.io/Custom-Virtual-Machine/)
 
 ## 📦 Best Way to Share Native CLI (No Clone/Build)
