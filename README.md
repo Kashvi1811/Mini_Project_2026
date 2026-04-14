@@ -106,7 +106,7 @@ It is ideal for mini-project demos, OS/COA learning, and systems programming pra
 - **Try the Visual Simulation (Viewer):**  
   [Open the interactive viewer](https://kashvi1811.github.io/Custom-Virtual-Machine/)
 
-  - **Try the Process State Visualizer:**  
+- **Try the Process State Visualizer:**  
   [Open the process visualizer](https://kashvi1811.github.io/process-viewer-site/)
 
 ### 1) ⚙️ Run C++ VM (PowerShell / Windows)
