@@ -271,6 +271,7 @@ This repo includes an auto-deploy workflow in `.github/workflows/` (currently `j
 
 - CLI Version: [Download v2.0.0](https://github.com/Kashvi1811/Custom-Virtual-Machine/releases/tag/v2.0.0)
 - Visual Simulation: [Open Live Viewer](https://kashvi1811.github.io/Custom-Virtual-Machine/)
+- Process State Visualizer: [Open process visualizer](https://kashvi1811.github.io/process-viewer-site/)
 
 ## 📦 Best Way to Share Native CLI (No Clone/Build)
 
